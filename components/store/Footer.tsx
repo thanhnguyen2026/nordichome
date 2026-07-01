@@ -1,0 +1,143 @@
+import Image from 'next/image'
+import { MapPin, Mail, Phone } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+
+interface Settings {
+  logo_url?: string
+  site_name?: string
+  address?: string
+  email?: string
+  hotline?: string
+  footer_description?: string
+  footer_copyright?: string
+}
+
+async function getSocialChannels() {
+  const { data } = await supabase
+    .from('social_channels')
+    .select('*')
+    .order('sort_order')
+  return data || []
+}
+
+export default async function Footer({ settings }: { settings: Settings }) {
+  const socialChannels = await getSocialChannels()
+
+  return (
+    <footer className="bg-stone-900 text-stone-400 px-4 py-14">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+
+        {/* Brand */}
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            {settings.logo_url && (
+              <Image
+                src={settings.logo_url}
+                alt="Logo"
+                width={48}
+                height={48}
+                className="h-12 w-12 object-contain rounded-lg bg-white p-0.5"
+              />
+            )}
+            <div>
+              <div className="text-base font-black text-amber-50">
+                {settings.site_name || 'NORDIC HOME'}
+              </div>
+              <div className="font-serif italic font-semibold text-[10px] text-amber-600 tracking-[2px]">
+                Simplify & Enjoy
+              </div>
+            </div>
+          </div>
+          <p className="text-sm leading-relaxed mt-3">
+            {settings.footer_description || 'Nội thất phong cách tối giản, tinh tế và mộc mạc.'}
+          </p>
+        </div>
+
+        {/* Sản phẩm */}
+        <div>
+          <div className="font-bold text-amber-100 mb-4 text-sm tracking-wide">Sản phẩm</div>
+          <div className="flex flex-col gap-2.5 text-sm">
+            <a href="/products" className="hover:text-amber-200 transition">Tất cả sản phẩm</a>
+            <a href="/products?featured=true" className="hover:text-amber-200 transition">Nổi bật</a>
+            <a href="/products?new=true" className="hover:text-amber-200 transition">Hàng mới</a>
+            <a href="/orders/track" className="hover:text-amber-200 transition">Theo dõi đơn hàng</a>
+          </div>
+        </div>
+
+        {/* Liên hệ */}
+        <div>
+          <div className="font-bold text-amber-100 mb-4 text-sm tracking-wide">Liên hệ</div>
+          <div className="flex flex-col gap-3 text-sm">
+            {settings.address && (
+              <div className="flex items-start gap-2.5">
+                <MapPin size={15} className="text-stone-500 flex-shrink-0 mt-0.5" />
+                <span>{settings.address}</span>
+              </div>
+            )}
+            {settings.hotline && (
+              <div className="flex items-center gap-2.5">
+                <Phone size={15} className="text-stone-500 flex-shrink-0" />
+                <a href={`tel:${settings.hotline}`} className="hover:text-amber-200 transition">
+                  {settings.hotline}
+                </a>
+              </div>
+            )}
+            {settings.email && (
+              <div className="flex items-center gap-2.5">
+                <Mail size={15} className="text-stone-500 flex-shrink-0" />
+                <a href={`mailto:${settings.email}`} className="hover:text-amber-200 transition break-all">
+                  {settings.email}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Kết nối — lấy từ database */}
+        <div>
+          <div className="font-bold text-amber-100 mb-4 text-sm tracking-wide">Kết nối</div>
+          <div className="flex flex-col gap-3">
+            {socialChannels.length === 0 ? (
+              <p className="text-stone-600 text-xs">Chưa có kênh nào</p>
+            ) : (
+              socialChannels.map(ch => (
+                <a
+                  key={ch.id}
+                  href={ch.url || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 text-sm text-stone-400 hover:text-amber-200 transition-colors duration-200 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-stone-800 flex items-center justify-center group-hover:bg-stone-700 transition-colors overflow-hidden flex-shrink-0">
+                    {ch.icon_url ? (
+                      <img
+                        src={ch.icon_url}
+                        alt={ch.name}
+                        className="w-5 h-5 object-contain"
+                      />
+                    ) : (
+                      <span className="text-xs font-black text-stone-300">
+                        {ch.name?.[0] || '?'}
+                      </span>
+                    )}
+                  </div>
+                  <span>{ch.name}</span>
+                </a>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="border-t border-stone-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-stone-600">
+        <span>{settings.footer_copyright || `© ${new Date().getFullYear()} ${settings.site_name || 'Nordic Home'}. All rights reserved.`}</span>
+        <div className="flex gap-4">
+          <a href="#" className="hover:text-stone-400 transition">Chính sách bảo mật</a>
+          <a href="#" className="hover:text-stone-400 transition">Điều khoản sử dụng</a>
+          <a href="#" className="hover:text-stone-400 transition">Chính sách đổi trả</a>
+        </div>
+      </div>
+    </footer>
+  )
+}

@@ -1,0 +1,172 @@
+import { supabase } from '@/lib/supabase'
+import Header from '@/components/store/Header'
+import Footer from '@/components/store/Footer'
+import ProductCard from '@/components/store/ProductCard'
+import CategorySidebar from '@/components/store/CategorySidebar'
+import SortSelect from '@/components/store/SortSelect'
+import RevealOnScroll from '@/components/store/RevealOnScroll'
+import { PackageOpen } from 'lucide-react'
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; featured?: string; new?: string; sort?: string }>
+}) {
+  const sp = await searchParams
+
+  const [{ data: settings }, { data: categories }, { data: allProds }, { data: variantCounts }] = await Promise.all([
+    supabase.from('settings').select('key,value'),
+    supabase.from('categories').select('*').eq('is_visible', true).order('sort_order'),
+    supabase.from('products').select('id,category_id').eq('is_visible', true),
+    // Lấy price của tất cả variants để tính giá thấp nhất mỗi SP
+    supabase.from('product_variants').select('product_id, price'),
+  ])
+
+  const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
+
+  const productIdsWithVariants = new Set(variantCounts?.map(v => v.product_id) ?? [])
+
+  // Tính giá thấp nhất theo product_id
+  const minVariantPriceMap: Record<string, number> = {}
+  variantCounts?.forEach(v => {
+    if (v.price == null) return
+    const cur = minVariantPriceMap[v.product_id]
+    if (cur == null || v.price < cur) minVariantPriceMap[v.product_id] = v.price
+  })
+
+  // Tính số sản phẩm cho từng danh mục (tính cả con)
+  const countMap: Record<string, number> = {}
+  categories?.forEach(cat => {
+    const children = categories.filter(c => c.parent_id === cat.id)
+    const ids = [cat.id, ...children.map(c => c.id)]
+    countMap[cat.id] = allProds?.filter(p => ids.includes(p.category_id)).length || 0
+  })
+
+  // Danh mục đang chọn
+  const activeCategory = categories?.find(c => c.slug === sp.category)
+  let categoryIds: string[] = []
+  if (activeCategory) {
+    const children = categories?.filter(c => c.parent_id === activeCategory.id) || []
+    categoryIds = [activeCategory.id, ...children.map(c => c.id)]
+  }
+
+  // Build query sản phẩm
+  let query = supabase
+    .from('products')
+    .select('*,category:categories(name,slug)')
+    .eq('is_visible', true)
+
+  if (categoryIds.length > 0) {
+    query = query.in('category_id', categoryIds)
+  } else if (sp.featured === 'true') {
+    query = query.eq('is_featured', true)
+  } else if (sp.new === 'true') {
+    query = query.eq('is_new', true)
+  }
+
+  if (sp.sort === 'price_asc') query = query.order('price', { ascending: true })
+  else if (sp.sort === 'price_desc') query = query.order('price', { ascending: false })
+  else query = query.order('created_at', { ascending: false })
+
+  const { data: products } = await query
+
+  // Breadcrumbs
+  const parentCat = activeCategory?.parent_id
+    ? categories?.find(c => c.id === activeCategory.parent_id)
+    : null
+
+  const pageTitle = activeCategory?.name ||
+    (sp.featured ? 'Sản phẩm nổi bật' : sp.new ? 'Hàng mới về' : 'Tất cả sản phẩm')
+
+  return (
+    <>
+      <Header settings={s} />
+
+      <div className="border-b border-stone-100 bg-white">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-xs text-stone-400">
+          <a href="/" className="hover:text-stone-700 transition">Trang chủ</a>
+          <span>/</span>
+          <a href="/products" className="hover:text-stone-700 transition">Sản phẩm</a>
+          {parentCat && (
+            <>
+              <span>/</span>
+              <a href={`/products?category=${parentCat.slug}`} className="hover:text-stone-700 transition">
+                {parentCat.name}
+              </a>
+            </>
+          )}
+          {activeCategory && (
+            <>
+              <span>/</span>
+              <span className="text-stone-700 font-semibold">{activeCategory.name}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile: category pills scrollable — ẩn trên desktop */}
+      <div className="md:hidden overflow-x-auto flex gap-2 px-4 py-3 border-b border-stone-100 bg-white">
+        <a href="/products"
+          className={`flex-shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition whitespace-nowrap ${!sp.category ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+          Tất cả
+        </a>
+        {categories?.filter(c => !c.parent_id).map(cat => (
+          <a key={cat.id} href={`/products?category=${cat.slug}`}
+            className={`flex-shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition whitespace-nowrap ${sp.category === cat.slug ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+            {cat.name}
+            {(countMap[cat.id] || 0) > 0 && (
+              <span className="ml-1 opacity-60">{countMap[cat.id]}</span>
+            )}
+          </a>
+        ))}
+      </div>
+
+      <main className="max-w-6xl mx-auto px-4 py-8 flex gap-8">
+        <CategorySidebar
+          categories={categories || []}
+          activeSlug={sp.category}
+          countMap={countMap}
+        />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+            <div>
+              <h1 className="text-xl font-black text-stone-900">{pageTitle}</h1>
+              <p className="text-stone-400 text-sm mt-0.5">{products?.length || 0} sản phẩm</p>
+            </div>
+            <SortSelect defaultValue={sp.sort} />
+          </div>
+
+          {!products?.length ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <PackageOpen className="w-20 h-20 text-slate-300 mb-4" strokeWidth={1} />
+              <p className="text-stone-600 font-semibold text-base mb-1">Chưa có sản phẩm nào trong danh mục này</p>
+              <p className="text-stone-400 text-sm mb-6">Hãy thử xem các danh mục khác nhé!</p>
+              <div className="flex gap-3 flex-wrap justify-center">
+                <a href="/products" className="bg-stone-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-stone-700 transition">
+                  Xem tất cả sản phẩm
+                </a>
+                <a href="/" className="border border-stone-300 text-stone-700 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-stone-50 transition">
+                  Về trang chủ
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+              {products.map((p, i) => (
+                <RevealOnScroll key={p.id} index={i}>
+                  <ProductCard
+                    product={p as any}
+                    hasVariants={productIdsWithVariants.has(p.id)}
+                    minVariantPrice={minVariantPriceMap[p.id] ?? null}
+                  />
+                </RevealOnScroll>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer settings={s} />
+    </>
+  )
+}
