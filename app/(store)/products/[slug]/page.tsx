@@ -159,7 +159,7 @@ export default async function ProductDetailPage({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
               {related.map((p, i) => (
-                <RevealOnScroll key={p.id} index={i}>
+                <RevealOnScroll key={p.id} index={i} blur={false}>
                   <ProductCard
                     product={p}
                     hasVariants={productIdsWithVariants.has(p.id)}

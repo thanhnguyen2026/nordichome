@@ -160,10 +160,11 @@ export default async function HomePage() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {featured.map((p, i) => (
-                  <RevealOnScroll key={p.id} index={i}>
+                  <RevealOnScroll key={p.id} index={i} blur={false}>
                     <ProductCard product={p}
                       hasVariants={productIdsWithVariants.has(p.id)}
-                      minVariantPrice={minVariantPriceMap[p.id] ?? null} />
+                      minVariantPrice={minVariantPriceMap[p.id] ?? null}
+                      priority={i < 4} />
                   </RevealOnScroll>
                 ))}
               </div>
@@ -184,10 +185,11 @@ export default async function HomePage() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {newProds.map((p, i) => (
-                  <RevealOnScroll key={p.id} index={i}>
+                  <RevealOnScroll key={p.id} index={i} blur={false}>
                     <ProductCard product={p}
                       hasVariants={productIdsWithVariants.has(p.id)}
-                      minVariantPrice={minVariantPriceMap[p.id] ?? null} />
+                      minVariantPrice={minVariantPriceMap[p.id] ?? null}
+                      priority={i < 4} />
                   </RevealOnScroll>
                 ))}
               </div>
@@ -214,8 +216,9 @@ export default async function HomePage() {
                 const offset = looks.length >= 3 && i % 2 === 1 ? 'lg:mt-10' : ''
                 return (
                   <RevealOnScroll key={look.id} index={i} className={`group ${offset}`}>
-                    {/* Ảnh thumbnail + dots trang trí */}
-                    <div className={`relative ${aspect} rounded-2xl overflow-hidden mb-4 bg-stone-100`}>
+                    {/* Ảnh thumbnail + dots trang trí — bấm vào ảnh cũng vào chi tiết,
+                        khớp với hiệu ứng hover scale đang gợi ý "bấm được" */}
+                    <Link href={`/looks/${look.id}`} className={`relative block ${aspect} rounded-2xl overflow-hidden mb-4 bg-stone-100`}>
                       <Image
                         src={look.image_url}
                         alt={look.title}
@@ -234,7 +237,7 @@ export default async function HomePage() {
                           <span className="relative flex w-5 h-5 rounded-full bg-white shadow-lg border-2 border-amber-400" />
                         </div>
                       ))}
-                    </div>
+                    </Link>
 
                     {/* Info */}
                     <p className="text-xs font-black tracking-[3px] uppercase text-stone-800 mb-1.5">

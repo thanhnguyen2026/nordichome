@@ -10,9 +10,13 @@ interface Props {
   product: Product
   hasVariants?: boolean
   minVariantPrice?: number | null
+  // Ảnh trong khung nhìn đầu tiên nên tải ngay (không lazy) — trên iOS Safari,
+  // ảnh fill + lazy-load đôi khi tải/giải mã xong nhưng không tự vẽ lại, hiện
+  // mờ (frame cũ) cho tới khi người dùng cuộn để trình duyệt buộc phải repaint.
+  priority?: boolean
 }
 
-export default function ProductCard({ product: p, hasVariants = false, minVariantPrice }: Props) {
+export default function ProductCard({ product: p, hasVariants = false, minVariantPrice, priority = false }: Props) {
   const addItem = useCartStore(s => s.addItem)
   const [hovered, setHovered] = useState(false)
 
@@ -54,6 +58,8 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
                 alt={p.name}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
+                priority={priority}
+                loading={priority ? 'eager' : 'lazy'}
                 className={`object-cover transition-all duration-500 ${
                   hovered && secondImage ? 'opacity-0 scale-105' : 'opacity-100 scale-100'
                 }`}

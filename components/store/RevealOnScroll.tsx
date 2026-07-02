@@ -5,6 +5,9 @@ interface Props {
   children: React.ReactNode
   index?: number
   className?: string
+  // Tắt cho lưới sản phẩm — khách xem hàng cần thấy ảnh rõ ngay, mờ dù chỉ
+  // một nhịp cũng dễ bị hiểu nhầm là ảnh tải lỗi/chậm thay vì hiệu ứng chủ đích.
+  blur?: boolean
 }
 
 const RISE_PX = 26
@@ -22,7 +25,7 @@ const STAGGER_PX = 34
  * phần tử kẹt ở opacity 0 vĩnh viễn nếu callback đầu tiên bị lỡ nhịp lúc
  * layout còn dịch chuyển (ảnh đang tải, font đang swap, v.v.).
  */
-export default function RevealOnScroll({ children, index = 0, className = '' }: Props) {
+export default function RevealOnScroll({ children, index = 0, className = '', blur = true }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -52,7 +55,7 @@ export default function RevealOnScroll({ children, index = 0, className = '' }: 
 
       el.style.opacity = String(progress)
       el.style.transform = `translateY(${(1 - progress) * RISE_PX}px) scale(${0.98 + progress * 0.02})`
-      el.style.filter = progress < 1 ? `blur(${(1 - progress) * BLUR_PX}px)` : ''
+      el.style.filter = blur && progress < 1 ? `blur(${(1 - progress) * BLUR_PX}px)` : ''
 
       if (progress >= 1) {
         done = true
@@ -75,7 +78,7 @@ export default function RevealOnScroll({ children, index = 0, className = '' }: 
       cleanup()
       if (frameId) cancelAnimationFrame(frameId)
     }
-  }, [index])
+  }, [index, blur])
 
   return (
     <div ref={ref} className={className} style={{ opacity: 0, willChange: 'transform, opacity, filter' }}>

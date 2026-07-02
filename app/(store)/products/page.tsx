@@ -163,11 +163,12 @@ export default async function ProductsPage({
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
               {products.map((p, i) => (
-                <RevealOnScroll key={p.id} index={i}>
+                <RevealOnScroll key={p.id} index={i} blur={false}>
                   <ProductCard
                     product={p}
                     hasVariants={productIdsWithVariants.has(p.id)}
                     minVariantPrice={minVariantPriceMap[p.id] ?? null}
+                    priority={i < 6}
                   />
                 </RevealOnScroll>
               ))}
