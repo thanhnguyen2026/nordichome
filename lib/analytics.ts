@@ -2,28 +2,28 @@
 
 declare global {
   interface Window {
-    dataLayer: any[]
-    gtag:  (...args: any[]) => void
-    fbq:   (...args: any[]) => void
+    dataLayer: unknown[]
+    gtag:  (...args: unknown[]) => void
+    fbq:   (...args: unknown[]) => void
   }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function dlPush(obj: Record<string, any>) {
+function dlPush(obj: Record<string, unknown>) {
   if (typeof window === 'undefined') return
   window.dataLayer = window.dataLayer || []
   window.dataLayer.push({ ecommerce: null }) // GA4 clear
   window.dataLayer.push(obj)
 }
 
-function gtag(...args: any[]) {
+function gtag(...args: unknown[]) {
   if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
     window.gtag(...args)
   }
 }
 
-function fbq(...args: any[]) {
+function fbq(...args: unknown[]) {
   if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
     window.fbq(...args)
   }

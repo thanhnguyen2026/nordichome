@@ -21,7 +21,11 @@ const fontSerif = Cormorant_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: "Nordic Home - Simplify & Enjoy",
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
+  title: {
+    default: "Nordic Home - Simplify & Enjoy",
+    template: "%s | Nordic Home",
+  },
   description: "Nội thất phong cách Bắc Âu — thiết kế tinh tế, chất liệu tự nhiên bền vững.",
 }
 

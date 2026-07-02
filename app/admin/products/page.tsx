@@ -1,9 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import ProductForm from '@/components/admin/ProductForm'
 import { Product, Category } from '@/types'
+import type { Variant } from '@/components/admin/VariantsManager'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
 
@@ -19,17 +21,19 @@ export default function AdminProducts() {
       supabase.from('products').select('*,category:categories(name)').order('created_at', { ascending: false }),
       supabase.from('categories').select('*').order('sort_order'),
     ])
-    setProducts(prods as any || [])
+    setProducts((prods as unknown as Product[]) || [])
     setCategories(cats || [])
     setLoading(false)
   }
 
+  // Tải dữ liệu lúc mount — dự án không dùng thư viện fetch data, đây là cách chuẩn hiện tại
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
   const openAdd = () => { setEditing(null); setShowForm(true) }
   const openEdit = (p: Product) => { setEditing(p); setShowForm(true) }
 
-  const handleSave = async (data: Partial<Product>, variants: any[]) => {
+  const handleSave = async (data: Partial<Product>, variants: Variant[]) => {
     let productId = editing?.id
 
     if (editing) {
@@ -104,55 +108,57 @@ export default function AdminProducts() {
             {loading ? (
               <div className="text-center py-12 text-stone-400 text-sm">Đang tải...</div>
             ) : products.length === 0 ? (
-              <div className="text-center py-12 text-stone-400 text-sm">Chưa có sản phẩm nào. Nhấn "+ Thêm sản phẩm" để bắt đầu!</div>
+              <div className="text-center py-12 text-stone-400 text-sm">Chưa có sản phẩm nào. Nhấn &quot;+ Thêm sản phẩm&quot; để bắt đầu!</div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-stone-50">
-                    {['Ảnh', 'Tên sản phẩm', 'SKU', 'Danh mục', 'Giá bán', 'Trạng thái', ''].map(h => (
-                      <th key={h} className="text-left py-3 px-4 text-[11px] uppercase text-stone-400 font-semibold">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map(p => (
-                    <tr key={p.id} className="border-t border-stone-50">
-                      <td className="py-2 px-4">
-                        <div className="w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center">
-                          {p.cover_image ? <img src={p.cover_image} className="w-full h-full object-cover" /> : <span className="text-xl">🛋️</span>}
-                        </div>
-                      </td>
-                      <td className="py-2 px-4 font-semibold">{p.name}</td>
-                      <td className="py-2 px-4 text-stone-400 font-mono text-xs">{p.sku || '—'}</td>
-                      <td className="py-2 px-4 text-stone-500">{(p as any).category?.name || '—'}</td>
-                      <td className="py-2 px-4 font-bold text-amber-700">
-                        {fmt(p.sale_price || p.price)}
-                        {!!p.sale_price && p.sale_price !== p.price && <div className="text-[11px] text-stone-400 line-through font-normal">{fmt(p.price)}</div>}
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div className="flex flex-col gap-1">
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full w-fit ${
-                            p.is_preorder
-                              ? 'bg-orange-50 text-orange-600'
-                              : p.in_stock
-                                ? 'bg-green-50 text-green-700'
-                                : 'bg-red-50 text-red-700'
-                          }`}>
-                            {p.is_preorder ? '⏳ Đặt trước' : p.in_stock ? 'Còn hàng' : 'Hết hàng'}
-                          </span>
-                          <button onClick={() => toggleVisible(p)} className={`text-[11px] px-2 py-0.5 rounded-full w-fit ${p.is_visible ? 'bg-blue-50 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
-                            {p.is_visible ? '👁️ Hiện' : '🚫 Ẩn'}
-                          </button>
-                        </div>
-                      </td>
-                      <td className="py-2 px-4 text-right whitespace-nowrap">
-                        <button onClick={() => openEdit(p)} className="text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 mr-1 hover:bg-stone-200">✏️ Sửa</button>
-                        <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100">🗑️</button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[720px]">
+                  <thead>
+                    <tr className="bg-stone-50">
+                      {['Ảnh', 'Tên sản phẩm', 'SKU', 'Danh mục', 'Giá bán', 'Trạng thái', ''].map(h => (
+                        <th key={h} className="text-left py-3 px-4 text-[11px] uppercase text-stone-400 font-semibold whitespace-nowrap">{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {products.map(p => (
+                      <tr key={p.id} className="border-t border-stone-50">
+                        <td className="py-2 px-4">
+                          <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center">
+                            {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="48px" className="object-cover" /> : <span className="text-xl">🛋️</span>}
+                          </div>
+                        </td>
+                        <td className="py-2 px-4 font-semibold whitespace-nowrap">{p.name}</td>
+                        <td className="py-2 px-4 text-stone-400 font-mono text-xs whitespace-nowrap">{p.sku || '—'}</td>
+                        <td className="py-2 px-4 text-stone-500 whitespace-nowrap">{p.category?.name || '—'}</td>
+                        <td className="py-2 px-4 font-bold text-amber-700 whitespace-nowrap">
+                          {fmt(p.sale_price || p.price)}
+                          {!!p.sale_price && p.sale_price !== p.price && <div className="text-[11px] text-stone-400 line-through font-normal">{fmt(p.price)}</div>}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div className="flex flex-col gap-1">
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${
+                              p.is_preorder
+                                ? 'bg-orange-50 text-orange-600'
+                                : p.in_stock
+                                  ? 'bg-green-50 text-green-700'
+                                  : 'bg-red-50 text-red-700'
+                            }`}>
+                              {p.is_preorder ? '⏳ Đặt trước' : p.in_stock ? 'Còn hàng' : 'Hết hàng'}
+                            </span>
+                            <button onClick={() => toggleVisible(p)} className={`text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${p.is_visible ? 'bg-blue-50 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
+                              {p.is_visible ? '👁️ Hiện' : '🚫 Ẩn'}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-2 px-4 text-right whitespace-nowrap">
+                          <button onClick={() => openEdit(p)} className="text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 mr-1 hover:bg-stone-200">✏️ Sửa</button>
+                          <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100">🗑️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </>

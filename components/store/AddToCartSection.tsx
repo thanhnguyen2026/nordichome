@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cartStore'
-import { Product } from '@/types'
+import { Product, CartProduct } from '@/types'
 import { ShoppingCart, Zap, AlertCircle } from 'lucide-react'
 import VariantSelector from './VariantSelector'
 import { trackAddToCart } from '@/lib/analytics'
@@ -58,26 +58,26 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
     onVariantLabelChange?.(v ? `${v.group_name}: ${v.option_name}` : null)
   }
 
-  const buildCartProduct = () => ({
+  const buildCartProduct = (): CartProduct => ({
     ...product,
     price: effectivePrice,
-    weight: selectedVariant?.weight ?? (product as any).weight ?? 0.5,
+    weight: selectedVariant?.weight ?? product.weight ?? 0.5,
     selectedVariant: selectedVariant ? {
       id:         selectedVariant.id,
       label:      `${selectedVariant.group_name}: ${selectedVariant.option_name}`,
       image_url:  selectedVariant.image_url,
-      cost_price: selectedVariant.price !== null ? null : undefined, // dùng variant_cost_price bên dưới
+      cost_price: null, // biến thể phía khách không có cost_price (đã chặn ở PUBLIC_VARIANT_COLUMNS) — dùng variant_cost_price bên dưới
     } : null,
     // Các field riêng để API route dùng
     variant_id:         selectedVariant?.id ?? null,
     variant_label:      selectedVariant ? `${selectedVariant.group_name}: ${selectedVariant.option_name}` : null,
     variant_image:      selectedVariant?.image_url ?? null,
-    variant_cost_price: (selectedVariant as any)?.cost_price ?? null,
+    variant_cost_price: null,
   })
 
   const handleAddToCart = () => {
     setVariantError(false)
-    addItem({ product: buildCartProduct() as any, quantity: qty })
+    addItem({ product: buildCartProduct(), quantity: qty })
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
     trackAddToCart({
@@ -86,17 +86,17 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
       price:        effectivePrice,
       variantId:    selectedVariant?.id,
       variantLabel: selectedVariant ? `${selectedVariant.group_name}: ${selectedVariant.option_name}` : null,
-      category:     (product as any).category?.name,
+      category:     product.category?.name,
     }, qty)
   }
 
   const handleBuyNow = () => {
     setVariantError(false)
-    addItem({ product: buildCartProduct() as any, quantity: qty })
+    addItem({ product: buildCartProduct(), quantity: qty })
     router.push('/cart')
   }
 
-  if (!product.in_stock && !(product as any).is_preorder) {
+  if (!product.in_stock && !product.is_preorder) {
     return (
       <div className="inline-flex items-center px-5 py-3 rounded-xl bg-stone-100 text-stone-400 font-semibold text-sm">
         Sản phẩm tạm hết hàng
@@ -134,12 +134,12 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
         <button onClick={handleBuyNow}
           className="flex-1 flex items-center justify-center gap-2 bg-stone-900 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-stone-700 active:scale-95 transition-all text-sm">
           <Zap size={16} />
-          {(product as any).is_preorder ? 'Đặt trước ngay' : 'Mua ngay'}
+          {product.is_preorder ? 'Đặt trước ngay' : 'Mua ngay'}
         </button>
         <button onClick={handleAddToCart}
           className="flex-1 flex items-center justify-center gap-2 bg-white text-stone-900 font-bold py-3.5 px-6 rounded-xl border-2 border-stone-900 hover:bg-stone-50 active:scale-95 transition-all text-sm">
           <ShoppingCart size={16} />
-          {added ? '✓ Đã thêm!' : (product as any).is_preorder ? '⏳ Thêm vào giỏ' : 'Thêm vào giỏ'}
+          {added ? '✓ Đã thêm!' : product.is_preorder ? '⏳ Thêm vào giỏ' : 'Thêm vào giỏ'}
         </button>
       </div>
 
@@ -157,7 +157,7 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
           <button onClick={handleBuyNow}
             className="flex-1 flex items-center justify-center gap-2 bg-stone-900 text-white font-bold py-3 px-4 rounded-xl active:scale-95 transition-all text-sm">
             <Zap size={15} />
-            {(product as any).is_preorder ? 'Đặt trước' : 'Mua ngay'}
+            {product.is_preorder ? 'Đặt trước' : 'Mua ngay'}
           </button>
         </div>
       </div>

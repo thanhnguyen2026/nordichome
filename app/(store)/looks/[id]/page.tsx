@@ -1,9 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
-import ShopTheLook from '@/components/store/ShopTheLook'
+import ShopTheLook, { Look, HotspotProduct } from '@/components/store/ShopTheLook'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,10 +29,11 @@ export default async function LookDetailPage({
   if (!look) return notFound()
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
-  const hotspots = (look as any).hotspots ?? []
-  const productsRaw = hotspots.map((h: any) => h.product).filter(Boolean)
+  const typedLook = look as unknown as Look
+  const hotspots = typedLook.hotspots ?? []
+  const productsRaw = hotspots.map(h => h.product).filter((p): p is HotspotProduct => Boolean(p))
   const seen = new Set<string>()
-  const products = productsRaw.filter((p: any) => {
+  const products = productsRaw.filter(p => {
     if (seen.has(p.id)) return false
     seen.add(p.id)
     return true
@@ -45,9 +47,9 @@ export default async function LookDetailPage({
 
         {/* Breadcrumb */}
         <div className="text-xs text-stone-400 mb-6 flex items-center gap-2">
-          <a href="/" className="hover:text-stone-600 transition">Trang chủ</a>
+          <Link href="/" className="hover:text-stone-600 transition">Trang chủ</Link>
           <span>/</span>
-          <a href="/#shop-the-look" className="hover:text-stone-600 transition">Shop the Look</a>
+          <Link href="/#shop-the-look" className="hover:text-stone-600 transition">Shop the Look</Link>
           <span>/</span>
           <span className="text-stone-700 font-semibold">{look.title}</span>
         </div>
@@ -61,7 +63,7 @@ export default async function LookDetailPage({
         </div>
 
         {/* Interactive image */}
-        <ShopTheLook look={look as any} />
+        <ShopTheLook look={typedLook} />
 
         {/* Product list */}
         {products.length > 0 && (
@@ -70,8 +72,8 @@ export default async function LookDetailPage({
               Sản phẩm trong ảnh ({products.length})
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-              {products.map((p: any) => (
-                <a key={p.id} href={`/products/${p.slug}`}
+              {products.map(p => (
+                <Link key={p.id} href={`/products/${p.slug}`}
                   className="group bg-white rounded-2xl border border-stone-100 overflow-hidden hover:shadow-md transition">
                   <div className="relative aspect-square overflow-hidden bg-stone-50">
                     <Image src={p.cover_image} alt={p.name} fill
@@ -89,7 +91,7 @@ export default async function LookDetailPage({
                       )}
                     </div>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
           </div>

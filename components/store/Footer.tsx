@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { MapPin, Mail, Phone } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -57,10 +58,10 @@ export default async function Footer({ settings }: { settings: Settings }) {
         <div>
           <div className="font-bold text-amber-100 mb-4 text-sm tracking-wide">Sản phẩm</div>
           <div className="flex flex-col gap-2.5 text-sm">
-            <a href="/products" className="hover:text-amber-200 transition">Tất cả sản phẩm</a>
-            <a href="/products?featured=true" className="hover:text-amber-200 transition">Nổi bật</a>
-            <a href="/products?new=true" className="hover:text-amber-200 transition">Hàng mới</a>
-            <a href="/orders/track" className="hover:text-amber-200 transition">Theo dõi đơn hàng</a>
+            <Link href="/products" className="hover:text-amber-200 transition">Tất cả sản phẩm</Link>
+            <Link href="/products?featured=true" className="hover:text-amber-200 transition">Nổi bật</Link>
+            <Link href="/products?new=true" className="hover:text-amber-200 transition">Hàng mới</Link>
+            <Link href="/orders/track" className="hover:text-amber-200 transition">Theo dõi đơn hàng</Link>
           </div>
         </div>
 
@@ -110,9 +111,11 @@ export default async function Footer({ settings }: { settings: Settings }) {
                 >
                   <div className="w-8 h-8 rounded-lg bg-stone-800 flex items-center justify-center group-hover:bg-stone-700 transition-colors overflow-hidden flex-shrink-0">
                     {ch.icon_url ? (
-                      <img
+                      <Image
                         src={ch.icon_url}
                         alt={ch.name}
+                        width={20}
+                        height={20}
                         className="w-5 h-5 object-contain"
                       />
                     ) : (

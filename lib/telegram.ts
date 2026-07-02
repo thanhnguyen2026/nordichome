@@ -47,16 +47,26 @@ export async function sendTelegramNotification(order: {
   lines.push('Xem admin: ' + (siteUrl || '') + '/admin/orders')
   lines.push('Link theo doi don: ' + (siteUrl || '') + '/orders/' + order.order_code + '?phone=' + order.customer_phone)
 
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: lines.join('\n') }),
-    })
-    const data = await res.json()
-    if (!data.ok) console.error('Telegram error:', data.description)
-    else console.log('Telegram OK')
-  } catch (err) {
-    console.error('Telegram failed:', err)
+  const text = lines.join('\n')
+  const maxAttempts = 3
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        console.log('Telegram OK')
+        return
+      }
+      console.error('Telegram error:', data.description)
+      return // lỗi từ Telegram (vd: chat_id sai) không cần retry
+    } catch (err) {
+      console.error(`Telegram failed (attempt ${attempt}/${maxAttempts}):`, err)
+      if (attempt < maxAttempts) await new Promise(r => setTimeout(r, 1000 * attempt))
+    }
   }
 }

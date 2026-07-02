@@ -77,9 +77,11 @@ export default function AdminSocialChannels() {
     setLoading(false)
   }
 
+  // Tải dữ liệu lúc mount — dự án không dùng thư viện fetch data, đây là cách chuẩn hiện tại
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); loadFloat() }, [])
 
-  const updateChannel = (id: string, key: keyof Channel, value: any) => {
+  const updateChannel = <K extends keyof Channel>(id: string, key: K, value: Channel[K]) => {
     setChannels(prev => prev.map(c => c.id === id ? { ...c, [key]: value } : c))
   }
 
@@ -251,7 +253,7 @@ export default function AdminSocialChannels() {
         <div className="text-center py-16 text-stone-400 text-sm">Đang tải...</div>
       ) : (
         <div className="space-y-3 mb-6">
-          {channels.map((ch, idx) => (
+          {channels.map(ch => (
             <div key={ch.id}
               className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 flex items-center gap-4 group">
 
@@ -264,6 +266,9 @@ export default function AdminSocialChannels() {
               <div className="relative flex-shrink-0">
                 <div className="w-12 h-12 rounded-xl border-2 border-stone-100 overflow-hidden bg-stone-50 flex items-center justify-center">
                   {ch.iconPreview ? (
+                    // iconPreview có thể là blob: URL (xem trước file vừa chọn,
+                    // chưa upload xong) — next/image không xử lý được blob URL.
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={ch.iconPreview}
                       alt={ch.name}

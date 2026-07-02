@@ -1,10 +1,15 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useCartStore } from '@/store/cartStore'
-import CartDrawer from './CartDrawer'
 import { supabase } from '@/lib/supabase'
 import { Menu, X, ChevronDown, ShoppingCart } from 'lucide-react'
+
+// Chỉ hiện khi bấm icon giỏ hàng — tải JS khi cần thay vì cộng vào bundle
+// ban đầu của mọi trang (Header nằm ở mọi trang storefront).
+const CartDrawer = dynamic(() => import('./CartDrawer'), { ssr: false })
 
 interface Settings {
   logo_url?: string
@@ -57,6 +62,11 @@ export default function Header({ settings }: { settings: Settings }) {
           roots.push(map.get(c.id)!)
         }
       })
+      // sort_order của danh mục con đánh số lại từ 0 riêng theo từng cha nên
+      // bị trùng giá trị giữa các nhóm — sắp xếp tường minh để không phụ
+      // thuộc vào thứ tự không ổn định khi ORDER BY có nhiều dòng trùng.
+      roots.sort((a, b) => a.sort_order - b.sort_order)
+      roots.forEach(r => r.children.sort((a, b) => a.sort_order - b.sort_order))
       setCategories(roots)
     })
   }, [])
@@ -74,7 +84,7 @@ export default function Header({ settings }: { settings: Settings }) {
         <div className="max-w-6xl mx-auto px-4 h-16 md:h-20 flex items-center">
 
           {/* Logo — về trang chủ */}
-          <a href="/" className="flex items-center gap-3 flex-shrink-0">
+          <Link href="/" className="flex items-center gap-3 flex-shrink-0">
             {settings.logo_url && (
               <Image src={settings.logo_url} alt="Logo" width={48} height={48} className="h-12 w-12 object-contain rounded-lg" />
             )}
@@ -86,7 +96,7 @@ export default function Header({ settings }: { settings: Settings }) {
                 Simplify & Enjoy
               </div>
             </div>
-          </a>
+          </Link>
 
           {/* Desktop nav — categories */}
           <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center">

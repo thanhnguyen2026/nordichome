@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { useRef } from 'react'
+import Image from 'next/image'
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -19,6 +20,8 @@ export default function AdminSettings() {
     setLoading(false)
   }
 
+  // Tải dữ liệu lúc mount — dự án không dùng thư viện fetch data, đây là cách chuẩn hiện tại
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
   const set = (key: string, value: string) => setSettings(prev => ({ ...prev, [key]: value }))
@@ -69,16 +72,16 @@ export default function AdminSettings() {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-2">Logo cửa hàng</label>
-              <div className="w-full h-24 bg-stone-100 rounded-xl flex items-center justify-center overflow-hidden mb-2 border-2 border-dashed border-stone-200">
-                {settings.logo_url ? <img src={settings.logo_url} className="max-h-20 object-contain" /> : <span className="text-stone-400 text-xs">Chưa có logo</span>}
+              <div className="relative w-full h-24 bg-stone-100 rounded-xl flex items-center justify-center overflow-hidden mb-2 border-2 border-dashed border-stone-200">
+                {settings.logo_url ? <Image src={settings.logo_url} alt="Logo" fill sizes="200px" className="object-contain" /> : <span className="text-stone-400 text-xs">Chưa có logo</span>}
               </div>
               <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
               <button onClick={() => logoRef.current?.click()} className="text-xs bg-stone-100 rounded-lg px-3 py-1.5 font-semibold hover:bg-stone-200">📁 Chọn ảnh</button>
             </div>
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-2">Banner trang chủ</label>
-              <div className="w-full h-24 bg-stone-100 rounded-xl overflow-hidden mb-2 border-2 border-dashed border-stone-200">
-                {settings.banner_url ? <img src={settings.banner_url} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-stone-400 text-xs">Chưa có banner</div>}
+              <div className="relative w-full h-24 bg-stone-100 rounded-xl overflow-hidden mb-2 border-2 border-dashed border-stone-200">
+                {settings.banner_url ? <Image src={settings.banner_url} alt="Banner" fill sizes="300px" className="object-cover" /> : <div className="flex items-center justify-center h-full text-stone-400 text-xs">Chưa có banner</div>}
               </div>
               <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
               <button onClick={() => bannerRef.current?.click()} className="text-xs bg-stone-100 rounded-lg px-3 py-1.5 font-semibold hover:bg-stone-200">📁 Chọn ảnh</button>
@@ -312,13 +315,42 @@ export default function AdminSettings() {
             {settings.bank_id && settings.bank_account && settings.bank_holder && (
               <div className="mt-2 pt-4 border-t border-stone-100">
                 <p className="text-xs font-semibold text-stone-500 mb-3">Preview QR (không có số tiền)</p>
-                <img
+                <Image
                   src={`https://img.vietqr.io/image/${settings.bank_id}-${settings.bank_account}-compact2.png?accountName=${encodeURIComponent(settings.bank_holder)}`}
                   alt="VietQR Preview"
+                  width={224}
+                  height={224}
                   className="w-56 rounded-xl border border-stone-200 shadow-sm"
                 />
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Order notifications */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <h2 className="font-bold text-sm mb-1">🔔 Thông báo đơn hàng mới</h2>
+          <p className="text-xs text-stone-400 mb-5">Bật kênh nào thì khi có đơn hàng mới sẽ báo qua kênh đó.</p>
+          <div className="space-y-4">
+            {([
+              { key: 'telegram',  label: 'Telegram' },
+              { key: 'messenger', label: 'Messenger' },
+            ] as { key: string; label: string }[]).map(({ key, label }) => (
+              <div key={key} className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-stone-700">{label}</span>
+                <button
+                  type="button"
+                  onClick={() => set(`notify_${key}_on`, settings[`notify_${key}_on`] === '1' ? '0' : '1')}
+                  className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+                    settings[`notify_${key}_on`] === '1' ? 'bg-green-500' : 'bg-stone-200'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    settings[`notify_${key}_on`] === '1' ? 'translate-x-6' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
 

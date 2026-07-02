@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import Image from 'next/image'
+import { supabase, PUBLIC_VARIANT_COLUMNS } from '@/lib/supabase'
 
 interface Variant {
   id: string
@@ -24,9 +25,21 @@ export default function VariantSelector({ productId, basePrice, onVariantChange 
   const [selected, setSelected] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
+  // basePrice/onVariantChange đến từ component cha và bị tạo lại mỗi lần
+  // render (onVariantChange không được useCallback ở nơi gọi) — nếu đưa
+  // thẳng vào dependency array bên dưới, effect sẽ chạy lại (và tự ý reset
+  // mẫu đã chọn) mỗi khi cha re-render vì lý do khác (VD: đổi số lượng).
+  // Đọc qua ref để luôn lấy giá trị mới nhất mà không cần liệt kê vào deps.
+  const basePriceRef = useRef(basePrice)
+  const onVariantChangeRef = useRef(onVariantChange)
+  useLayoutEffect(() => {
+    basePriceRef.current = basePrice
+    onVariantChangeRef.current = onVariantChange
+  })
+
   useEffect(() => {
     supabase.from('product_variants')
-      .select('*')
+      .select(PUBLIC_VARIANT_COLUMNS)
       .eq('product_id', productId)
       .order('sort_order')
       .then(({ data }) => {
@@ -38,14 +51,14 @@ export default function VariantSelector({ productId, basePrice, onVariantChange 
         const inStock = list.filter(v => v.stock > 0)
         const pool = inStock.length > 0 ? inStock : list
         const cheapest = pool.reduce((min, v) => {
-          const vPrice = v.price ?? basePrice
-          const minPrice = min.price ?? basePrice
+          const vPrice = v.price ?? basePriceRef.current
+          const minPrice = min.price ?? basePriceRef.current
           return vPrice < minPrice ? v : min
         }, pool[0])
 
         if (cheapest) {
           setSelected({ [cheapest.group_name]: cheapest.option_name })
-          onVariantChange(cheapest)
+          onVariantChangeRef.current(cheapest)
         }
       })
   }, [productId])
@@ -106,9 +119,11 @@ export default function VariantSelector({ productId, basePrice, onVariantChange 
                   >
                     {/* Thumbnail ảnh biến thể nếu có */}
                     {v.image_url && (
-                      <img
+                      <Image
                         src={v.image_url}
                         alt={v.option_name}
+                        width={24}
+                        height={24}
                         className="w-6 h-6 rounded object-cover shrink-0"
                       />
                     )}

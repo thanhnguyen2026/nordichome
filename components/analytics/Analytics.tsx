@@ -65,7 +65,10 @@ export default function Analytics() {
             fbq('track', 'PageView');
           `}</Script>
           <noscript>
-            <img height="1" width="1" style={{ display: 'none' }}
+            {/* Pixel theo dõi Meta chuẩn — next/image cần JS để hoạt động nên
+                không dùng được trong <noscript>, phải dùng <img> thuần. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img height="1" width="1" style={{ display: 'none' }} alt=""
               src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`} />
           </noscript>
         </>

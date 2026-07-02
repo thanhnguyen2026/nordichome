@@ -1,10 +1,117 @@
 'use client'
-import { useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function ProductGallery({ images }: { images: string[] }) {
   const [active, setActive] = useState(0)
+
+  // Vuốt tay để chuyển ảnh trên mobile
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [dragPx, setDragPx] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const touch = useRef<{ startX: number; startY: number; locked: boolean | null; lastX: number; lastT: number; velocity: number }>(
+    { startX: 0, startY: 0, locked: null, lastX: 0, lastT: 0, velocity: 0 }
+  )
+  // active/dragPx mới nhất cho các listener native (tránh closure cũ vì listener chỉ gắn 1 lần)
+  // Gán trong useLayoutEffect (không phải trong thân render) — chạy trước khi
+  // trình duyệt vẽ lại, giữ nguyên hành vi "luôn mới nhất" nhưng không vi phạm
+  // quy tắc React về việc không được sửa ref trong lúc render.
+  const activeRef = useRef(active)
+  const dragPxRef = useRef(dragPx)
+  useLayoutEffect(() => {
+    activeRef.current = active
+    dragPxRef.current = dragPx
+  })
+
+  // useCallback để giữ tham chiếu ổn định — effect vuốt ảnh bên dưới dùng
+  // goTo trong touch listener native, nếu goTo đổi tham chiếu mỗi lần render
+  // thì effect phải gỡ/gắn lại listener liên tục, có thể ngắt giữa chừng cử
+  // chỉ vuốt đang thực hiện dở.
+  const goTo = useCallback(
+    (i: number) => setActive(Math.max(0, Math.min(images.length - 1, i))),
+    [images.length]
+  )
+
+  // Khi chọn mẫu mới, ảnh của mẫu đó được đẩy lên vị trí đầu mảng images[0]
+  // (xem ProductDetailClient) — nhảy về đúng ảnh đó dù đang xem ảnh nào khác.
+  // Reset ngay trong lúc render (pattern "Adjusting state when a prop changes"
+  // của React) thay vì trong useEffect, tránh render thừa 1 nhịp.
+  const [prevFirstImage, setPrevFirstImage] = useState(images[0])
+  if (images[0] !== prevFirstImage) {
+    setPrevFirstImage(images[0])
+    setActive(0)
+  }
+
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el || images.length <= 1) return
+
+    // React gắn onTouchMove ở chế độ passive theo mặc định, nên gọi
+    // preventDefault() bên trong JSX prop sẽ KHÔNG có tác dụng — trình duyệt
+    // vẫn tự quyết cuộn dọc trang trước khi tay cầm kịp chặn. Phải gắn
+    // listener "thật" (native) với { passive: false } thì preventDefault
+    // mới thực sự ngăn được cuộn trang khi đang vuốt ngang.
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0]
+      touch.current = { startX: t.clientX, startY: t.clientY, locked: null, lastX: t.clientX, lastT: performance.now(), velocity: 0 }
+      setDragging(true)
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0]
+      const dx = t.clientX - touch.current.startX
+      const dy = t.clientY - touch.current.startY
+
+      if (touch.current.locked === null) {
+        // Cần lệch đủ vài px mới xác định hướng, tránh rung tay gây quyết định sai
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
+        touch.current.locked = Math.abs(dx) > Math.abs(dy)
+      }
+      if (!touch.current.locked) return
+
+      e.preventDefault()
+
+      // Vận tốc tức thời (px/ms), dùng để nhận biết "vuốt nhanh" (flick) —
+      // chỉ tính trên khoảng di chuyển gần nhất để không bị pha loãng bởi
+      // đoạn di chuyển chậm lúc đầu cử chỉ
+      const now = performance.now()
+      const dt = now - touch.current.lastT
+      if (dt > 0) touch.current.velocity = (t.clientX - touch.current.lastX) / dt
+      touch.current.lastX = t.clientX
+      touch.current.lastT = now
+
+      setDragPx(dx)
+    }
+
+    const onTouchEnd = () => {
+      const width = el.getBoundingClientRect().width || 1
+      // Vuốt xa đủ (10% bề rộng) HOẶC vuốt nhanh (flick, >0.35px/ms ~ giật nhẹ
+      // ngón tay) dù quãng đường ngắn — khớp cảm giác vuốt ảnh của app gốc
+      const distanceThreshold = width * 0.1
+      const isFlick = Math.abs(touch.current.velocity) > 0.35 && Math.abs(dragPxRef.current) > 8
+      if (touch.current.locked) {
+        const movedNext = dragPxRef.current < -distanceThreshold || (isFlick && touch.current.velocity < 0)
+        const movedPrev = dragPxRef.current > distanceThreshold || (isFlick && touch.current.velocity > 0)
+        if (movedNext && activeRef.current < images.length - 1) goTo(activeRef.current + 1)
+        else if (movedPrev && activeRef.current > 0) goTo(activeRef.current - 1)
+      }
+      setDragging(false)
+      setDragPx(0)
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true })
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [images.length, goTo])
 
   if (images.length === 0) {
     return (
@@ -14,17 +121,16 @@ export default function ProductGallery({ images }: { images: string[] }) {
     )
   }
 
-  const goTo = (i: number) => setActive(Math.max(0, Math.min(images.length - 1, i)))
-
   return (
     <div className="flex flex-col md:flex-row gap-3">
 
       {/* ── Thumbnails: horizontal dưới (mobile) / vertical trái (desktop) ── */}
       {images.length > 1 && (
-        <div className={`
+        <div
+          className={`
           flex gap-2
-          flex-row overflow-x-auto
-          md:flex-col md:overflow-y-auto md:overflow-x-hidden
+          flex-row overflow-x-auto touch-pan-x
+          md:flex-col md:overflow-y-auto md:overflow-x-hidden md:touch-pan-y
           md:w-[72px] md:flex-shrink-0 md:max-h-[520px]
           order-2 md:order-1
           scrollbar-thin
@@ -49,15 +155,21 @@ export default function ProductGallery({ images }: { images: string[] }) {
       )}
 
       {/* ── Main image — sliding strip ──────────────────────────────────── */}
-      <div className="relative bg-stone-50 rounded-2xl aspect-square overflow-hidden flex-1 group order-1 md:order-2 select-none">
+      {/* min-w-0: flex item mặc định không co dưới min-content, mà thanh trượt bên trong
+          có width tính theo % số ảnh (có thể vài trăm %) — nếu thiếu min-w-0 item này sẽ
+          giữ nguyên độ rộng nội dung và đẩy tràn ngang toàn trang */}
+      <div
+        ref={trackRef}
+        className="relative bg-stone-50 rounded-2xl aspect-square overflow-hidden flex-1 min-w-0 group order-1 md:order-2 select-none touch-pan-y"
+      >
 
         <div
           style={{
             display:    'flex',
             width:      `${images.length * 100}%`,
             height:     '100%',
-            transform:  `translateX(calc(-${active} * (100% / ${images.length})))`,
-            transition: 'transform 0.48s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform:  `translateX(calc(-${active} * (100% / ${images.length}) + ${dragPx}px))`,
+            transition: dragging ? 'none' : 'transform 0.48s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
           {images.map((img, i) => (

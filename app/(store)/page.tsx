@@ -1,49 +1,45 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, PUBLIC_PRODUCT_COLUMNS } from '@/lib/supabase'
 import Image from 'next/image'
+import Link from 'next/link'
 import ProductCard from '@/components/store/ProductCard'
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
+import type { Look } from '@/components/store/ShopTheLook'
+import type { Product } from '@/types'
 
 export async function generateMetadata() {
   const { data } = await supabase.from('settings').select('key,value')
   const s = Object.fromEntries(data?.map(r => [r.key, r.value]) ?? [])
-  return { title: s.meta_title, description: s.meta_description }
+  const title = s.meta_title || 'Nordic Home - Simplify & Enjoy'
+  const description = s.meta_description || 'Nội thất phong cách Bắc Âu — thiết kế tinh tế, chất liệu tự nhiên bền vững.'
+  return {
+    // absolute: bỏ qua template "%s | Nordic Home" của layout gốc — trang chủ
+    // đã tự mang tên thương hiệu, áp template vào sẽ bị lặp "Nordic Home" 2 lần.
+    title: { absolute: title },
+    description,
+    openGraph: {
+      title,
+      description,
+      images: s.banner_url ? [{ url: s.banner_url }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: s.banner_url ? [s.banner_url] : undefined,
+    },
+  }
 }
 
-const CATEGORY_IMAGES: Record<string, string> = {
-  'nội thất': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=958&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?w=600&q=80',
-  'sofa': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=958&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?w=600&q=80',
-  'phòng khách': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80',
-  'phòng ngủ': 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=600&q=80',
-  'phòng ăn': 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=600&q=80',
-  'bàn ăn': 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=600&q=80',
-  'nhà bếp': 'https://images.unsplash.com/photo-1628797285815-453c1d0d21e3?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8a2l0Y2hlbnxlbnwwfHwwfHx8Mg%3D%3D?w=600&q=80',
-  'phòng làm việc': 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600&q=80',
-  'đèn': 'https://images.unsplash.com/photo-1513506003901-1e6a35d8d0e2?w=600&q=80',
-  'đèn trang trí': 'https://plus.unsplash.com/premium_photo-1672166939372-5b16118eee45?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?w=600&q=80',
-  'decor': 'https://images.unsplash.com/photo-1721814219059-ba22094eb1c3?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?w=600&q=80',
-  'trang trí': 'https://plus.unsplash.com/premium_photo-1668704252726-452ce872b349?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?w=600&q=80',
-  'ghế': 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&q=80',
-  'tủ': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&q=80',
-  'kệ': 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=600&q=80',
-  'giường': 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=600&q=80',
-}
-
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80'
-
-function getCategoryImage(name: string): string {
-  const key = name.toLowerCase().trim()
-  return CATEGORY_IMAGES[key] || DEFAULT_IMAGE
-}
 
 export default async function HomePage() {
-  const [{ data: settings }, { data: featured }, { data: newProds }, { data: cats }, { data: variantRows }, { data: looksRaw }] =
+  const [{ data: settings }, { data: featuredRaw }, { data: newProdsRaw }, { data: cats }, { data: variantRows }, { data: looksRaw }] =
     await Promise.all([
       supabase.from('settings').select('key,value'),
-      supabase.from('products').select('*,category:categories(name,slug)')
+      supabase.from('products').select(`${PUBLIC_PRODUCT_COLUMNS},category:categories(name,slug)`)
         .eq('is_featured', true).eq('is_visible', true).limit(8),
-      supabase.from('products').select('*,category:categories(name,slug)')
+      supabase.from('products').select(`${PUBLIC_PRODUCT_COLUMNS},category:categories(name,slug)`)
         .eq('is_new', true).eq('is_visible', true).limit(8),
       supabase.from('categories').select('*').is('parent_id', null).eq('is_visible', true).order('sort_order'),
       supabase.from('product_variants').select('product_id, price'),
@@ -56,7 +52,12 @@ export default async function HomePage() {
       `).eq('is_active', true).order('sort_order').order('created_at').limit(4),
     ])
 
-  const looks = (looksRaw ?? []) as any[]
+  // Tên cột select() truyền qua biến khiến Supabase không suy luận được kiểu
+  // trả về tĩnh (chỉ literal string mới suy luận được) — ép kiểu tường minh.
+  const featured = featuredRaw as unknown as Product[] | null
+  const newProds = newProdsRaw as unknown as Product[] | null
+
+  const looks = (looksRaw ?? []) as unknown as Look[]
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
 
@@ -76,7 +77,11 @@ export default async function HomePage() {
         {/* BANNER — mobile: full-screen, nội dung neo đáy · desktop: banner cố định, nội dung căn giữa */}
         <section className="relative min-h-[100svh] md:min-h-0 md:h-[520px] flex flex-col justify-end md:justify-center md:items-center overflow-hidden bg-stone-100">
           {s.banner_url && (
-            <Image src={s.banner_url} alt="Banner" fill priority sizes="100vw" className="object-cover" />
+            // Hero mobile cao hết màn hình (100svh) nhưng ảnh banner nằm ngang —
+            // object-cover phải phóng theo chiều cao nên cần yêu cầu độ phân giải
+            // lớn hơn nhiều so với chỉ tính theo chiều rộng viewport (100vw),
+            // nếu không ảnh tải về sẽ bị phóng to lại và mờ trên điện thoại.
+            <Image src={s.banner_url} alt="Banner" fill priority sizes="(max-width: 768px) 250vw, 100vw" className="object-cover" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10 md:bg-black/30 md:bg-none" />
           <div className="relative text-left md:text-center text-white px-6 md:px-4 pb-14 md:pb-0">
@@ -92,10 +97,10 @@ export default async function HomePage() {
             <p className="text-stone-200 mb-8 md:mb-7 text-base md:text-sm leading-relaxed max-w-sm md:max-w-none">
               {s.hero_subtitle || 'Nội thất phong cách Bắc Âu — thiết kế tinh tế, chất liệu tự nhiên bền vững'}
             </p>
-            <a href="/products"
+            <Link href="/products"
               className="block md:inline-block text-center bg-stone-900 text-amber-100 px-8 py-4 md:py-3 rounded-full font-bold text-sm hover:bg-stone-800 transition border border-stone-700">
               {s.hero_button_text || 'Khám phá ngay'} →
-            </a>
+            </Link>
             {(s.hero_trust_1 || s.hero_trust_2 || s.hero_trust_3) && (
               <div className="flex flex-wrap items-center justify-start md:justify-center gap-x-5 gap-y-1.5 mt-7 text-white/50 text-xs tracking-wide">
                 {[s.hero_trust_1, s.hero_trust_2, s.hero_trust_3].filter(Boolean).map((t, i, arr) => (
@@ -111,7 +116,7 @@ export default async function HomePage() {
 
         {/* DANH MỤC */}
         {!!cats?.length && (
-          <section className="max-w-6xl mx-auto px-4 py-16">
+          <section className="max-w-6xl mx-auto px-4 pt-16">
             <div className="text-center mb-10">
               <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-600/80 mb-2">Danh mục</p>
               <h2 className="font-serif text-3xl font-semibold text-stone-900">Khám phá không gian sống</h2>
@@ -119,17 +124,23 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {cats.map((cat, i) => (
                 <RevealOnScroll key={cat.id} index={i}>
-                  <a href={`/products?category=${cat.slug}`}
+                  <Link href={`/products?category=${cat.slug}`}
                     className="group relative aspect-square rounded-2xl overflow-hidden block shadow-md hover:shadow-xl transition-shadow duration-300">
-                    <Image src={(cat as any).image_url || getCategoryImage(cat.name)} alt={cat.name} fill
-                      sizes="(max-width: 768px) 50vw, 25vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                    {cat.image_url ? (
+                      <Image src={cat.image_url} alt={cat.name} fill
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full bg-stone-100 flex items-center justify-center">
+                        <span className="text-5xl opacity-40">🛋️</span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-4">
                       <p className="text-white font-bold text-base leading-tight drop-shadow-md">{cat.name}</p>
                       <p className="text-amber-300 text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Xem tất cả →</p>
                     </div>
-                  </a>
+                  </Link>
                 </RevealOnScroll>
               ))}
             </div>
@@ -138,19 +149,19 @@ export default async function HomePage() {
 
         {/* SẢN PHẨM NỔI BẬT */}
         {!!featured?.length && (
-          <section className="bg-stone-50 py-16">
+          <section className="bg-stone-50 pt-16 pb-16">
             <div className="max-w-6xl mx-auto px-4">
               <div className="flex justify-between items-end mb-8">
                 <div>
                   <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-600/80 mb-1">Nổi bật</p>
                   <h2 className="font-serif text-3xl font-semibold text-stone-900">Sản phẩm được yêu thích</h2>
                 </div>
-                <a href="/products?featured=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</a>
+                <Link href="/products?featured=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</Link>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {featured.map((p, i) => (
                   <RevealOnScroll key={p.id} index={i}>
-                    <ProductCard product={p as any}
+                    <ProductCard product={p}
                       hasVariants={productIdsWithVariants.has(p.id)}
                       minVariantPrice={minVariantPriceMap[p.id] ?? null} />
                   </RevealOnScroll>
@@ -162,19 +173,19 @@ export default async function HomePage() {
 
         {/* SẢN PHẨM MỚI */}
         {!!newProds?.length && (
-          <section className="py-16">
+          <section className="pt-16">
             <div className="max-w-6xl mx-auto px-4">
               <div className="flex justify-between items-end mb-8">
                 <div>
                   <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-600/80 mb-1">Mới nhất</p>
                   <h2 className="font-serif text-3xl font-semibold text-stone-900">Hàng mới về</h2>
                 </div>
-                <a href="/products?new=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</a>
+                <Link href="/products?new=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</Link>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {newProds.map((p, i) => (
                   <RevealOnScroll key={p.id} index={i}>
-                    <ProductCard product={p as any}
+                    <ProductCard product={p}
                       hasVariants={productIdsWithVariants.has(p.id)}
                       minVariantPrice={minVariantPriceMap[p.id] ?? null} />
                   </RevealOnScroll>
@@ -186,7 +197,7 @@ export default async function HomePage() {
 
         {/* SHOP THE LOOK */}
         {looks.length > 0 && (
-          <section id="shop-the-look" className="max-w-6xl mx-auto px-4 py-16">
+          <section id="shop-the-look" className="max-w-6xl mx-auto px-4 pt-16">
             <div className="text-center mb-10">
               <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-600/80 mb-2">Cảm hứng</p>
               <h2 className="font-serif text-4xl font-normal italic text-stone-900">Shop the Look</h2>
@@ -196,8 +207,8 @@ export default async function HomePage() {
               : looks.length === 2 ? 'grid-cols-1 md:grid-cols-2'
               : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
             }`}>
-              {looks.map((look: any, i: number) => {
-                const dotCount = look.hotspots?.filter((h: any) => h.product).length ?? 0
+              {looks.map((look, i) => {
+                const dotCount = look.hotspots?.filter(h => h.product).length ?? 0
                 // Nhịp điệu bất đối xứng: xen kẽ tỷ lệ ảnh dọc/ngang + lệch cao độ theo cột — cảm giác lookbook, không phải ô vuông đều tăm tắp
                 const aspect = i % 3 === 0 ? 'aspect-[3/4]' : i % 3 === 1 ? 'aspect-[4/3]' : 'aspect-square'
                 const offset = looks.length >= 3 && i % 2 === 1 ? 'lg:mt-10' : ''
@@ -213,7 +224,7 @@ export default async function HomePage() {
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       {/* Dots trang trí (không tương tác) */}
-                      {look.hotspots?.filter((h: any) => h.product).map((h: any) => (
+                      {look.hotspots?.filter(h => h.product).map(h => (
                         <div
                           key={h.id}
                           style={{ left: `${h.x_percent}%`, top: `${h.y_percent}%` }}
@@ -237,12 +248,12 @@ export default async function HomePage() {
                     {dotCount > 0 && (
                       <p className="text-xs text-stone-400 mb-3">{dotCount} sản phẩm trong ảnh</p>
                     )}
-                    <a
+                    <Link
                       href={`/looks/${look.id}`}
                       className="inline-block text-xs font-bold tracking-[2px] uppercase border border-stone-900 px-5 py-2.5 hover:bg-stone-900 hover:text-white transition-colors duration-200"
                     >
                       Xem chi tiết
-                    </a>
+                    </Link>
                   </RevealOnScroll>
                 )
               })}
@@ -251,9 +262,13 @@ export default async function HomePage() {
         )}
 
         {/* BRAND INFO */}
-        <section className="bg-stone-900 text-white py-20 text-center relative overflow-hidden">
+        {/* mt-16: các section phía trên chỉ dùng pt (không pb) nên khoảng cách
+            trắng→xám nhẹ nhàng là đủ, nhưng trắng→ĐEN tuyền cần khoảng đệm thật
+            trước khi chạm nền — padding bên trong khối đen (py-20) chỉ tạo chỗ
+            cho chữ, không thay được khoảng trắng ở NGOÀI khối trước khi vào */}
+        <section className="mt-16 bg-stone-900 text-white py-20 text-center relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden>
-            <span className="font-serif text-[18rem] text-white/[0.04] leading-none">"</span>
+            <span className="font-serif text-[18rem] text-white/[0.04] leading-none">&ldquo;</span>
           </div>
           <div className="relative max-w-xl mx-auto px-4">
             <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-stone-500 mb-5">Về chúng tôi</p>

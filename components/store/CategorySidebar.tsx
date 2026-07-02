@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Category {
@@ -32,10 +33,10 @@ export default function CategorySidebar({ categories, activeSlug, countMap }: Pr
       <div className="bg-white rounded-2xl p-4 border border-stone-100 sticky top-24">
         <div className="font-bold text-xs uppercase tracking-widest text-stone-400 mb-3 px-1">Danh mục</div>
 
-        <a href="/products"
+        <Link href="/products"
           className={`flex items-center px-3 py-2 rounded-lg text-sm mb-1 transition font-medium ${!activeSlug ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>
           Tất cả sản phẩm
-        </a>
+        </Link>
 
         {parents.map(cat => {
           const children = categories.filter(c => c.parent_id === cat.id)
@@ -47,7 +48,7 @@ export default function CategorySidebar({ categories, activeSlug, countMap }: Pr
           return (
             <div key={cat.id} className="mb-1">
               <div className="flex items-center gap-1">
-                <a href={`/products?category=${cat.slug}`}
+                <Link href={`/products?category=${cat.slug}`}
                   className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition ${isActive || isChildActive ? 'bg-stone-100 text-stone-900' : 'text-stone-700 hover:bg-stone-50'}`}>
                   <span>{cat.name}</span>
                   {count > 0 && (
@@ -55,7 +56,7 @@ export default function CategorySidebar({ categories, activeSlug, countMap }: Pr
                       {count}
                     </span>
                   )}
-                </a>
+                </Link>
                 {children.length > 0 && (
                   <button
                     onClick={() => setOpenParent(prev => prev === cat.id ? null : cat.id)}
@@ -69,13 +70,13 @@ export default function CategorySidebar({ categories, activeSlug, countMap }: Pr
               {children.length > 0 && isOpen && (
                 <div className="ml-3 mt-1 border-l-2 border-stone-100 pl-2 space-y-0.5">
                   {children.map(child => (
-                    <a key={child.id} href={`/products?category=${child.slug}`}
+                    <Link key={child.id} href={`/products?category=${child.slug}`}
                       className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition ${activeSlug === child.slug ? 'bg-stone-100 font-bold text-stone-900' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-700'}`}>
                       <span>{child.name}</span>
                       {(countMap[child.id] || 0) > 0 && (
                         <span className="text-[10px] text-stone-400">{countMap[child.id]}</span>
                       )}
-                    </a>
+                    </Link>
                   ))}
                 </div>
               )}

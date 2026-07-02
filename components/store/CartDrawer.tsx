@@ -24,8 +24,8 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
           ) : (
             items.map(item => {
               const key = itemKey(item)
-              const variantLabel = (item.product as any).variant_label
-              const variantImage = (item.product as any).variant_image
+              const variantLabel = item.product.variant_label
+              const variantImage = item.product.variant_image
               const displayImage = variantImage || item.product.cover_image
               return (
                 <div key={key} className="flex gap-3 py-3 border-b border-stone-100">

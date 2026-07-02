@@ -1,9 +1,11 @@
 'use client'
 import { useEffect, useState, Fragment } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Order, OrderStatus, ORDER_STATUS_LABEL } from '@/types'
-import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, MessageCircle, Link2 } from 'lucide-react'
+import { copyToClipboard } from '@/lib/clipboard'
+import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, MessageCircle } from 'lucide-react'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
 
@@ -42,11 +44,13 @@ export default function AdminOrders() {
       supabase.from('orders').select('*').order('created_at', { ascending: false }),
       supabase.from('settings').select('key,value'),
     ])
-    setOrders(ordersData as any || [])
+    setOrders((ordersData as unknown as Order[]) || [])
     setSettings(Object.fromEntries(settingsData?.map(r => [r.key, r.value || '']) ?? []))
     setLoading(false)
   }
 
+  // Tải dữ liệu lúc mount — dự án không dùng thư viện fetch data, đây là cách chuẩn hiện tại
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
   const toggleExpand = async (id: string) => {
@@ -58,7 +62,7 @@ export default function AdminOrders() {
         .from('order_items')
         .select('id, product_name, product_image, price, quantity, origin_url, variant_label')
         .eq('order_id', id)
-      setItems(prev => ({ ...prev, [id]: data as any || [] }))
+      setItems(prev => ({ ...prev, [id]: (data as unknown as OrderItem[]) || [] }))
       setLoadingItems(null)
     }
   }
@@ -70,12 +74,12 @@ export default function AdminOrders() {
 
   const markPaid = async (o: Order) => {
     await supabase.from('orders').update({ payment_status: 'paid', updated_at: new Date().toISOString() }).eq('id', o.id)
-    setOrders(prev => prev.map(x => x.id === o.id ? { ...x, payment_status: 'paid' } as any : x))
+    setOrders(prev => prev.map(x => x.id === o.id ? { ...x, payment_status: 'paid' as const } : x))
   }
 
   const saveTracking = async (id: string, code: string) => {
     await supabase.from('orders').update({ tracking_code: code || null }).eq('id', id)
-    setOrders(prev => prev.map(x => x.id === id ? { ...x, tracking_code: code } as any : x))
+    setOrders(prev => prev.map(x => x.id === id ? { ...x, tracking_code: code } : x))
   }
 
   const remindCustomer = (o: Order) => {
@@ -84,7 +88,7 @@ export default function AdminOrders() {
       : ''
     const msg = `Xin chào ${o.customer_name}! 👋\n\nĐơn hàng ${o.order_code} (${fmt(o.total)}) của bạn đã được xác nhận.${bank}\n\nVui lòng thanh toán để chúng tôi xử lý đơn sớm nhất nhé! Cảm ơn bạn 🙏`
 
-    navigator.clipboard.writeText(msg).then(() => {
+    copyToClipboard(msg).then(() => {
       setCopiedId(o.id)
       setTimeout(() => setCopiedId(null), 3000)
       const url = settings.chat_messenger_url || settings.facebook_url || ''
@@ -97,13 +101,13 @@ export default function AdminOrders() {
 
   const displayed = orders.filter(o => {
     if (payFilter === 'all') return true
-    const ps = (o as any).payment_status
+    const ps = o.payment_status
     if (payFilter === 'unpaid') return o.payment_method === 'bank' && ps !== 'paid'
     if (payFilter === 'paid')   return ps === 'paid' || o.payment_method === 'cod'
     return true
   })
 
-  const unpaidCount = orders.filter(o => o.payment_method === 'bank' && (o as any).payment_status !== 'paid').length
+  const unpaidCount = orders.filter(o => o.payment_method === 'bank' && o.payment_status !== 'paid').length
 
   return (
     <AdminLayout>
@@ -156,7 +160,7 @@ export default function AdminOrders() {
               </thead>
               <tbody>
                 {displayed.map(o => {
-                  const payStatus = (o as any).payment_status as string
+                  const payStatus = o.payment_status
                   const isBankUnpaid = o.payment_method === 'bank' && payStatus !== 'paid'
                   const isBankPaid   = o.payment_method === 'bank' && payStatus === 'paid'
 
@@ -251,13 +255,13 @@ export default function AdminOrders() {
                                   <label className="text-[10px] font-semibold text-stone-400 block mb-1">Mã vận đơn GHTK</label>
                                   <div className="flex gap-2">
                                     <input
-                                      defaultValue={(o as any).tracking_code || ''}
+                                      defaultValue={o.tracking_code || ''}
                                       onBlur={e => saveTracking(o.id, e.target.value.trim())}
                                       placeholder="Nhập mã sau khi tạo đơn GHTK"
                                       className="flex-1 text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-stone-400 font-mono"
                                     />
-                                    {(o as any).tracking_code && (
-                                      <a href={`https://i.ghtk.vn/${(o as any).tracking_code}`}
+                                    {o.tracking_code && (
+                                      <a href={`https://i.ghtk.vn/${o.tracking_code}`}
                                         target="_blank" rel="noopener noreferrer"
                                         className="text-xs bg-stone-100 hover:bg-stone-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1 transition">
                                         Xem <ExternalLink size={10} />
@@ -265,10 +269,10 @@ export default function AdminOrders() {
                                     )}
                                   </div>
                                 </div>
-                                {(o as any).total_weight > 0 && (
+                                {!!o.total_weight && o.total_weight > 0 && (
                                   <div className="text-xs text-stone-400 mt-1">
-                                    ⚖️ {(o as any).total_weight}kg
-                                    {(o as any).shipping_zone && ` · ${{ inner: 'Nội tỉnh', south: 'Nội miền Nam', inter: 'Liên miền' }[(o as any).shipping_zone] || ''}`}
+                                    ⚖️ {o.total_weight}kg
+                                    {o.shipping_zone && ` · ${({ inner: 'Nội tỉnh', south: 'Nội miền Nam', inter: 'Liên miền' } as Record<string, string>)[o.shipping_zone] || ''}`}
                                   </div>
                                 )}
                                 {o.customer_note && (
@@ -286,9 +290,9 @@ export default function AdminOrders() {
                                   <div className="space-y-2">
                                     {(items[o.id] || []).map(item => (
                                       <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-stone-100">
-                                        <div className="w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+                                        <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
                                           {item.product_image
-                                            ? <img src={item.product_image} className="w-full h-full object-cover" alt={item.product_name} />
+                                            ? <Image src={item.product_image} alt={item.product_name} fill sizes="48px" className="object-cover" />
                                             : <div className="w-full h-full flex items-center justify-center text-xl">🛋️</div>}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -323,9 +327,9 @@ export default function AdminOrders() {
                                       </div>
                                       <div className="text-sm font-black text-stone-800">
                                         Tổng: <span className="text-amber-700">{fmt(o.total)}</span>
-                                        {(o as any).shipping_fee > 0 && (
+                                        {!!o.shipping_fee && o.shipping_fee > 0 && (
                                           <span className="text-xs text-stone-400 font-normal ml-1">
-                                            (gồm ship {fmt((o as any).shipping_fee)})
+                                            (gồm ship {fmt(o.shipping_fee)})
                                           </span>
                                         )}
                                       </div>

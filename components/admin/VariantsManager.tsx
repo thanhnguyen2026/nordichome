@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X } from 'lucide-react'
 
 export interface Variant {
@@ -164,14 +165,14 @@ export default function VariantsManager({ variants, onChange }: Props) {
                           <label className="text-[10px] font-semibold text-stone-400 uppercase block mb-1">Ảnh</label>
                           <div className="relative">
                             <div
-                              className="w-20 h-20 rounded-xl border-2 border-dashed border-stone-200 bg-white flex items-center justify-center overflow-hidden cursor-pointer hover:border-stone-400 transition"
+                              className="relative w-20 h-20 rounded-xl border-2 border-dashed border-stone-200 bg-white flex items-center justify-center overflow-hidden cursor-pointer hover:border-stone-400 transition"
                               onClick={() => fileRefs.current[idx]?.click()}
                             >
                               {uploading === idx ? (
                                 <div className="text-[10px] text-stone-400 text-center">Đang tải...</div>
                               ) : v.image_url ? (
-                                <img src={v.image_url} alt={v.option_name}
-                                  className="w-full h-full object-cover" />
+                                <Image src={v.image_url} alt={v.option_name} fill sizes="80px"
+                                  className="object-cover" />
                               ) : (
                                 <div className="text-center">
                                   <Upload size={16} className="text-stone-300 mx-auto mb-1" />
@@ -201,13 +202,13 @@ export default function VariantsManager({ variants, onChange }: Props) {
 
                         {/* Các field dữ liệu */}
                         <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-2">
-                          {[
+                          {([
                             { key: 'sku',        label: 'SKU',             type: 'text',   placeholder: 'VD: LY-DONUT', isPrice: false },
                             { key: 'price',      label: 'Giá bán (₫)',     type: 'text',   placeholder: 'Trống = giá SP', isPrice: true },
                             { key: 'cost_price', label: '🔒 Giá vốn (₫)', type: 'text',   placeholder: '0', isPrice: true },
                             { key: 'stock',      label: 'Tồn kho',         type: 'number', placeholder: '0', isPrice: false },
                             { key: 'weight',     label: 'Cân nặng (kg)',   type: 'number', placeholder: '0.5', isPrice: false },
-                          ].map(field => (
+                          ] as { key: 'sku' | 'price' | 'cost_price' | 'stock' | 'weight'; label: string; type: string; placeholder: string; isPrice: boolean }[]).map(field => (
                             <div key={field.key}>
                               <label className="text-[10px] font-semibold text-stone-400 block mb-1">
                                 {field.label}
@@ -216,10 +217,10 @@ export default function VariantsManager({ variants, onChange }: Props) {
                                 type={field.type}
                                 inputMode={field.isPrice ? 'numeric' : undefined}
                                 step={field.key === 'weight' ? '0.1' : undefined}
-                                value={(v as any)[field.key]}
-                                onChange={e => updateVariant(idx, field.key as keyof Variant,
+                                value={v[field.key]}
+                                onChange={e => updateVariant(idx, field.key,
                                   field.isPrice ? e.target.value.replace(/\D/g, '') : e.target.value)}
-                                onBlur={field.isPrice ? (e => updateVariant(idx, field.key as keyof Variant,
+                                onBlur={field.isPrice ? (e => updateVariant(idx, field.key,
                                   e.target.value ? String(Math.round(Number(e.target.value) || 0)) : '')) : undefined}
                                 placeholder={field.placeholder}
                                 className="w-full border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-stone-400 bg-white"

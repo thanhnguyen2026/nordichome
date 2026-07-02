@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 
 interface Props {
   coverImage: string
@@ -53,8 +54,8 @@ export default function ImageUploader({ coverImage, images, onCoverChange, onIma
       <div>
         <label className="text-xs font-semibold text-stone-500 block mb-2">Ảnh đại diện (ảnh chính)</label>
         <div className="flex gap-3 items-center">
-          <div className="w-24 h-24 bg-stone-100 rounded-xl border-2 border-dashed border-stone-200 flex items-center justify-center overflow-hidden">
-            {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <span className="text-3xl">🛋️</span>}
+          <div className="relative w-24 h-24 bg-stone-100 rounded-xl border-2 border-dashed border-stone-200 flex items-center justify-center overflow-hidden">
+            {coverImage ? <Image src={coverImage} alt="Ảnh đại diện" fill sizes="96px" className="object-cover" /> : <span className="text-3xl">🛋️</span>}
           </div>
           <div>
             <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
@@ -76,7 +77,7 @@ export default function ImageUploader({ coverImage, images, onCoverChange, onIma
         <div className="flex flex-wrap gap-2 mb-2">
           {images.map((img, i) => (
             <div key={i} className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden group">
-              <img src={img} className="w-full h-full object-cover" />
+              <Image src={img} alt={`Ảnh chi tiết ${i + 1}`} fill sizes="80px" className="object-cover" />
               <button type="button" onClick={() => removeImage(i)}
                 className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                 ✕

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { copyToClipboard } from '@/lib/clipboard'
 
 interface ProductInfo {
   name: string
@@ -74,17 +75,15 @@ export default function ChatConsultBlock({ settings, product }: Props) {
 
   if (active.length === 0) return null
 
-  const handleClick = (ch: typeof CHANNELS[0], url: string) => {
+  const handleClick = async (ch: typeof CHANNELS[0], url: string) => {
     if (!product) {
       window.open(url, '_blank')
       return
     }
     const msg = buildMessage(ch, product)
-    navigator.clipboard.writeText(msg).then(() => {
-      setToast({ chKey: ch.key, url })
-    }).catch(() => {
-      window.open(url, '_blank')
-    })
+    const ok = await copyToClipboard(msg)
+    if (ok) setToast({ chKey: ch.key, url })
+    else window.open(url, '_blank')
   }
 
   return (

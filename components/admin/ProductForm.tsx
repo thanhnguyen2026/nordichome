@@ -12,24 +12,50 @@ interface Props {
   onCancel: () => void
 }
 
+interface FormState {
+  name: string
+  slug: string
+  sku: string
+  category_id: string
+  price: number | string
+  sale_price: number | string
+  cost_price: number | string
+  short_desc: string
+  description: string
+  cover_image: string
+  images: string[]
+  video_url: string
+  weight: number | string
+  origin_url: string
+  in_stock: boolean
+  is_preorder: boolean
+  is_bulky: boolean
+  is_visible: boolean
+  is_featured: boolean
+  is_new: boolean
+  meta_title: string
+  meta_description: string
+}
+
 export default function ProductForm({ product, categories, onSave, onCancel }: Props) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name:             product?.name ?? '',
     slug:             product?.slug ?? '',
     sku:              product?.sku ?? '',
     category_id:      product?.category_id ?? '',
     price:            product?.price ?? 0,
-    sale_price:       (product?.sale_price as any) ?? '',
-    cost_price:       (product as any)?.cost_price ?? 0,
+    sale_price:       product?.sale_price ?? '',
+    cost_price:       product?.cost_price ?? 0,
     short_desc:       product?.short_desc ?? '',
     description:      product?.description ?? '',
     cover_image:      product?.cover_image ?? '',
     images:           product?.images ?? [],
-    video_url:        (product as any)?.video_url ?? '',
-    weight:           (product as any)?.weight ?? 0.5,
-    origin_url:       (product as any)?.origin_url ?? '',
+    video_url:        product?.video_url ?? '',
+    weight:           product?.weight ?? 0.5,
+    origin_url:       product?.origin_url ?? '',
     in_stock:         product?.in_stock ?? true,
-    is_preorder:      (product as any)?.is_preorder ?? false,
+    is_preorder:      product?.is_preorder ?? false,
+    is_bulky:         product?.is_bulky ?? false,
     is_visible:       product?.is_visible ?? true,
     is_featured:      product?.is_featured ?? false,
     is_new:           product?.is_new ?? false,
@@ -63,7 +89,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       })
   }, [product?.id])
 
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(f => ({ ...f, [k]: v }))
 
   const autoSlug = (name: string) =>
     name.toLowerCase().normalize('NFD')
@@ -83,7 +109,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       weight:           Number(form.weight),
       origin_url:       form.origin_url || null,
       video_url:        form.video_url || null,
-    } as any, variants)
+    }, variants)
     setSaving(false)
   }
 
@@ -217,16 +243,22 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       {/* ── Video ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
         <h3 className="font-bold mb-1 text-sm text-stone-700">🎬 Video sản phẩm</h3>
-        <p className="text-xs text-stone-400 mb-3">YouTube, Shorts, Facebook, TikTok, .mp4/.webm</p>
+        <p className="text-xs text-stone-400 mb-3">YouTube, Shorts, Facebook, TikTok, Google Drive, .mp4/.webm</p>
         <input value={form.video_url} onChange={e => set('video_url', e.target.value)}
           placeholder="https://youtube.com/watch?v=..."
           className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+        {form.video_url?.includes('drive.google.com') && (
+          <p className="text-xs text-amber-600 mt-1.5">
+            ⚠️ Nhớ để chế độ chia sẻ file là &quot;Bất kỳ ai có đường liên kết&quot; trên Google Drive, nếu không khách sẽ không xem được video.
+          </p>
+        )}
         {form.video_url && (
           <div className="mt-2 p-2.5 bg-stone-50 rounded-lg flex items-center gap-2 text-xs text-stone-500">
             <span>
               {form.video_url.includes('youtube') ? '▶️ YouTube' :
                form.video_url.includes('facebook') ? '📘 Facebook' :
                form.video_url.includes('tiktok') ? '🎵 TikTok' :
+               form.video_url.includes('drive.google.com') ? '📁 Google Drive' :
                form.video_url.match(/\.(mp4|webm)/i) ? '🎥 MP4' : '🔗 Video'}
             </span>
             <span className="truncate text-stone-400 flex-1">{form.video_url}</span>
@@ -243,14 +275,14 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       <div className="bg-white rounded-xl p-6 border border-stone-100">
         <h3 className="font-bold mb-4 text-sm text-stone-700">🏷️ Trạng thái & Hiển thị</h3>
         <div className="grid grid-cols-2 gap-3">
-          {[
+          {([
             ['in_stock',   '✅ Còn hàng'],
             ['is_visible', '👁️ Hiển thị'],
             ['is_featured','⭐ Nổi bật'],
             ['is_new',     '🆕 Sản phẩm mới'],
-          ].map(([k, l]) => (
+          ] as ['in_stock' | 'is_visible' | 'is_featured' | 'is_new', string][]).map(([k, l]) => (
             <label key={k} className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={!!(form as any)[k]}
+              <input type="checkbox" checked={form[k]}
                 onChange={e => set(k, e.target.checked)} className="w-4 h-4" />
               <span className="text-sm">{l}</span>
             </label>
@@ -263,7 +295,19 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
             <div>
               <div className="text-sm font-semibold text-orange-700">⏳ Hàng đặt trước (Pre-order)</div>
               <div className="text-xs text-orange-500 mt-0.5">
-                Hiển thị badge "Đặt trước (7-10 ngày)" thay vì "Còn hàng"
+                Hiển thị badge &quot;Đặt trước (7-10 ngày)&quot; thay vì &quot;Còn hàng&quot;
+              </div>
+            </div>
+          </label>
+
+          <label className="col-span-2 flex items-center gap-3 cursor-pointer bg-red-50 border border-red-100 rounded-xl px-4 py-3 hover:bg-red-100 transition">
+            <input type="checkbox" checked={form.is_bulky}
+              onChange={e => set('is_bulky', e.target.checked)}
+              className="w-4 h-4 accent-red-500" />
+            <div>
+              <div className="text-sm font-semibold text-red-700">📦 Hàng cồng kềnh</div>
+              <div className="text-xs text-red-500 mt-0.5">
+                Khi đặt hàng, khách sẽ được yêu cầu liên hệ tư vấn thay vì tự tính phí ship
               </div>
             </div>
           </label>

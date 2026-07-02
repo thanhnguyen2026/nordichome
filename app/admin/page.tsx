@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { ORDER_STATUS_LABEL } from '@/types'
+import { ORDER_STATUS_LABEL, Order } from '@/types'
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ products: 0, orders: 0, pending: 0, revenue: 0 })
-  const [recentOrders, setRecentOrders] = useState<any[]>([])
+  const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

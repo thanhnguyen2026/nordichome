@@ -1,22 +1,47 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import ProductGallery from './ProductGallery'
-import ProductVideoPlayer from './ProductVideoPlayer'
 import AddToCartSection from './AddToCartSection'
 import ChatConsultBlock from './ChatConsultBlock'
 import { Product } from '@/types'
 import { trackViewItem } from '@/lib/analytics'
 
 interface Props {
-  product: Product & { [key: string]: any }
+  product: Product
   allImages: string[]
   settings: Record<string, string>
 }
+
+// Nhúng video (Facebook SDK script) khá nặng và không phải sản phẩm nào
+// cũng có — chỉ tải khi thực sự cần, không cộng vào bundle ban đầu.
+const ProductVideoPlayer = dynamic(() => import('./ProductVideoPlayer'), { ssr: false })
 
 export default function ProductDetailClient({ product, allImages, settings }: Props) {
   const [variantImage,  setVariantImage]  = useState<string | null>(null)
   const [variantPrice,  setVariantPrice]  = useState<number | null>(null)
   const [variantLabel,  setVariantLabel]  = useState<string | null>(null)
+
+  // Chọn mẫu đổi ảnh trên mobile → tự cuộn lên khung ảnh nếu nó đã bị cuộn
+  // khuất khỏi màn hình, đỡ phải kéo tay lên đầu trang mới thấy ảnh mới.
+  const galleryRef = useRef<HTMLDivElement>(null)
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return }
+    if (!variantImage) return
+    if (window.innerWidth >= 768) return // desktop: ảnh & nút mua đã nằm cạnh nhau
+    const el = galleryRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    if (rect.top < 0) {
+      // scrollIntoView canh mép trên khung ảnh vào y=0, nhưng header đang
+      // sticky top-0 nên sẽ đè lên che mất phần trên — trừ thêm chiều cao
+      // header thực tế (đo trực tiếp, không hard-code) để ảnh lộ hết ra.
+      const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 0
+      const targetY = window.scrollY + rect.top - headerHeight - 12
+      window.scrollTo({ top: targetY, behavior: 'smooth' })
+    }
+  }, [variantImage])
 
   useEffect(() => {
     trackViewItem({
@@ -24,7 +49,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
       name:      product.name,
       price:     product.price,
       sale_price: product.sale_price,
-      category:  (product as any).category?.name,
+      category:  product.category?.name,
       slug:      product.slug,
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -36,8 +61,10 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
 
   return (
     <div className="grid md:grid-cols-2 gap-10 mb-16">
-      {/* Left — ảnh + video */}
-      <div className="space-y-4">
+      {/* Left — ảnh + video · min-w-0 bắt buộc: nếu không, item grid sẽ giãn theo
+          chiều rộng nội dung của thanh trượt ảnh bên trong (ProductGallery dùng
+          width tính theo %) thay vì co lại theo khung grid, gây tràn ngang trên mobile */}
+      <div className="space-y-4 min-w-0" ref={galleryRef}>
         <ProductGallery images={displayImages} />
         {product.video_url && (
           <div>

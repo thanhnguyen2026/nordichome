@@ -83,9 +83,6 @@ export default function FloatingSocial() {
   const [settings, setSettings] = useState<Settings>({})
   const [loaded, setLoaded] = useState(false)
 
-  // Ẩn trên trang admin
-  if (pathname?.startsWith('/admin')) return null
-
   useEffect(() => {
     supabase.from('settings').select('key,value')
       .in('key', CHANNELS.flatMap(c => [`float_${c.key}_on`, `float_${c.key}_url`]))
@@ -98,8 +95,12 @@ export default function FloatingSocial() {
   const active = CHANNELS.filter(
     c => settings[`float_${c.key}_on`] === '1' && settings[`float_${c.key}_url`]
   )
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- pathname check is above
 
+  // Ẩn trên trang admin — kiểm tra SAU khi mọi hook đã gọi xong, vì component
+  // này sống trong layout gốc (không unmount khi chuyển trang), nếu return
+  // sớm nằm trước useEffect thì số lượng hook gọi ra sẽ đổi giữa các lần
+  // render khi khách chuyển từ /admin sang trang thường, vi phạm Rules of Hooks.
+  if (pathname?.startsWith('/admin')) return null
   if (!loaded || active.length === 0) return null
 
   return (

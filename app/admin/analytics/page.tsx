@@ -112,7 +112,7 @@ export default function AdminAnalytics() {
     else if (statusFilter === 'all')       rows = rows.filter(o => o.status !== 'cancelled')
     // 'with_cancelled' = giữ tất cả, không lọc
     return rows
-  }, [allOrders, range, statusFilter, rangeStart])
+  }, [allOrders, statusFilter, rangeStart])
 
   // Stats
   const stats = useMemo(() => ({
@@ -142,12 +142,15 @@ export default function AdminAnalytics() {
       .map(([label, value]) => ({ label, value }))
   }, [chartOrders])
 
-  // Compare previous period
+  // Compare previous period — độ dài kỳ trước lấy trực tiếp từ `range` (số
+  // ngày cố định) thay vì tính lệch theo Date.now(), vì gọi hàm "không thuần"
+  // (impure) như Date.now() bên trong useMemo có thể cho kết quả không ổn
+  // định giữa các lần render.
   const prevStart = useMemo(() => {
     if (!rangeStart || range === 'all') return null
+    const days = range === 'today' ? 1 : range === '7d' ? 7 : 30
     const d = new Date(rangeStart)
-    const diff = Date.now() - rangeStart.getTime()
-    d.setTime(d.getTime() - diff)
+    d.setDate(d.getDate() - days)
     return d
   }, [rangeStart, range])
 
@@ -185,11 +188,11 @@ export default function AdminAnalytics() {
             </button>
           ))}
           <div className="w-px bg-stone-200 mx-1" />
-          {[
+          {([
             { key: 'all',       label: 'Mọi đơn' },
             { key: 'completed', label: 'Hoàn thành' },
-          ].map(f => (
-            <button key={f.key} onClick={() => setStatusFilter(f.key as any)}
+          ] as { key: 'all' | 'completed'; label: string }[]).map(f => (
+            <button key={f.key} onClick={() => setStatusFilter(f.key)}
               className={`text-xs px-3 py-2 rounded-lg font-semibold transition ${
                 statusFilter === f.key ? 'bg-amber-600 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
               }`}>

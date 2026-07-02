@@ -18,7 +18,8 @@ export async function GET() {
     })
     const data = await res.json()
     return NextResponse.json({ ok: data.ok, telegram_response: data })
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ ok: false, error: message })
   }
 }

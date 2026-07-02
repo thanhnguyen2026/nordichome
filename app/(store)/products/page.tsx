@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, PUBLIC_PRODUCT_COLUMNS } from '@/lib/supabase'
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import ProductCard from '@/components/store/ProductCard'
@@ -6,6 +6,8 @@ import CategorySidebar from '@/components/store/CategorySidebar'
 import SortSelect from '@/components/store/SortSelect'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
 import { PackageOpen } from 'lucide-react'
+import type { Product } from '@/types'
+import Link from 'next/link'
 
 export default async function ProductsPage({
   searchParams,
@@ -53,7 +55,7 @@ export default async function ProductsPage({
   // Build query sản phẩm
   let query = supabase
     .from('products')
-    .select('*,category:categories(name,slug)')
+    .select(`${PUBLIC_PRODUCT_COLUMNS},category:categories(name,slug)`)
     .eq('is_visible', true)
 
   if (categoryIds.length > 0) {
@@ -68,7 +70,10 @@ export default async function ProductsPage({
   else if (sp.sort === 'price_desc') query = query.order('price', { ascending: false })
   else query = query.order('created_at', { ascending: false })
 
-  const { data: products } = await query
+  // Tên cột select() truyền qua biến khiến Supabase không suy luận được kiểu
+  // trả về tĩnh (chỉ literal string mới suy luận được) — ép kiểu tường minh.
+  const { data: productsRaw } = await query
+  const products = productsRaw as unknown as Product[] | null
 
   // Breadcrumbs
   const parentCat = activeCategory?.parent_id
@@ -84,15 +89,15 @@ export default async function ProductsPage({
 
       <div className="border-b border-stone-100 bg-white">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-xs text-stone-400">
-          <a href="/" className="hover:text-stone-700 transition">Trang chủ</a>
+          <Link href="/" className="hover:text-stone-700 transition">Trang chủ</Link>
           <span>/</span>
-          <a href="/products" className="hover:text-stone-700 transition">Sản phẩm</a>
+          <Link href="/products" className="hover:text-stone-700 transition">Sản phẩm</Link>
           {parentCat && (
             <>
               <span>/</span>
-              <a href={`/products?category=${parentCat.slug}`} className="hover:text-stone-700 transition">
+              <Link href={`/products?category=${parentCat.slug}`} className="hover:text-stone-700 transition">
                 {parentCat.name}
-              </a>
+              </Link>
             </>
           )}
           {activeCategory && (
@@ -105,20 +110,24 @@ export default async function ProductsPage({
       </div>
 
       {/* Mobile: category pills scrollable — ẩn trên desktop */}
-      <div className="md:hidden overflow-x-auto flex gap-2 px-4 py-3 border-b border-stone-100 bg-white">
-        <a href="/products"
-          className={`flex-shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition whitespace-nowrap ${!sp.category ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
-          Tất cả
-        </a>
-        {categories?.filter(c => !c.parent_id).map(cat => (
-          <a key={cat.id} href={`/products?category=${cat.slug}`}
-            className={`flex-shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition whitespace-nowrap ${sp.category === cat.slug ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
-            {cat.name}
-            {(countMap[cat.id] || 0) > 0 && (
-              <span className="ml-1 opacity-60">{countMap[cat.id]}</span>
-            )}
-          </a>
-        ))}
+      <div className="md:hidden relative border-b border-stone-100 bg-white">
+        <div className="overflow-x-auto flex gap-2 px-4 py-3">
+          <Link href="/products"
+            className={`flex-shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition whitespace-nowrap ${!sp.category ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+            Tất cả
+          </Link>
+          {categories?.filter(c => !c.parent_id).map(cat => (
+            <Link key={cat.id} href={`/products?category=${cat.slug}`}
+              className={`flex-shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition whitespace-nowrap ${sp.category === cat.slug ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              {cat.name}
+              {(countMap[cat.id] || 0) > 0 && (
+                <span className="ml-1 opacity-60">{countMap[cat.id]}</span>
+              )}
+            </Link>
+          ))}
+        </div>
+        {/* Gợi ý còn danh mục phía sau — mờ dần mép phải */}
+        <div className="absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
       </div>
 
       <main className="max-w-6xl mx-auto px-4 py-8 flex gap-8">
@@ -143,12 +152,12 @@ export default async function ProductsPage({
               <p className="text-stone-600 font-semibold text-base mb-1">Chưa có sản phẩm nào trong danh mục này</p>
               <p className="text-stone-400 text-sm mb-6">Hãy thử xem các danh mục khác nhé!</p>
               <div className="flex gap-3 flex-wrap justify-center">
-                <a href="/products" className="bg-stone-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-stone-700 transition">
+                <Link href="/products" className="bg-stone-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-stone-700 transition">
                   Xem tất cả sản phẩm
-                </a>
-                <a href="/" className="border border-stone-300 text-stone-700 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-stone-50 transition">
+                </Link>
+                <Link href="/" className="border border-stone-300 text-stone-700 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-stone-50 transition">
                   Về trang chủ
-                </a>
+                </Link>
               </div>
             </div>
           ) : (
@@ -156,7 +165,7 @@ export default async function ProductsPage({
               {products.map((p, i) => (
                 <RevealOnScroll key={p.id} index={i}>
                   <ProductCard
-                    product={p as any}
+                    product={p}
                     hasVariants={productIdsWithVariants.has(p.id)}
                     minVariantPrice={minVariantPriceMap[p.id] ?? null}
                   />

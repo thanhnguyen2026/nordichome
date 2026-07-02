@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Folder, FolderOpen, Edit2, Trash2, Plus, X, Eye, EyeOff } from 'lucide-react'
+import { Folder, FolderOpen, Edit2, Trash2, Plus, X, Eye, EyeOff, ChevronUp, ChevronDown, Upload } from 'lucide-react'
 
 interface Category {
   id: string
@@ -23,6 +23,8 @@ export default function AdminCategories() {
   const [name, setName] = useState('')
   const [parentId, setParentId] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
     const { data } = await supabase.from('categories').select('*').order('sort_order')
@@ -30,6 +32,9 @@ export default function AdminCategories() {
     setLoading(false)
   }
 
+  // Tải dữ liệu lúc mount — dự án không dùng thư viện fetch data (SWR/React
+  // Query) nên đây là cách chuẩn hiện tại cho các trang admin CRUD.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
   const slugify = (s: string) =>
@@ -80,13 +85,48 @@ export default function AdminCategories() {
     load()
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: formData })
+    const data = await res.json()
+    if (data.url) setImageUrl(data.url)
+    setUploading(false)
+    e.target.value = ''
+  }
+
   const handleToggleVisible = async (cat: Category) => {
     await supabase.from('categories').update({ is_visible: !cat.is_visible }).eq('id', cat.id)
     setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, is_visible: !cat.is_visible } : c))
   }
 
-  const parents = categories.filter(c => !c.parent_id)
-  const childrenOf = (id: string) => categories.filter(c => c.parent_id === id)
+  const parents = categories.filter(c => !c.parent_id).sort((a, b) => a.sort_order - b.sort_order)
+  const childrenOf = (id: string) =>
+    categories.filter(c => c.parent_id === id).sort((a, b) => a.sort_order - b.sort_order)
+
+  // Đổi thứ tự hiển thị — hoán đổi sort_order với hàng liền trước/sau trong
+  // cùng nhóm (cùng parent_id), tránh trùng giá trị vì luôn đổi giữa 2 giá
+  // trị đã tồn tại sẵn thay vì đoán số mới.
+  const moveCategory = async (cat: Category, direction: 'up' | 'down') => {
+    const siblings = cat.parent_id ? childrenOf(cat.parent_id) : parents
+    const idx = siblings.findIndex(c => c.id === cat.id)
+    const swapWith = direction === 'up' ? siblings[idx - 1] : siblings[idx + 1]
+    if (!swapWith) return
+
+    setCategories(prev => prev.map(c => {
+      if (c.id === cat.id) return { ...c, sort_order: swapWith.sort_order }
+      if (c.id === swapWith.id) return { ...c, sort_order: cat.sort_order }
+      return c
+    }))
+
+    await Promise.all([
+      supabase.from('categories').update({ sort_order: swapWith.sort_order }).eq('id', cat.id),
+      supabase.from('categories').update({ sort_order: cat.sort_order }).eq('id', swapWith.id),
+    ])
+  }
 
   return (
     <AdminLayout>
@@ -133,16 +173,28 @@ export default function AdminCategories() {
           </button>
         </div>
 
-        {/* Image URL input */}
+        {/* Ảnh đại diện — upload thật hoặc dán link */}
         <div className="flex items-start gap-3">
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition disabled:opacity-50 flex-shrink-0"
+          >
+            <Upload size={13} />
+            {uploading ? 'Đang tải...' : '📁 Chọn ảnh'}
+          </button>
           <input
             value={imageUrl}
             onChange={e => setImageUrl(e.target.value)}
-            placeholder="Nhập link ảnh đại diện (Unsplash...)"
+            placeholder="...hoặc dán link ảnh ngoài"
             className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400"
           />
           {imageUrl && (
             <div className="relative flex-shrink-0">
+              {/* imageUrl là link dán tay bất kỳ (không giới hạn domain), next/image không dùng được */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imageUrl}
                 alt="Preview"
@@ -177,7 +229,7 @@ export default function AdminCategories() {
               return (
                 <div key={parent.id}>
                   {/* Danh mục cha */}
-                  <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${
+                  <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-xl transition ${
                     isEditingThis ? 'bg-amber-50 border border-amber-200' : 'hover:bg-stone-50'
                   } ${!parent.is_visible ? 'opacity-50' : ''}`}>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -186,6 +238,8 @@ export default function AdminCategories() {
                         : <Folder size={17} className="text-amber-500 flex-shrink-0" />
                       }
                       {parent.image_url && (
+                        // image_url là link dán tay bất kỳ, next/image không dùng được
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={parent.image_url} alt={parent.name}
                           className="w-8 h-8 rounded-md object-cover flex-shrink-0 border border-stone-100" />
                       )}
@@ -199,7 +253,17 @@ export default function AdminCategories() {
                         <span className="text-[10px] bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">Đang ẩn</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0 justify-end sm:justify-start">
+                      <div className="flex flex-col">
+                        <button onClick={() => moveCategory(parent, 'up')} disabled={parents[0]?.id === parent.id}
+                          className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa lên trên">
+                          <ChevronUp size={14} />
+                        </button>
+                        <button onClick={() => moveCategory(parent, 'down')} disabled={parents[parents.length - 1]?.id === parent.id}
+                          className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa xuống dưới">
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
                       <button onClick={() => handleToggleVisible(parent)}
                         className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition ${
                           parent.is_visible
@@ -229,12 +293,14 @@ export default function AdminCategories() {
                         const isEditingChild = editingId === child.id
                         return (
                           <div key={child.id}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-xl transition ${
+                            className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2 rounded-xl transition ${
                               isEditingChild ? 'bg-amber-50 border border-amber-200' : 'hover:bg-stone-50'
                             } ${!child.is_visible ? 'opacity-50' : ''}`}>
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <Folder size={14} className="text-stone-400 flex-shrink-0" />
                               {child.image_url && (
+                                // image_url là link dán tay bất kỳ, next/image không dùng được
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img src={child.image_url} alt={child.name}
                                   className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-stone-100" />
                               )}
@@ -243,7 +309,17 @@ export default function AdminCategories() {
                                 <span className="text-[10px] bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded-full font-bold">Đang ẩn</span>
                               )}
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
+                            <div className="flex items-center gap-1 flex-shrink-0 justify-end sm:justify-start">
+                              <div className="flex flex-col">
+                                <button onClick={() => moveCategory(child, 'up')} disabled={children[0]?.id === child.id}
+                                  className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa lên trên">
+                                  <ChevronUp size={12} />
+                                </button>
+                                <button onClick={() => moveCategory(child, 'down')} disabled={children[children.length - 1]?.id === child.id}
+                                  className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa xuống dưới">
+                                  <ChevronDown size={12} />
+                                </button>
+                              </div>
                               <button onClick={() => handleToggleVisible(child)}
                                 className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition ${
                                   child.is_visible

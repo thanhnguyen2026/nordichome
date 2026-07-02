@@ -3,7 +3,7 @@ export function roundUpToHalfKg(weight: number): number {
 }
 
 export function calcTotalWeight(items: Array<{
-  product: { weight?: number; category?: { name?: string } }
+  product: { weight?: number; is_bulky?: boolean }
   quantity: number
 }>): { totalWeight: number; hasBulky: boolean } {
   let totalWeight = 0
@@ -13,10 +13,7 @@ export function calcTotalWeight(items: Array<{
     const w = item.product.weight ?? 0.5
     totalWeight += w * item.quantity
 
-    const catName = item.product.category?.name?.toLowerCase() ?? ''
-    if (catName.includes('nội thất') || catName.includes('sofa') || catName.includes('giường')) {
-      hasBulky = true
-    }
+    if (item.product.is_bulky) hasBulky = true
   }
 
   return { totalWeight: roundUpToHalfKg(totalWeight), hasBulky }

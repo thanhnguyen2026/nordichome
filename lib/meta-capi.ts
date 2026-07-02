@@ -36,7 +36,7 @@ export async function sendMetaEvent(p: MetaEventParams): Promise<void> {
   if (p.fbp)        userData.fbp                = p.fbp
   if (p.fbc)        userData.fbc                = p.fbc
 
-  const customData: Record<string, any> = {}
+  const customData: Record<string, string | number | string[]> = {}
   if (p.value      !== undefined) customData.value       = p.value
   if (p.currency)                 customData.currency    = p.currency
   if (p.contentIds?.length)       customData.content_ids = p.contentIds

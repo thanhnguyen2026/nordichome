@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const inputBuffer = Buffer.from(await file.arrayBuffer())
   const isImage = file.type.startsWith('image/')
 
-  let buffer = inputBuffer
+  let buffer: Buffer = inputBuffer
   let contentType = file.type
   let ext = file.name.split('.').pop() || 'bin'
 

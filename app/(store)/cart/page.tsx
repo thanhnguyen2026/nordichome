@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useCartStore, itemKey } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { trackBeginCheckout } from '@/lib/analytics'
@@ -21,7 +22,7 @@ export default function CartPage() {
     <>
       <header className="bg-white border-b border-stone-100 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             {settings.logo_url && (
               <Image src={settings.logo_url} alt="Logo" width={48} height={48} className="h-12 w-12 object-contain rounded-lg" />
             )}
@@ -33,8 +34,8 @@ export default function CartPage() {
                 Simplify & Enjoy
               </div>
             </div>
-          </a>
-          <a href="/products" className="text-sm font-semibold text-stone-600 hover:text-stone-900">← Tiếp tục mua sắm</a>
+          </Link>
+          <Link href="/products" className="text-sm font-semibold text-stone-600 hover:text-stone-900">← Tiếp tục mua sắm</Link>
         </div>
       </header>
 
@@ -45,17 +46,17 @@ export default function CartPage() {
           <div className="text-center py-20">
             <div className="text-5xl mb-4">🛒</div>
             <p className="text-stone-400 mb-6">Giỏ hàng của bạn đang trống</p>
-            <a href="/products" className="bg-stone-900 text-amber-100 px-6 py-3 rounded-lg text-sm font-bold inline-block">
+            <Link href="/products" className="bg-stone-900 text-amber-100 px-6 py-3 rounded-lg text-sm font-bold inline-block">
               Khám phá sản phẩm →
-            </a>
+            </Link>
           </div>
         ) : (
           <>
             <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden mb-6">
               {items.map(item => {
                 const key = itemKey(item)
-                const variantLabel = (item.product as any).variant_label
-                const variantImage = (item.product as any).variant_image
+                const variantLabel = item.product.variant_label
+                const variantImage = item.product.variant_image
                 const displayImage = variantImage || item.product.cover_image
                 return (
                   <div key={key} className="flex gap-4 p-4 border-b border-stone-50 last:border-0">
@@ -65,9 +66,9 @@ export default function CartPage() {
                         : <span className="text-3xl">🛋️</span>}
                     </div>
                     <div className="flex-1">
-                      <a href={`/products/${item.product.slug}`} className="font-bold text-sm hover:text-amber-700">
+                      <Link href={`/products/${item.product.slug}`} className="font-bold text-sm hover:text-amber-700">
                         {item.product.name}
-                      </a>
+                      </Link>
                       {/* Hiển thị biến thể đã chọn */}
                       {variantLabel && (
                         <div className="text-[11px] text-stone-400 mt-0.5">{variantLabel}</div>
@@ -101,13 +102,13 @@ export default function CartPage() {
                 <span>Tổng cộng</span>
                 <span className="text-amber-700">{fmt(total())}</span>
               </div>
-              <a
+              <Link
                 href="/checkout"
-                onClick={() => trackBeginCheckout(items as any, total())}
+                onClick={() => trackBeginCheckout(items, total())}
                 className="block w-full bg-stone-900 text-amber-100 text-center font-bold py-3.5 rounded-lg text-sm hover:bg-stone-800 transition"
               >
                 Tiến hành đặt hàng →
-              </a>
+              </Link>
             </div>
           </>
         )}

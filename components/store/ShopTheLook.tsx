@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { X } from 'lucide-react'
 
-interface HotspotProduct {
+export interface HotspotProduct {
   id: string
   name: string
   slug: string
@@ -13,14 +13,14 @@ interface HotspotProduct {
   sale_price: number | null
 }
 
-interface Hotspot {
+export interface Hotspot {
   id: string
   x_percent: number
   y_percent: number
   product: HotspotProduct | null
 }
 
-interface Look {
+export interface Look {
   id: string
   title: string
   description?: string
@@ -30,9 +30,13 @@ interface Look {
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
-function HotspotDot({ hotspot, index }: { hotspot: Hotspot; index: number }) {
+function HotspotDot({ hotspot }: { hotspot: Hotspot }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  // Pattern chuẩn để biết component đã mount ở client (dùng cho createPortal
+  // bên dưới, tránh lệch hydration SSR/client) — không có cách nào khác để
+  // phát hiện "đã qua lần render đầu ở client" ngoài effect.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), [])
   const p = hotspot.product
   if (!p) return null
@@ -170,6 +174,8 @@ export default function ShopTheLook({ look }: { look: Look }) {
   return (
     <div className="space-y-3">
       <div className="relative rounded-2xl overflow-hidden bg-stone-100">
+        {/* image_url có thể là link dán tay bất kỳ (xem admin/looks), next/image không dùng được */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={look.image_url}
           alt={look.title}
@@ -177,8 +183,8 @@ export default function ShopTheLook({ look }: { look: Look }) {
           draggable={false}
         />
 
-        {activeHotspots.map((h, i) => (
-          <HotspotDot key={h.id} hotspot={h} index={i} />
+        {activeHotspots.map(h => (
+          <HotspotDot key={h.id} hotspot={h} />
         ))}
 
         {activeHotspots.length > 0 && (

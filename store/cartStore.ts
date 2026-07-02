@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { CartItem, Product } from '@/types'
+import { CartItem } from '@/types'
 
 // Key duy nhất cho mỗi dòng giỏ hàng: productId + variantId
 export const itemKey = (item: CartItem) => {
-  const vid = (item.product as any).variant_id ?? null
+  const vid = item.product.variant_id ?? null
   return vid ? `${item.product.id}__${vid}` : item.product.id
 }
 

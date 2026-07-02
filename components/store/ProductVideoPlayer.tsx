@@ -7,6 +7,7 @@ type VideoSource =
   | { type: 'youtube';   id: string;   isShorts: boolean }
   | { type: 'facebook';  url: string;  isReels: boolean  }
   | { type: 'tiktok';    url: string                     }
+  | { type: 'gdrive';    id: string                      }
   | { type: 'mp4';       url: string                     }
   | { type: 'unknown';   url: string                     }
 
@@ -48,6 +49,18 @@ function parseVideoUrl(url: string): VideoSource {
   // ── TikTok ────────────────────────────────────────────────────────────────
   if (u.includes('tiktok.com') || u.includes('vm.tiktok.com')) {
     return { type: 'tiktok', url: u }
+  }
+
+  // ── Google Drive (file/d/ID/view, open?id=ID, uc?id=ID) ──────────────────
+  if (u.includes('drive.google.com') || u.includes('docs.google.com')) {
+    const patterns = [
+      /\/file\/d\/([A-Za-z0-9_-]+)/,
+      /[?&]id=([A-Za-z0-9_-]+)/,
+    ]
+    for (const p of patterns) {
+      const m = u.match(p)
+      if (m) return { type: 'gdrive', id: m[1] }
+    }
   }
 
   // ── File MP4 / WebM / MOV trực tiếp ──────────────────────────────────────
@@ -108,13 +121,57 @@ function MutedAutoplayVideo({ src }: { src: string }) {
   )
 }
 
+/**
+ * TikTok chỉ công bố CHÍNH THỨC một cách nhúng duy nhất: thẻ <blockquote
+ * class="tiktok-embed"> kèm script embed.js của họ tự quét DOM và dựng
+ * player (kiểm chứng qua chính API oEmbed của TikTok). Dùng iframe tự trỏ
+ * thẳng vào tiktok.com/embed/v2/{id} là cách không chính thức, dễ thiếu
+ * nút điều khiển/fullscreen và có thể hỏng bất cứ lúc nào nếu TikTok đổi
+ * cấu trúc trang nội bộ.
+ */
+function TikTokEmbed({ videoId, url }: { videoId: string; url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    container.innerHTML = `
+      <blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width:100%;min-width:100%;">
+        <section></section>
+      </blockquote>
+    `
+
+    // embed.js chỉ quét DOM 1 lần lúc script chạy xong — thêm script mới mỗi
+    // lần mount để nó quét lại blockquote vừa chèn (dựng iframe thật bên trong)
+    const script = document.createElement('script')
+    script.src = 'https://www.tiktok.com/embed.js'
+    script.async = true
+    document.body.appendChild(script)
+
+    return () => {
+      script.remove()
+    }
+  }, [videoId, url])
+
+  return (
+    <div className="flex justify-center w-full">
+      <div ref={containerRef} className="w-full max-w-[340px] [&_iframe]:rounded-2xl [&_iframe]:shadow-lg" />
+    </div>
+  )
+}
+
 /** iframe fullsize */
 function FullIframe({ src, title }: { src: string; title: string }) {
   return (
     <iframe
       src={src}
       title={title}
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      // "fullscreen" bắt buộc phải khai báo tường minh ở đây — nếu thiếu, trình
+      // duyệt chặn Fullscreen API bên trong iframe qua Permissions Policy, khiến
+      // nút phóng to của Facebook/YouTube/TikTok bị vô hiệu hoá âm thầm dù đã có
+      // allowFullScreen (thuộc tính đó chỉ là điều kiện cần, chưa đủ)
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
       allowFullScreen
       scrolling="no"
       className="absolute inset-0 w-full h-full border-0"
@@ -156,9 +213,13 @@ export default function ProductVideoPlayer({ videoUrl }: Props) {
   // ── Facebook ────────────────────────────────────────────────────────────────
   if (source.type === 'facebook') {
     const encoded = encodeURIComponent(source.url)
+    // width quyết định độ phân giải Facebook trả về, không chỉ là kích thước
+    // hiển thị — dùng mức tối đa Facebook hỗ trợ (1280) để luôn nhận bản chất
+    // lượng cao nhất; CSS sẽ tự thu nhỏ lại cho vừa khung, thu nhỏ không làm mờ
+    // (chỉ phóng to ảnh/video có độ phân giải thấp mới gây mờ)
     const src =
       `https://www.facebook.com/plugins/video.php` +
-      `?href=${encoded}&width=500&show_text=false&autoplay=false`
+      `?href=${encoded}&width=1280&show_text=false&autoplay=false`
 
     if (source.isReels) {
       return (
@@ -176,16 +237,37 @@ export default function ProductVideoPlayer({ videoUrl }: Props) {
 
   // ── TikTok ──────────────────────────────────────────────────────────────────
   if (source.type === 'tiktok') {
-    // Trích video ID từ URL TikTok
+    // Link rút gọn (vm.tiktok.com/xxx) không chứa ID số trong URL — TikTok yêu
+    // cầu link đầy đủ dạng tiktok.com/@user/video/ID cho cách nhúng chính thức.
     const tikId = source.url.match(/video\/(\d+)/)
-    const embedUrl = tikId
-      ? `https://www.tiktok.com/embed/v2/${tikId[1]}`
-      : source.url
+    if (!tikId) {
+      return (
+        <div className="w-full aspect-[9/16] max-w-[340px] mx-auto rounded-2xl overflow-hidden shadow-md bg-stone-100 flex items-center justify-center">
+          <div className="text-center text-stone-400 px-6">
+            <div className="text-4xl mb-3">🎬</div>
+            <p className="text-sm font-medium text-stone-500 mb-1">Cần link TikTok đầy đủ</p>
+            <p className="text-xs text-stone-400 mb-2">Link rút gọn (vm.tiktok.com) chưa nhúng được — mở link trên TikTok, bấm Chia sẻ → Sao chép link để lấy link đầy đủ.</p>
+            <a href={source.url} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-amber-600 hover:text-amber-700 hover:underline transition">
+              Xem video trong tab mới →
+            </a>
+          </div>
+        </div>
+      )
+    }
 
+    return <TikTokEmbed videoId={tikId[1]} url={source.url} />
+  }
+
+  // ── Google Drive ──────────────────────────────────────────────────────────
+  // Lưu ý: file trên Drive phải để chế độ chia sẻ "Bất kỳ ai có đường liên kết"
+  // thì khách xem web mới phát được — nếu để riêng tư, trình phát sẽ báo lỗi quyền truy cập.
+  if (source.type === 'gdrive') {
+    const src = `https://drive.google.com/file/d/${source.id}/preview`
     return (
-      <PortraitWrapper>
-        <FullIframe src={embedUrl} title="TikTok Video" />
-      </PortraitWrapper>
+      <LandscapeWrapper>
+        <FullIframe src={src} title="Google Drive Video" />
+      </LandscapeWrapper>
     )
   }
 

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2, X, ArrowLeft, Eye, EyeOff, Pencil } from 'lucide-react'
@@ -56,11 +57,14 @@ export default function AdminLooks() {
     setHotspots(data ?? [])
   }
 
+  // Tải dữ liệu lúc mount — dự án không dùng thư viện fetch data, đây là cách chuẩn hiện tại
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     loadLooks()
     supabase.from('products').select('id, name, cover_image, price').eq('is_visible', true).order('name')
       .then(({ data }) => setProducts(data ?? []))
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (pending) { setPending(null); return }
@@ -156,7 +160,10 @@ export default function AdminLooks() {
               className={`relative rounded-2xl overflow-hidden ${pending ? 'cursor-crosshair' : 'cursor-crosshair'} select-none border-2 ${pending ? 'border-amber-400' : 'border-stone-100'} transition-colors`}
               onClick={handleImageClick}
             >
-              <img src={editing.image_url} className="w-full block" draggable={false} />
+              {/* image_url có thể là link dán tay bất kỳ (không giới hạn domain
+                  cho phép trong next.config.ts) nên không dùng được next/image. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={editing.image_url} alt={editing.title} className="w-full block" draggable={false} />
 
               {/* Existing hotspots */}
               {hotspots.map((h, i) => (
@@ -205,17 +212,25 @@ export default function AdminLooks() {
                   <option value="">-- Chọn sản phẩm --</option>
                   {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
-                {pendingProductId && (
-                  <div className="flex items-center gap-2 mb-3 p-2 bg-white rounded-lg">
-                    <img
-                      src={products.find(p => p.id === pendingProductId)?.cover_image}
-                      className="w-10 h-10 object-cover rounded-lg"
-                    />
-                    <span className="text-xs font-semibold line-clamp-2">
-                      {products.find(p => p.id === pendingProductId)?.name}
-                    </span>
-                  </div>
-                )}
+                {pendingProductId && (() => {
+                  const pendingProduct = products.find(p => p.id === pendingProductId)
+                  return (
+                    <div className="flex items-center gap-2 mb-3 p-2 bg-white rounded-lg">
+                      {pendingProduct?.cover_image && (
+                        <Image
+                          src={pendingProduct.cover_image}
+                          alt={pendingProduct.name}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 object-cover rounded-lg"
+                        />
+                      )}
+                      <span className="text-xs font-semibold line-clamp-2">
+                        {pendingProduct?.name}
+                      </span>
+                    </div>
+                  )
+                })()}
                 <div className="flex gap-2">
                   <button
                     onClick={handleAddHotspot}
@@ -254,7 +269,8 @@ export default function AdminLooks() {
                         {i + 1}
                       </div>
                       {h.product?.cover_image && (
-                        <img src={h.product.cover_image} className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
+                        <Image src={h.product.cover_image} alt={h.product.name} width={40} height={40}
+                          className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold truncate">{h.product?.name || '—'}</p>
@@ -387,7 +403,9 @@ export default function AdminLooks() {
                   className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-stone-400"
                 />
                 {newLook.image_url && (
-                  <img src={newLook.image_url} className="mt-2 w-full h-40 object-cover rounded-xl" />
+                  // image_url có thể là link dán tay bất kỳ, next/image không dùng được
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={newLook.image_url} alt="Xem trước" className="mt-2 w-full h-40 object-cover rounded-xl" />
                 )}
               </div>
             </div>
@@ -412,15 +430,18 @@ export default function AdminLooks() {
         <div className="text-center py-24 text-stone-400">
           <div className="text-6xl mb-4">🖼️</div>
           <p className="font-semibold mb-1">Chưa có look nào</p>
-          <p className="text-sm">Bấm "Thêm Look" để bắt đầu</p>
+          <p className="text-sm">Bấm &quot;Thêm Look&quot; để bắt đầu</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {looks.map(look => (
             <div key={look.id} className={`bg-white rounded-2xl border overflow-hidden group hover:shadow-md transition ${look.is_active ? 'border-stone-100' : 'border-stone-200 opacity-60'}`}>
               <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
+                {/* image_url có thể là link dán tay bất kỳ, next/image không dùng được */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={look.image_url}
+                  alt={look.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 {!look.is_active && (

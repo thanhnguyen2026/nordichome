@@ -1,9 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 const supabase = supabaseAdmin
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CheckCircle2, Circle, XCircle, Package, MapPin, Phone, CreditCard, ExternalLink } from 'lucide-react'
+import type { Order } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,13 +42,14 @@ export default async function OrderDetailPage({
   }
 
   // Fetch order + items song song
-  const [{ data: order }, { data: settings }] = await Promise.all([
+  const [{ data: orderRaw }, { data: settings }] = await Promise.all([
     supabase.from('orders')
       .select('*')
       .eq('order_code', code.toUpperCase())
       .single(),
     supabase.from('settings').select('key,value'),
   ])
+  const order = orderRaw as unknown as Order | null
 
   // Verify: order tồn tại + số điện thoại khớp
   if (!order || order.customer_phone !== phone.trim()) {
@@ -79,14 +80,14 @@ export default async function OrderDetailPage({
   const currentStage = getStageIndex(order.status)
 
   const paymentLabel = order.payment_method === 'cod' ? 'COD — Thu tiền khi giao' : 'Chuyển khoản ngân hàng'
-  const paymentPaid  = (order as any).payment_status === 'paid' || order.payment_method === 'cod'
+  const paymentPaid  = order.payment_status === 'paid' || order.payment_method === 'cod'
 
   return (
     <main className="min-h-screen bg-stone-50 pb-16">
       {/* Header tối giản */}
       <header className="bg-white border-b border-stone-100">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <a href="/" className="text-base font-black text-stone-900">{s.site_name || 'NORDIC HOME'}</a>
+          <Link href="/" className="text-base font-black text-stone-900">{s.site_name || 'NORDIC HOME'}</Link>
           <Link href="/orders/track" className="text-xs text-stone-400 hover:text-stone-700 transition">
             ← Tra cứu đơn khác
           </Link>
@@ -188,13 +189,13 @@ export default async function OrderDetailPage({
             </div>
 
             {/* Tracking GHTK nếu có */}
-            {(order as any).tracking_code && (
+            {order.tracking_code && (
               <div className="mt-5 pt-4 border-t border-stone-100">
                 <p className="text-xs text-stone-500 mb-2">Mã vận đơn GHTK:</p>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm font-bold text-stone-800">{(order as any).tracking_code}</span>
+                  <span className="font-mono text-sm font-bold text-stone-800">{order.tracking_code}</span>
                   <a
-                    href={`https://i.ghtk.vn/${(order as any).tracking_code}`}
+                    href={`https://i.ghtk.vn/${order.tracking_code}`}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
                   >
@@ -237,10 +238,10 @@ export default async function OrderDetailPage({
               <span>Tiền hàng</span>
               <span>{fmt(order.subtotal || order.total)}</span>
             </div>
-            {(order as any).shipping_fee > 0 && (
+            {!!order.shipping_fee && order.shipping_fee > 0 && (
               <div className="flex justify-between text-stone-500">
                 <span>Phí vận chuyển</span>
-                <span>{fmt((order as any).shipping_fee)}</span>
+                <span>{fmt(order.shipping_fee)}</span>
               </div>
             )}
             <div className="flex justify-between font-black text-base border-t border-stone-100 pt-2 mt-2">

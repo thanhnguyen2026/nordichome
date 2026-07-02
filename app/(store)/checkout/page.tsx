@@ -1,12 +1,14 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useCartStore, itemKey } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { calcTotalWeight } from '@/lib/shipping'
 import { Truck, AlertTriangle, Loader2, ChevronDown } from 'lucide-react'
 import { trackPurchase, generateEventId, getCookie } from '@/lib/analytics'
+import { copyToClipboard } from '@/lib/clipboard'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
@@ -55,7 +57,7 @@ export default function CheckoutPage() {
   const router = useRouter()
   const hasHydrated = useCartStore(s => s.hasHydrated)
 
-  const { totalWeight, hasBulky } = calcTotalWeight(items as any)
+  const { totalWeight, hasBulky } = calcTotalWeight(items)
   const grandTotal = total() + (shippingFee ?? 0)
 
   // ── Load settings + tỉnh/thành ──────────────────────────────────────────────
@@ -74,6 +76,10 @@ export default function CheckoutPage() {
   }, [hasHydrated, items, orderCode, router])
 
   // ── Khi đổi tỉnh → load quận/huyện ─────────────────────────────────────────
+  // Pattern "fetch khi 1 giá trị đổi" — dự án không dùng thư viện fetch data
+  // (SWR/React Query) nên đây vẫn là cách chuẩn hiện tại, không tái cấu trúc
+  // logic địa chỉ/phí ship (rủi ro cao) chỉ để thoả rule lint mới.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!form.province) { setDistricts([]); setWards([]); setShippingFee(null); return }
     const prov = provinces.find(p => p.name === form.province)
@@ -102,6 +108,7 @@ export default function CheckoutPage() {
       .then(d => setWards(d.wards ?? []))
       .finally(() => setAddrLoading(null))
   }, [form.district, districts])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const isFreeship = settings.freeship_enabled === '1'
 
@@ -126,6 +133,7 @@ export default function CheckoutPage() {
     }
   }, [hasBulky, isFreeship, totalWeight, total])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   // Freeship bật → set fee = 0 ngay, không cần chọn địa chỉ
   useEffect(() => {
     if (isFreeship && !hasBulky) setShippingFee(0)
@@ -134,6 +142,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (form.ward) fetchShipping(form.province, form.district, form.ward)
   }, [form.ward, form.province, form.district, fetchShipping])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // ── Submit đơn ──────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,12 +175,12 @@ export default function CheckoutPage() {
           product_image:      i.product.cover_image,
           price:              i.product.sale_price ?? i.product.price,
           quantity:           i.quantity,
-          cost_price:         (i.product as any).cost_price ?? 0,
-          origin_url:         (i.product as any).origin_url ?? '',
-          variant_id:         (i.product as any).variant_id ?? null,
-          variant_label:      (i.product as any).variant_label ?? null,
-          variant_image:      (i.product as any).variant_image ?? null,
-          variant_cost_price: (i.product as any).variant_cost_price ?? null,
+          cost_price:         i.product.cost_price ?? 0,
+          origin_url:         i.product.origin_url ?? '',
+          variant_id:         i.product.variant_id ?? null,
+          variant_label:      i.product.variant_label ?? null,
+          variant_image:      i.product.variant_image ?? null,
+          variant_cost_price: i.product.variant_cost_price ?? null,
         })),
       }),
     })
@@ -186,7 +195,7 @@ export default function CheckoutPage() {
         name:         i.product.name,
         price:        i.product.sale_price ?? i.product.price,
         quantity:     i.quantity,
-        variantLabel: (i.product as any).variant_label ?? null,
+        variantLabel: i.product.variant_label ?? null,
       }))
 
       // Client-side (GTM → GA4 / Meta Pixel / Google Ads)
@@ -235,8 +244,15 @@ export default function CheckoutPage() {
 
     return (
       <main className="max-w-md mx-auto px-4 py-12 text-center">
-        <div className="text-5xl mb-3">🎉</div>
-        <h1 className="text-2xl font-black mb-1">Đặt hàng thành công!</h1>
+        <div className="text-5xl mb-3">{isBank && hasBank ? '📝' : '🎉'}</div>
+        <h1 className="text-2xl font-black mb-1">
+          {isBank && hasBank ? 'Đơn hàng đã được ghi nhận' : 'Đặt hàng thành công!'}
+        </h1>
+        {isBank && hasBank && (
+          <p className="text-stone-500 text-sm mb-3 max-w-xs mx-auto leading-relaxed">
+            Đơn sẽ được xử lý sau khi chúng tôi nhận được thanh toán từ bạn
+          </p>
+        )}
         <p className="text-stone-500 text-sm mb-1">Mã đơn hàng của bạn:</p>
         <div className="text-xl font-black text-amber-700 font-mono mb-4">{orderCode}</div>
 
@@ -256,7 +272,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-stone-500">Số tài khoản</span>
-                <button onClick={() => navigator.clipboard.writeText(settings.bank_account)}
+                <button onClick={() => copyToClipboard(settings.bank_account)}
                   className="font-mono font-bold hover:text-amber-700 transition" title="Bấm để sao chép">
                   {settings.bank_account} 📋
                 </button>
@@ -271,7 +287,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between items-center border-t border-stone-200 pt-2.5">
                 <span className="text-stone-500">Nội dung CK</span>
-                <button onClick={() => navigator.clipboard.writeText(orderCode)}
+                <button onClick={() => copyToClipboard(orderCode)}
                   className="font-mono font-bold hover:text-amber-700 transition" title="Bấm để sao chép">
                   {orderCode} 📋
                 </button>
@@ -286,15 +302,15 @@ export default function CheckoutPage() {
         )}
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <a
+          <Link
             href={`/orders/${orderCode}?phone=${encodeURIComponent(form.phone)}`}
             className="bg-amber-500 text-white px-6 py-3 rounded-lg text-sm font-bold inline-block hover:bg-amber-600 transition text-center"
           >
             📦 Theo dõi đơn hàng
-          </a>
-          <a href="/" className="bg-stone-900 text-amber-100 px-6 py-3 rounded-lg text-sm font-bold inline-block hover:bg-stone-800 transition text-center">
+          </Link>
+          <Link href="/" className="bg-stone-900 text-amber-100 px-6 py-3 rounded-lg text-sm font-bold inline-block hover:bg-stone-800 transition text-center">
             Về trang chủ
-          </a>
+          </Link>
         </div>
       </main>
     )
@@ -305,7 +321,7 @@ export default function CheckoutPage() {
     <>
       <header className="bg-white border-b border-stone-100 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             {settings.logo_url && (
               <Image src={settings.logo_url} alt="Logo" width={48} height={48} className="h-12 w-12 object-contain rounded-lg" />
             )}
@@ -317,8 +333,8 @@ export default function CheckoutPage() {
                 Simplify & Enjoy
               </div>
             </div>
-          </a>
-          <a href="/cart" className="text-sm font-semibold text-stone-600 hover:text-stone-900">← Giỏ hàng</a>
+          </Link>
+          <Link href="/cart" className="text-sm font-semibold text-stone-600 hover:text-stone-900">← Giỏ hàng</Link>
         </div>
       </header>
 
@@ -497,7 +513,7 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-2xl border border-stone-100 p-6">
             <h2 className="font-bold text-sm text-stone-700 mb-3">🧾 Tóm tắt đơn hàng</h2>
             {items.map(item => {
-              const variantLabel = (item.product as any).variant_label
+              const variantLabel = item.product.variant_label
               return (
                 <div key={itemKey(item)} className="flex justify-between text-sm mb-2">
                   <span className="text-stone-500">
@@ -540,7 +556,7 @@ export default function CheckoutPage() {
                 onClick={() => {
                   const lines = items.map(i => {
                     const price = i.product.sale_price ?? i.product.price
-                    const variant = (i.product as any).variant_label ? ` (${(i.product as any).variant_label})` : ''
+                    const variant = i.product.variant_label ? ` (${i.product.variant_label})` : ''
                     return `• ${i.product.name}${variant} × ${i.quantity} — ${fmt(price * i.quantity)}`
                   })
                   const address = [form.streetAddress, form.ward, form.district, form.province]
@@ -557,7 +573,7 @@ export default function CheckoutPage() {
                   ].filter(Boolean).join('\n')
 
                   const url = settings.chat_messenger_url || settings.facebook_url || 'https://m.me/nordichomevn'
-                  navigator.clipboard.writeText(msg).then(() => {
+                  copyToClipboard(msg).then(() => {
                     setMessengerUrl(url)
                     setCopiedToast(true)
                   })
