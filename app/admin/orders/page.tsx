@@ -9,6 +9,11 @@ import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, Messag
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
 
+// Bỏ dấu tiếng Việt khi so khớp tìm kiếm — nhân viên gõ trên điện thoại
+// thường bỏ dấu (VD "binh" thay vì "Bình"), không nên bắt gõ đúng dấu mới ra kết quả.
+const stripDiacritics = (s: string) =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase()
+
 const STATUS_COLOR: Record<OrderStatus, string> = {
   pending:   'bg-amber-50 text-amber-700 border-amber-200',
   confirmed: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -29,6 +34,30 @@ interface OrderItem {
 
 type PaymentFilter = 'all' | 'unpaid' | 'paid'
 
+// Excel mở CSV UTF-8 không có BOM sẽ hiển thị sai dấu tiếng Việt — thêm BOM
+// để chữ có dấu (tên khách, địa chỉ) hiện đúng khi mở bằng Excel trên Windows.
+const CSV_BOM = '﻿'
+// Excel đọc CSV theo dấu phân cách cột cấu hình ở vùng miền Windows, không phải
+// luôn luôn là dấu phẩy — máy đặt vùng miền Việt Nam (dùng "," làm dấu thập
+// phân) mặc định lấy ";" làm dấu phân cách, nên CSV dùng "," sẽ bị dồn hết vào 1 cột.
+const CSV_DELIMITER = ';'
+
+function csvCell(value: string | number): string {
+  const s = String(value)
+  return new RegExp(`["${CSV_DELIMITER}\n]`).test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+function downloadCsv(filename: string, rows: (string | number)[][]) {
+  const csv = CSV_BOM + rows.map(row => row.map(csvCell).join(CSV_DELIMITER)).join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function AdminOrders() {
   const [orders, setOrders]         = useState<Order[]>([])
   const [loading, setLoading]       = useState(true)
@@ -36,6 +65,8 @@ export default function AdminOrders() {
   const [items, setItems]           = useState<Record<string, OrderItem[]>>({})
   const [loadingItems, setLoadingItems] = useState<string | null>(null)
   const [payFilter, setPayFilter]   = useState<PaymentFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all')
+  const [search, setSearch]         = useState('')
   const [settings, setSettings]     = useState<Record<string, string>>({})
   const [copiedId, setCopiedId]     = useState<string | null>(null)
 
@@ -99,15 +130,41 @@ export default function AdminOrders() {
   const countTaobaoLinks = (orderItems: OrderItem[]) =>
     orderItems.filter(i => i.origin_url).length
 
+  const q = stripDiacritics(search.trim())
+
   const displayed = orders.filter(o => {
-    if (payFilter === 'all') return true
-    const ps = o.payment_status
-    if (payFilter === 'unpaid') return o.payment_method === 'bank' && ps !== 'paid'
-    if (payFilter === 'paid')   return ps === 'paid' || o.payment_method === 'cod'
+    if (payFilter !== 'all') {
+      const ps = o.payment_status
+      if (payFilter === 'unpaid' && !(o.payment_method === 'bank' && ps !== 'paid')) return false
+      if (payFilter === 'paid' && !(ps === 'paid' || o.payment_method === 'cod')) return false
+    }
+    if (statusFilter !== 'all' && o.status !== statusFilter) return false
+    if (q) {
+      const hit = stripDiacritics(o.order_code).includes(q)
+        || stripDiacritics(o.customer_name).includes(q)
+        || o.customer_phone.includes(q)
+      if (!hit) return false
+    }
     return true
   })
 
   const unpaidCount = orders.filter(o => o.payment_method === 'bank' && o.payment_status !== 'paid').length
+
+  const exportCsv = () => {
+    const header = ['Mã đơn', 'Khách hàng', 'SĐT', 'Địa chỉ', 'Tổng tiền', 'Thanh toán', 'Đã TT?', 'Trạng thái', 'Ngày tạo']
+    const rows = displayed.map(o => [
+      o.order_code,
+      o.customer_name,
+      o.customer_phone,
+      o.customer_address,
+      o.total,
+      o.payment_method === 'cod' ? 'COD' : 'Chuyển khoản',
+      o.payment_method === 'cod' ? 'Thu khi giao' : (o.payment_status === 'paid' ? 'Đã nhận tiền' : 'Chờ CK'),
+      ORDER_STATUS_LABEL[o.status],
+      new Date(o.created_at).toLocaleString('vi-VN'),
+    ])
+    downloadCsv(`don-hang_${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows])
+  }
 
   return (
     <AdminLayout>
@@ -123,6 +180,30 @@ export default function AdminOrders() {
             </span>
           ))}
         </div>
+      </div>
+
+      {/* Tìm kiếm + lọc trạng thái + xuất CSV */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Tìm theo tên, SĐT hoặc mã đơn..."
+          className="flex-1 min-w-[220px] text-sm border border-stone-200 rounded-xl px-3.5 py-2 outline-none focus:border-stone-400"
+        />
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value as OrderStatus | 'all')}
+          className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white"
+        >
+          <option value="all">Mọi trạng thái</option>
+          {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+        <button onClick={exportCsv} disabled={displayed.length === 0}
+          className="text-sm font-semibold px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+          ⬇️ Xuất CSV ({displayed.length})
+        </button>
       </div>
 
       {/* Filter thanh toán */}
@@ -147,7 +228,9 @@ export default function AdminOrders() {
         {loading ? (
           <div className="text-center py-16 text-stone-400 text-sm">Đang tải...</div>
         ) : displayed.length === 0 ? (
-          <div className="text-center py-16 text-stone-400 text-sm">Không có đơn nào.</div>
+          <div className="text-center py-16 text-stone-400 text-sm">
+            {orders.length === 0 ? 'Không có đơn nào.' : 'Không tìm thấy đơn nào khớp bộ lọc.'}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[900px]">
