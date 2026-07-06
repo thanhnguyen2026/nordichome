@@ -118,7 +118,7 @@ export default async function HomePage() {
         {!!cats?.length && (
           <section className="max-w-6xl mx-auto px-4 pt-16">
             <div className="text-center mb-10">
-              <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-600/80 mb-2">Danh mục</p>
+              <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-700 mb-2">Danh mục</p>
               <h2 className="font-serif text-3xl font-semibold text-stone-900">Khám phá không gian sống</h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -153,7 +153,7 @@ export default async function HomePage() {
             <div className="max-w-6xl mx-auto px-4">
               <div className="flex justify-between items-end mb-8">
                 <div>
-                  <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-600/80 mb-1">Nổi bật</p>
+                  <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-700 mb-1">Nổi bật</p>
                   <h2 className="font-serif text-3xl font-semibold text-stone-900">Sản phẩm được yêu thích</h2>
                 </div>
                 <Link href="/products?featured=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</Link>
@@ -178,7 +178,7 @@ export default async function HomePage() {
             <div className="max-w-6xl mx-auto px-4">
               <div className="flex justify-between items-end mb-8">
                 <div>
-                  <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-600/80 mb-1">Mới nhất</p>
+                  <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-700 mb-1">Mới nhất</p>
                   <h2 className="font-serif text-3xl font-semibold text-stone-900">Hàng mới về</h2>
                 </div>
                 <Link href="/products?new=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</Link>
@@ -201,7 +201,7 @@ export default async function HomePage() {
         {looks.length > 0 && (
           <section id="shop-the-look" className="max-w-6xl mx-auto px-4 pt-16">
             <div className="text-center mb-10">
-              <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-600/80 mb-2">Cảm hứng</p>
+              <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-700 mb-2">Cảm hứng</p>
               <h2 className="font-serif text-4xl font-normal italic text-stone-900">Shop the Look</h2>
             </div>
             <div className={`grid gap-8 ${
@@ -274,7 +274,7 @@ export default async function HomePage() {
             <span className="font-serif text-[18rem] text-white/[0.04] leading-none">&ldquo;</span>
           </div>
           <div className="relative max-w-xl mx-auto px-4">
-            <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-stone-500 mb-5">Về chúng tôi</p>
+            <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-stone-400 mb-5">Về chúng tôi</p>
             <h2 className="font-serif text-4xl font-semibold mb-5">{s.about_title || 'Về Nordic Home'}</h2>
             <p className="text-stone-300 leading-relaxed text-sm max-w-md mx-auto">
               {s.about_description || 'Chúng tôi mang đến những sản phẩm nội thất phong cách Bắc Âu — tối giản, bền vững, tạo nên không gian sống thực sự thoải mái và tinh tế.'}
