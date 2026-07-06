@@ -80,6 +80,9 @@ export default function ChatConsultBlock({ settings, product }: Props) {
       window.open(url, '_blank')
       return
     }
+    // Copy trước rồi hiện hướng dẫn — nếu mở Messenger ngay lập tức, khách bị
+    // chuyển app/tab trước khi kịp đọc "nhớ dán nội dung", tới nơi không biết
+    // phải làm gì. Phải để khách thấy hướng dẫn trước, rồi mới tự bấm mở.
     const msg = buildMessage(ch, product)
     const ok = await copyToClipboard(msg)
     if (ok) setToast({ chKey: ch.key, url })
