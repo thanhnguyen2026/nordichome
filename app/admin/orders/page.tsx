@@ -5,14 +5,10 @@ import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Order, OrderStatus, ORDER_STATUS_LABEL } from '@/types'
 import { copyToClipboard } from '@/lib/clipboard'
+import { stripDiacritics } from '@/lib/text'
 import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, MessageCircle } from 'lucide-react'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
-
-// Bỏ dấu tiếng Việt khi so khớp tìm kiếm — nhân viên gõ trên điện thoại
-// thường bỏ dấu (VD "binh" thay vì "Bình"), không nên bắt gõ đúng dấu mới ra kết quả.
-const stripDiacritics = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase()
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
   pending:   'bg-amber-50 text-amber-700 border-amber-200',
@@ -29,6 +25,7 @@ interface OrderItem {
   price: number
   quantity: number
   origin_url: string | null
+  variant_id: string | null
   variant_label: string | null
 }
 
@@ -91,16 +88,67 @@ export default function AdminOrders() {
       setLoadingItems(id)
       const { data } = await supabase
         .from('order_items')
-        .select('id, product_name, product_image, price, quantity, origin_url, variant_label')
+        .select('id, product_name, product_image, price, quantity, origin_url, variant_id, variant_label')
         .eq('order_id', id)
       setItems(prev => ({ ...prev, [id]: (data as unknown as OrderItem[]) || [] }))
       setLoadingItems(null)
     }
   }
 
-  const updateStatus = async (id: string, status: OrderStatus) => {
-    await supabase.from('orders').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
+  // Cộng lại đúng số lượng đã trừ — cho cả biến thể lẫn sản phẩm không biến
+  // thể có theo dõi số lượng (products.stock khác null). Sản phẩm không biến
+  // thể mà không nhập số lượng thì vẫn chỉ có cờ in_stock thủ công, bỏ qua.
+  const restoreStock = async (orderId: string) => {
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('product_id, variant_id, quantity')
+      .eq('order_id', orderId)
+
+    const withVariant = (orderItems || []).filter((i): i is { product_id: string; variant_id: string; quantity: number } => Boolean(i.variant_id))
+    for (const i of withVariant) {
+      const { data: v } = await supabase.from('product_variants').select('stock').eq('id', i.variant_id).single()
+      if (v) await supabase.from('product_variants').update({ stock: v.stock + i.quantity }).eq('id', i.variant_id)
+    }
+
+    const withoutVariant = (orderItems || []).filter(i => !i.variant_id)
+    const neededByProduct: Record<string, number> = {}
+    withoutVariant.forEach(i => { neededByProduct[i.product_id] = (neededByProduct[i.product_id] || 0) + i.quantity })
+    for (const [productId, qty] of Object.entries(neededByProduct)) {
+      const { data: p } = await supabase.from('products').select('stock').eq('id', productId).single()
+      if (p?.stock != null) {
+        const newStock = p.stock + qty
+        await supabase.from('products').update({ stock: newStock, in_stock: newStock > 0 }).eq('id', productId)
+      }
+    }
+  }
+
+  const updateStatus = async (o: Order, status: OrderStatus) => {
+    if (status === 'cancelled' && o.status !== 'cancelled') {
+      const reason = prompt('Lý do hủy đơn (bắt buộc):')
+      if (!reason?.trim()) return
+
+      let refund_amount = 0
+      if (o.payment_status === 'paid') {
+        const input = prompt(`Đơn đã thanh toán ${fmt(o.total)} — số tiền hoàn lại cho khách:`, String(o.total))
+        if (input === null) return
+        refund_amount = Math.max(0, Math.round(Number(input) || 0))
+      }
+
+      if (!o.stock_restored) await restoreStock(o.id)
+
+      await supabase.from('orders').update({
+        status, cancel_reason: reason.trim(), refund_amount,
+        stock_restored: true, updated_at: new Date().toISOString(),
+      }).eq('id', o.id)
+
+      setOrders(prev => prev.map(x => x.id === o.id
+        ? { ...x, status, cancel_reason: reason.trim(), refund_amount, stock_restored: true }
+        : x))
+      return
+    }
+
+    await supabase.from('orders').update({ status, updated_at: new Date().toISOString() }).eq('id', o.id)
+    setOrders(prev => prev.map(x => x.id === o.id ? { ...x, status } : x))
   }
 
   const markPaid = async (o: Order) => {
@@ -151,16 +199,20 @@ export default function AdminOrders() {
   const unpaidCount = orders.filter(o => o.payment_method === 'bank' && o.payment_status !== 'paid').length
 
   const exportCsv = () => {
-    const header = ['Mã đơn', 'Khách hàng', 'SĐT', 'Địa chỉ', 'Tổng tiền', 'Thanh toán', 'Đã TT?', 'Trạng thái', 'Ngày tạo']
+    const header = ['Mã đơn', 'Khách hàng', 'SĐT', 'Địa chỉ', 'Tổng tiền', 'Mã giảm giá', 'Đã giảm', 'Thanh toán', 'Đã TT?', 'Trạng thái', 'Lý do hủy', 'Đã hoàn', 'Ngày tạo']
     const rows = displayed.map(o => [
       o.order_code,
       o.customer_name,
       o.customer_phone,
       o.customer_address,
       o.total,
+      o.coupon_code || '',
+      o.discount_amount || 0,
       o.payment_method === 'cod' ? 'COD' : 'Chuyển khoản',
       o.payment_method === 'cod' ? 'Thu khi giao' : (o.payment_status === 'paid' ? 'Đã nhận tiền' : 'Chờ CK'),
       ORDER_STATUS_LABEL[o.status],
+      o.cancel_reason || '',
+      o.refund_amount || 0,
       new Date(o.created_at).toLocaleString('vi-VN'),
     ])
     downloadCsv(`don-hang_${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows])
@@ -250,10 +302,22 @@ export default function AdminOrders() {
                   return (
                     <Fragment key={o.id}>
                       <tr className={`border-t border-stone-50 transition ${expanded === o.id ? 'bg-stone-50' : 'hover:bg-stone-50/50'} ${isBankUnpaid ? 'border-l-2 border-l-amber-400' : ''}`}>
-                        <td className="py-3 px-4 font-mono text-xs font-bold text-stone-700">{o.order_code}</td>
+                        <td className="py-3 px-4">
+                          <div className="font-mono text-xs font-bold text-stone-700">{o.order_code}</div>
+                          {o.coupon_code && (
+                            <div className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
+                              🏷️ {o.coupon_code}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-3 px-4 font-semibold">{o.customer_name}</td>
                         <td className="py-3 px-4 text-stone-500">{o.customer_phone}</td>
-                        <td className="py-3 px-4 font-bold text-amber-700 whitespace-nowrap">{fmt(o.total)}</td>
+                        <td className="py-3 px-4 font-bold text-amber-700 whitespace-nowrap">
+                          {fmt(o.total)}
+                          {!!o.discount_amount && o.discount_amount > 0 && (
+                            <div className="text-[10px] text-green-600 font-normal">-{fmt(o.discount_amount)}</div>
+                          )}
+                        </td>
 
                         {/* Thanh toán */}
                         <td className="py-3 px-4">
@@ -284,7 +348,7 @@ export default function AdminOrders() {
                         <td className="py-3 px-4">
                           <select
                             value={o.status}
-                            onChange={e => updateStatus(o.id, e.target.value as OrderStatus)}
+                            onChange={e => updateStatus(o, e.target.value as OrderStatus)}
                             className={`text-xs px-2 py-1 rounded-full border font-semibold cursor-pointer outline-none ${STATUS_COLOR[o.status]}`}
                           >
                             {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
@@ -363,6 +427,14 @@ export default function AdminOrders() {
                                     📝 {o.customer_note}
                                   </div>
                                 )}
+                                {o.status === 'cancelled' && o.cancel_reason && (
+                                  <div className="mt-2 text-xs bg-red-50 border border-red-200 rounded-lg p-2 space-y-1">
+                                    <div className="text-red-700"><span className="font-semibold">Lý do hủy:</span> {o.cancel_reason}</div>
+                                    {!!o.refund_amount && o.refund_amount > 0 && (
+                                      <div className="text-red-700"><span className="font-semibold">Đã hoàn:</span> {fmt(o.refund_amount)}</div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="md:col-span-2">
@@ -409,6 +481,11 @@ export default function AdminOrders() {
                                         )}
                                       </div>
                                       <div className="text-sm font-black text-stone-800">
+                                        {!!o.discount_amount && o.discount_amount > 0 && (
+                                          <div className="text-xs font-semibold text-green-600 mb-0.5">
+                                            🏷️ {o.coupon_code}: -{fmt(o.discount_amount)}
+                                          </div>
+                                        )}
                                         Tổng: <span className="text-amber-700">{fmt(o.total)}</span>
                                         {!!o.shipping_fee && o.shipping_fee > 0 && (
                                           <span className="text-xs text-stone-400 font-normal ml-1">

@@ -10,6 +10,7 @@ const NAV = [
   { href: '/admin/products', label: '📦 Sản phẩm', icon: '📦' },
   { href: '/admin/categories', label: '🗂️ Danh mục', icon: '🗂️' },
   { href: '/admin/orders', label: '🛒 Đơn hàng', icon: '🛒' },
+  { href: '/admin/coupons', label: '🏷️ Mã giảm giá', icon: '🏷️' },
   { href: '/admin/settings', label: '⚙️ Cài đặt', icon: '⚙️' },
   { href: '/admin/looks', label: '🖼️ Shop the Look', icon: '🖼️' },
   { href: '/admin/social', label: '📣 Kênh bán hàng', icon: '📣' },

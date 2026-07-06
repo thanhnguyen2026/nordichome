@@ -57,8 +57,41 @@ export default function CheckoutPage() {
   const router = useRouter()
   const hasHydrated = useCartStore(s => s.hasHydrated)
 
+  // Mã giảm giá
+  const [couponInput,   setCouponInput]   = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_amount: number } | null>(null)
+  const [couponError,   setCouponError]   = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+
   const { totalWeight, hasBulky } = calcTotalWeight(items)
-  const grandTotal = total() + (shippingFee ?? 0)
+  const discountAmount = appliedCoupon?.discount_amount ?? 0
+  const grandTotal = total() - discountAmount + (shippingFee ?? 0)
+
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) return
+    setCouponLoading(true)
+    setCouponError('')
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponInput.trim(), subtotal: total() }),
+      })
+      const data = await res.json()
+      if (data.error) { setCouponError(data.error); setAppliedCoupon(null) }
+      else setAppliedCoupon({ code: data.code, discount_amount: data.discount_amount })
+    } catch {
+      setCouponError('Lỗi kết nối, thử lại sau')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponInput('')
+    setCouponError('')
+  }
 
   // ── Load settings + tỉnh/thành ──────────────────────────────────────────────
   useEffect(() => {
@@ -169,6 +202,7 @@ export default function CheckoutPage() {
         shipping_fee:     shippingFee ?? 0,
         shipping_zone:    form.province,
         total_weight:     totalWeight,
+        coupon_code:      appliedCoupon?.code ?? null,
         items: items.map(i => ({
           product_id:         i.product.id,
           product_name:       i.product.name,
@@ -525,11 +559,43 @@ export default function CheckoutPage() {
                 </div>
               )
             })}
+            {/* Mã giảm giá */}
+            <div className="border-t border-stone-100 mt-3 pt-3">
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
+                  <span className="text-green-700 font-semibold">🏷️ {appliedCoupon.code} đã áp dụng</span>
+                  <button type="button" onClick={removeCoupon} className="text-green-700 hover:text-green-900 text-xs underline">Gỡ mã</button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      value={couponInput}
+                      onChange={e => { setCouponInput(e.target.value); setCouponError('') }}
+                      placeholder="Mã giảm giá (nếu có)"
+                      className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400"
+                    />
+                    <button type="button" onClick={applyCoupon} disabled={couponLoading || !couponInput.trim()}
+                      className="text-sm font-semibold px-4 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                      {couponLoading ? 'Đang kiểm tra...' : 'Áp dụng'}
+                    </button>
+                  </div>
+                  {couponError && <p className="text-xs text-red-500 mt-1.5">{couponError}</p>}
+                </div>
+              )}
+            </div>
+
             <div className="border-t border-stone-100 mt-3 pt-3 space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span className="text-stone-500">Tiền hàng</span>
                 <span>{fmt(total())}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-stone-500">Giảm giá</span>
+                  <span className="text-green-600 font-semibold">-{fmt(discountAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-stone-500">Phí vận chuyển</span>
                 <span>

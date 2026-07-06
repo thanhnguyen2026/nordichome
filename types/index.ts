@@ -24,6 +24,10 @@ export interface Product {
   video_url?: string | null
   weight: number
   in_stock: boolean
+  // Số lượng tồn kho — chỉ áp dụng cho sản phẩm KHÔNG có biến thể (biến thể
+  // quản lý tồn kho riêng trong ProductVariant.stock). Null = không theo dõi
+  // số lượng, dùng in_stock thủ công như trước giờ.
+  stock?: number | null
   is_preorder: boolean
   is_visible: boolean
   is_featured: boolean
@@ -93,8 +97,28 @@ export interface Order {
   cost?: number
   profit?: number
   notified_messenger?: boolean
+  coupon_code?: string | null
+  discount_amount?: number
+  cancel_reason?: string | null
+  refund_amount?: number
+  stock_restored?: boolean
   created_at: string
   order_items?: OrderItem[]
+}
+
+export interface Coupon {
+  id: string
+  code: string
+  discount_type: 'percent' | 'fixed'
+  discount_value: number
+  min_order_amount: number
+  max_discount_amount: number | null
+  starts_at: string | null
+  ends_at: string | null
+  usage_limit: number | null
+  used_count: number
+  is_active: boolean
+  created_at: string
 }
 
 export interface OrderItem {
@@ -137,6 +161,7 @@ export interface CreateOrderPayload {
   shipping_zone?: string
   total_weight?: number
   items: CreateOrderItem[]
+  coupon_code?: string | null
 }
 
 export type OrderStatus = Order['status']

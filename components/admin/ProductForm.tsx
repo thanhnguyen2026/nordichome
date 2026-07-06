@@ -28,6 +28,7 @@ interface FormState {
   weight: number | string
   origin_url: string
   in_stock: boolean
+  stock: string
   is_preorder: boolean
   is_bulky: boolean
   is_visible: boolean
@@ -54,6 +55,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
     weight:           product?.weight ?? 0.5,
     origin_url:       product?.origin_url ?? '',
     in_stock:         product?.in_stock ?? true,
+    stock:            product?.stock != null ? String(product.stock) : '',
     is_preorder:      product?.is_preorder ?? false,
     is_bulky:         product?.is_bulky ?? false,
     is_visible:       product?.is_visible ?? true,
@@ -98,9 +100,13 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
 
+  // Có nhập số lượng cụ thể → tồn kho tự suy ra từ số đó, không dùng nút bật/tắt tay nữa
+  const trackingStock = form.stock !== ''
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
+    const stockNum = trackingStock ? Math.round(Number(form.stock)) : null
     await onSave({
       ...form,
       price:            Math.round(Number(form.price)),
@@ -109,6 +115,8 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       weight:           Number(form.weight),
       origin_url:       form.origin_url || null,
       video_url:        form.video_url || null,
+      stock:            stockNum,
+      in_stock:         trackingStock ? stockNum! > 0 : form.in_stock,
     }, variants)
     setSaving(false)
   }
@@ -274,13 +282,42 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       {/* ── Trạng thái & Hiển thị ────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
         <h3 className="font-bold mb-4 text-sm text-stone-700">🏷️ Trạng thái & Hiển thị</h3>
+
+        {/* Số lượng tồn kho — chỉ có ý nghĩa khi sản phẩm KHÔNG có biến thể
+            (biến thể quản lý tồn kho riêng từng mẫu ở VariantsManager) */}
+        {variants.length === 0 && (
+          <div className="mb-4">
+            <label className="text-xs font-semibold text-stone-500 block mb-1">📦 Số lượng tồn kho</label>
+            <input type="text" inputMode="numeric" pattern="[0-9]*"
+              value={form.stock}
+              onChange={e => set('stock', e.target.value.replace(/\D/g, ''))}
+              placeholder="Để trống nếu không theo dõi số lượng cụ thể"
+              className="w-full max-w-xs border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            <p className="text-[11px] text-stone-400 mt-1">
+              Có nhập số → tự trừ khi có đơn, tự cộng lại khi hủy đơn, chặn nếu hết hàng.
+              Để trống → dùng nút &quot;Còn hàng&quot; bên dưới như trước giờ.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
+          {trackingStock ? (
+            <div className="flex items-center gap-2 text-sm text-stone-600">
+              <span>{Number(form.stock) > 0 ? '✅' : '⛔'}</span>
+              <span>{Number(form.stock) > 0 ? `Còn hàng (tự động, còn ${form.stock})` : 'Hết hàng (tự động)'}</span>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.in_stock}
+                onChange={e => set('in_stock', e.target.checked)} className="w-4 h-4" />
+              <span className="text-sm">✅ Còn hàng</span>
+            </label>
+          )}
           {([
-            ['in_stock',   '✅ Còn hàng'],
             ['is_visible', '👁️ Hiển thị'],
             ['is_featured','⭐ Nổi bật'],
             ['is_new',     '🆕 Sản phẩm mới'],
-          ] as ['in_stock' | 'is_visible' | 'is_featured' | 'is_new', string][]).map(([k, l]) => (
+          ] as ['is_visible' | 'is_featured' | 'is_new', string][]).map(([k, l]) => (
             <label key={k} className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form[k]}
                 onChange={e => set(k, e.target.checked)} className="w-4 h-4" />
