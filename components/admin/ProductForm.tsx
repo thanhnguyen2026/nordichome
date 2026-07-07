@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Product, Category } from '@/types'
+import Image from 'next/image'
+import { Product, Category, ProductSpec, ProductContentBlock } from '@/types'
 import ImageUploader from './ImageUploader'
 import VariantsManager, { Variant } from './VariantsManager'
 import { supabase } from '@/lib/supabase'
@@ -22,6 +23,8 @@ interface FormState {
   cost_price: number | string
   short_desc: string
   description: string
+  specs: ProductSpec[]
+  content_blocks: ProductContentBlock[]
   cover_image: string
   images: string[]
   video_url: string
@@ -49,6 +52,8 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
     cost_price:       product?.cost_price ?? 0,
     short_desc:       product?.short_desc ?? '',
     description:      product?.description ?? '',
+    specs:            product?.specs ?? [],
+    content_blocks:   product?.content_blocks ?? [],
     cover_image:      product?.cover_image ?? '',
     images:           product?.images ?? [],
     video_url:        product?.video_url ?? '',
@@ -66,6 +71,27 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
   })
   const [variants, setVariants] = useState<Variant[]>([])
   const [saving, setSaving] = useState(false)
+  const [uploadingBlock, setUploadingBlock] = useState<number | null>(null)
+
+  const addSpec = () => set('specs', [...form.specs, { label: '', value: '' }])
+  const updateSpec = (i: number, patch: Partial<ProductSpec>) =>
+    set('specs', form.specs.map((s, idx) => idx === i ? { ...s, ...patch } : s))
+  const removeSpec = (i: number) => set('specs', form.specs.filter((_, idx) => idx !== i))
+
+  const addBlock = () => set('content_blocks', [...form.content_blocks, { image_url: '', text: '' }])
+  const updateBlock = (i: number, patch: Partial<ProductContentBlock>) =>
+    set('content_blocks', form.content_blocks.map((b, idx) => idx === i ? { ...b, ...patch } : b))
+  const removeBlock = (i: number) => set('content_blocks', form.content_blocks.filter((_, idx) => idx !== i))
+
+  const uploadBlockImage = async (i: number, file: File) => {
+    setUploadingBlock(i)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: formData })
+    const data = await res.json()
+    if (data.url) updateBlock(i, { image_url: data.url })
+    setUploadingBlock(null)
+  }
 
   // Load variants nếu đang sửa sản phẩm
   useEffect(() => {
@@ -246,6 +272,69 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           onCoverChange={url => set('cover_image', url)}
           onImagesChange={imgs => set('images', imgs)}
         />
+      </div>
+
+      {/* ── Thông số kỹ thuật ────────────────────────────────────── */}
+      <div className="bg-white rounded-xl p-6 border border-stone-100">
+        <h3 className="font-bold mb-1 text-sm text-stone-700">📐 Thông số kỹ thuật</h3>
+        <p className="text-xs text-stone-400 mb-3">Hiển thị dạng bảng ở trang chi tiết sản phẩm, VD: &quot;Độ dày thảm (mm)&quot; → &quot;10-15&quot;</p>
+        <div className="space-y-2">
+          {form.specs.map((spec, i) => (
+            <div key={i} className="flex gap-2">
+              <input value={spec.label} onChange={e => updateSpec(i, { label: e.target.value })}
+                placeholder="Tên thông số"
+                className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+              <input value={spec.value} onChange={e => updateSpec(i, { value: e.target.value })}
+                placeholder="Giá trị"
+                className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+              <button type="button" onClick={() => removeSpec(i)}
+                className="text-red-400 hover:text-red-600 px-2">✕</button>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addSpec}
+          className="mt-3 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition">
+          + Thêm thông số
+        </button>
+      </div>
+
+      {/* ── Nội dung mô tả (ảnh + chữ) ───────────────────────────── */}
+      <div className="bg-white rounded-xl p-6 border border-stone-100">
+        <h3 className="font-bold mb-1 text-sm text-stone-700">🖼️ Nội dung mô tả (ảnh + chữ)</h3>
+        <p className="text-xs text-stone-400 mb-3">
+          Mỗi khối gồm 1 ảnh + 1 đoạn text tuỳ chọn, hiển thị full-width bên dưới trang chi tiết.
+          Có thể để trống text nếu ảnh đã có chữ thiết kế sẵn.
+        </p>
+        <div className="space-y-4">
+          {form.content_blocks.map((block, i) => (
+            <div key={i} className="flex gap-3 border border-stone-100 rounded-lg p-3">
+              <div className="relative w-24 h-24 flex-shrink-0 bg-stone-100 rounded-lg border-2 border-dashed border-stone-200 flex items-center justify-center overflow-hidden">
+                {block.image_url
+                  ? <Image src={block.image_url} alt={`Khối ${i + 1}`} fill sizes="96px" className="object-cover" />
+                  : <span className="text-2xl">🖼️</span>}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input type="file" accept="image/*" className="hidden" id={`block-file-${i}`}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadBlockImage(i, f) }} />
+                <div className="flex gap-2">
+                  <label htmlFor={`block-file-${i}`}
+                    className="cursor-pointer bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-stone-200 transition">
+                    {uploadingBlock === i ? '⏳ Đang upload...' : '📁 Chọn ảnh'}
+                  </label>
+                  <button type="button" onClick={() => removeBlock(i)}
+                    className="text-red-400 hover:text-red-600 text-xs">Xoá khối</button>
+                </div>
+                <textarea value={block.text} onChange={e => updateBlock(i, { text: e.target.value })} rows={2}
+                  placeholder="Đoạn mô tả đi kèm ảnh (để trống nếu ảnh đã có chữ)"
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400 resize-none" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addBlock}
+          className="mt-3 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition">
+          + Thêm khối nội dung
+        </button>
       </div>
 
       {/* ── Video ────────────────────────────────────────────────── */}

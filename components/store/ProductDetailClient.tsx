@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import ProductGallery from './ProductGallery'
 import AddToCartSection from './AddToCartSection'
 import ChatConsultBlock from './ChatConsultBlock'
@@ -60,6 +61,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
     : allImages
 
   return (
+    <>
     <div className="grid md:grid-cols-2 gap-10 mb-16">
       {/* Left — ảnh + video · min-w-0 bắt buộc: nếu không, item grid sẽ giãn theo
           chiều rộng nội dung của thanh trượt ảnh bên trong (ProductGallery dùng
@@ -175,5 +177,41 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         )}
       </div>
     </div>
+
+    {/* Thông số kỹ thuật — full-width, dạng bảng */}
+    {product.specs?.length > 0 && (
+      <div className="mb-16 max-w-3xl mx-auto">
+        <h2 className="font-serif text-2xl font-semibold text-center mb-6">Thông số sản phẩm</h2>
+        <div className="max-w-[260px] sm:max-w-sm mx-auto border-t border-stone-200 divide-y divide-stone-100">
+          {product.specs.map((spec, i) => (
+            <div key={i} className="flex justify-between py-4 text-sm">
+              <span className="font-medium text-stone-700">{spec.label}</span>
+              <span className="font-medium text-stone-700">{spec.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Mô tả kèm ảnh minh hoạ — full-width, xen kẽ ảnh + text */}
+    {product.content_blocks?.length > 0 && (
+      <div className="mb-16 max-w-3xl mx-auto space-y-10">
+        {product.content_blocks.map((block, i) => (
+          <div key={i}>
+            {block.text && (
+              <p className="font-serif text-2xl md:text-3xl text-stone-700 leading-snug text-center mb-5 whitespace-pre-line">
+                {block.text}
+              </p>
+            )}
+            {block.image_url && (
+              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-stone-50">
+                <Image src={block.image_url} alt={block.text || product.name} fill sizes="(max-width: 768px) 100vw, 768px" className="object-cover" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+    </>
   )
 }

@@ -9,6 +9,16 @@ export interface Category {
   children?: Category[]
 }
 
+export interface ProductSpec {
+  label: string
+  value: string
+}
+
+export interface ProductContentBlock {
+  image_url: string
+  text: string
+}
+
 export interface Product {
   id: string
   name: string
@@ -19,6 +29,8 @@ export interface Product {
   sale_price: number | null
   short_desc: string
   description: string
+  specs: ProductSpec[]
+  content_blocks: ProductContentBlock[]
   cover_image: string
   images: string[]
   video_url?: string | null
