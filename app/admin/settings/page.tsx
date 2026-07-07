@@ -391,6 +391,38 @@ export default function AdminSettings() {
           </div>
         </div>
 
+        {/* Công thức giá vốn Taobao */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <h2 className="font-bold text-sm mb-1">🧮 Công thức tính giá vốn Taobao</h2>
+          <p className="text-xs text-stone-400 mb-5">
+            Dùng chung cho mọi sản phẩm để tự tính giá vốn từ giá gốc Taobao (¥): <br />
+            Giá vốn = Giá Taobao (¥) × Tỷ giá × (1 + Hệ số phí%) + Giá ship/kg × Cân nặng
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Tỷ giá (1¥ = ? đ)</label>
+              <input type="text" inputMode="decimal" value={settings.taobao_exchange_rate || ''}
+                onChange={e => set('taobao_exchange_rate', e.target.value)}
+                placeholder="VD: 3650"
+                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Hệ số phí trung gian (%)</label>
+              <input type="text" inputMode="decimal" value={settings.taobao_fee_percent || ''}
+                onChange={e => set('taobao_fee_percent', e.target.value)}
+                placeholder="VD: 3"
+                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Giá ship TQ-VN (đ/kg)</label>
+              <input type="text" inputMode="decimal" value={settings.taobao_shipping_per_kg || ''}
+                onChange={e => set('taobao_shipping_per_kg', e.target.value)}
+                placeholder="VD: 25000"
+                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            </div>
+          </div>
+        </div>
+
         {/* SEO */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
           <h2 className="font-bold text-sm mb-4">🔍 SEO</h2>

@@ -3,10 +3,12 @@ import { useEffect, useState, Fragment } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Order, OrderStatus, ORDER_STATUS_LABEL } from '@/types'
+import { Order, OrderStatus, ORDER_STATUS_LABEL, PurchaseStatus, PURCHASE_STATUS_LABEL, SALES_CHANNEL_LABEL } from '@/types'
 import { copyToClipboard } from '@/lib/clipboard'
 import { stripDiacritics } from '@/lib/text'
 import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, MessageCircle } from 'lucide-react'
+import ManualOrderForm from '@/components/admin/ManualOrderForm'
+import ChannelIcon from '@/components/admin/ChannelIcon'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
 
@@ -27,6 +29,16 @@ interface OrderItem {
   origin_url: string | null
   variant_id: string | null
   variant_label: string | null
+  purchase_status: PurchaseStatus
+  ordered_at: string | null
+  arrived_at: string | null
+  taobao_tracking_code: string | null
+}
+
+const PURCHASE_STATUS_COLOR: Record<PurchaseStatus, string> = {
+  not_ordered: 'bg-stone-100 text-stone-500 border-stone-200',
+  ordered:     'bg-blue-50 text-blue-700 border-blue-200',
+  arrived:     'bg-green-50 text-green-700 border-green-200',
 }
 
 type PaymentFilter = 'all' | 'unpaid' | 'paid'
@@ -66,6 +78,7 @@ export default function AdminOrders() {
   const [search, setSearch]         = useState('')
   const [settings, setSettings]     = useState<Record<string, string>>({})
   const [copiedId, setCopiedId]     = useState<string | null>(null)
+  const [showManualForm, setShowManualForm] = useState(false)
 
   const load = async () => {
     const [{ data: ordersData }, { data: settingsData }] = await Promise.all([
@@ -88,7 +101,7 @@ export default function AdminOrders() {
       setLoadingItems(id)
       const { data } = await supabase
         .from('order_items')
-        .select('id, product_name, product_image, price, quantity, origin_url, variant_id, variant_label')
+        .select('id, product_name, product_image, price, quantity, origin_url, variant_id, variant_label, purchase_status, ordered_at, arrived_at, taobao_tracking_code')
         .eq('order_id', id)
       setItems(prev => ({ ...prev, [id]: (data as unknown as OrderItem[]) || [] }))
       setLoadingItems(null)
@@ -156,6 +169,52 @@ export default function AdminOrders() {
     setOrders(prev => prev.map(x => x.id === o.id ? { ...x, payment_status: 'paid' as const } : x))
   }
 
+  // Đổi trạng thái tự ghi luôn ngày tương ứng (đỡ phải tự gõ tay mỗi lần),
+  // nhưng ngày vẫn sửa được riêng qua updatePurchaseDate bên dưới — cho
+  // trường hợp cập nhật hệ thống trễ hơn ngày đặt/về hàng thực tế.
+  const updatePurchaseStatus = async (orderId: string, itemId: string, status: PurchaseStatus) => {
+    const now = new Date().toISOString()
+    const patch: Partial<OrderItem> = { purchase_status: status }
+    if (status === 'ordered') patch.ordered_at = now
+    if (status === 'arrived') patch.arrived_at = now
+
+    await supabase.from('order_items').update(patch).eq('id', itemId)
+    setItems(prev => ({
+      ...prev,
+      [orderId]: (prev[orderId] || []).map(i => i.id === itemId ? { ...i, ...patch } : i),
+    }))
+  }
+
+  const updatePurchaseDate = async (orderId: string, itemId: string, field: 'ordered_at' | 'arrived_at', dateStr: string) => {
+    const value = dateStr ? new Date(dateStr).toISOString() : null
+    await supabase.from('order_items').update({ [field]: value }).eq('id', itemId)
+    setItems(prev => ({
+      ...prev,
+      [orderId]: (prev[orderId] || []).map(i => i.id === itemId ? { ...i, [field]: value } : i),
+    }))
+  }
+
+  const updateTaobaoTrackingCode = async (orderId: string, itemId: string, code: string) => {
+    const value = code.trim() || null
+    await supabase.from('order_items').update({ taobao_tracking_code: value }).eq('id', itemId)
+    setItems(prev => ({
+      ...prev,
+      [orderId]: (prev[orderId] || []).map(i => i.id === itemId ? { ...i, taobao_tracking_code: value } : i),
+    }))
+  }
+
+  // <input type="date"> cần định dạng YYYY-MM-DD (giờ local, không phải UTC),
+  // rút ra thẳng từ Date thay vì cắt chuỗi ISO (ISO là UTC nên cắt chuỗi có
+  // thể lệch ngày với giờ Việt Nam).
+  const toDateInputValue = (iso: string | null) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+
   const saveTracking = async (id: string, code: string) => {
     await supabase.from('orders').update({ tracking_code: code || null }).eq('id', id)
     setOrders(prev => prev.map(x => x.id === id ? { ...x, tracking_code: code } : x))
@@ -199,9 +258,10 @@ export default function AdminOrders() {
   const unpaidCount = orders.filter(o => o.payment_method === 'bank' && o.payment_status !== 'paid').length
 
   const exportCsv = () => {
-    const header = ['Mã đơn', 'Khách hàng', 'SĐT', 'Địa chỉ', 'Tổng tiền', 'Mã giảm giá', 'Đã giảm', 'Thanh toán', 'Đã TT?', 'Trạng thái', 'Lý do hủy', 'Đã hoàn', 'Ngày tạo']
+    const header = ['Mã đơn', 'Kênh', 'Khách hàng', 'SĐT', 'Địa chỉ', 'Tổng tiền', 'Mã giảm giá', 'Đã giảm', 'Thanh toán', 'Đã TT?', 'Trạng thái', 'Lý do hủy', 'Đã hoàn', 'Ngày tạo']
     const rows = displayed.map(o => [
       o.order_code,
+      SALES_CHANNEL_LABEL[o.channel] || o.channel,
       o.customer_name,
       o.customer_phone,
       o.customer_address,
@@ -218,6 +278,42 @@ export default function AdminOrders() {
     downloadCsv(`don-hang_${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows])
   }
 
+  // File riêng cho theo dõi nhập hàng — mỗi dòng = 1 sản phẩm cần nhập (khác
+  // CSV đơn hàng ở trên, mỗi dòng = 1 đơn), vì 1 đơn có thể gồm nhiều sản
+  // phẩm với tiến độ nhập hàng khác nhau.
+  const [exportingPurchase, setExportingPurchase] = useState(false)
+  const exportPurchaseTrackingCsv = async () => {
+    setExportingPurchase(true)
+    const { data } = await supabase
+      .from('order_items')
+      .select('product_name, variant_label, quantity, origin_url, purchase_status, ordered_at, arrived_at, taobao_tracking_code, order:orders(order_code, customer_name, created_at)')
+      .not('origin_url', 'is', null)
+    setExportingPurchase(false)
+
+    type Row = {
+      product_name: string; variant_label: string | null; quantity: number
+      origin_url: string; purchase_status: PurchaseStatus
+      ordered_at: string | null; arrived_at: string | null; taobao_tracking_code: string | null
+      order: { order_code: string; customer_name: string; created_at: string } | null
+    }
+    const rows = ((data as unknown as Row[]) || [])
+      .sort((a, b) => (b.order?.created_at || '').localeCompare(a.order?.created_at || ''))
+
+    const header = ['Mã đơn', 'Khách hàng', 'Sản phẩm', 'Số lượng', 'Link Taobao', 'Trạng thái', 'Ngày đặt TQ', 'Ngày về kho', 'Mã vận chuyển TQ']
+    const csvRows = rows.map(r => [
+      r.order?.order_code || '',
+      r.order?.customer_name || '',
+      r.variant_label ? `${r.product_name} (${r.variant_label})` : r.product_name,
+      r.quantity,
+      r.origin_url,
+      PURCHASE_STATUS_LABEL[r.purchase_status],
+      r.ordered_at ? new Date(r.ordered_at).toLocaleDateString('vi-VN') : '',
+      r.arrived_at ? new Date(r.arrived_at).toLocaleDateString('vi-VN') : '',
+      r.taobao_tracking_code || '',
+    ])
+    downloadCsv(`theo-doi-nhap-hang_${new Date().toISOString().slice(0, 10)}.csv`, [header, ...csvRows])
+  }
+
   return (
     <AdminLayout>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
@@ -225,14 +321,25 @@ export default function AdminOrders() {
           <h1 className="text-2xl font-black">🛒 Đơn hàng</h1>
           <p className="text-stone-400 text-sm mt-1">{orders.length} đơn hàng</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-start">
           {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
             <span key={k} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${STATUS_COLOR[k as OrderStatus]}`}>
               {v}: {orders.filter(o => o.status === k).length}
             </span>
           ))}
+          <button onClick={() => setShowManualForm(true)}
+            className="bg-stone-900 text-amber-100 rounded-lg px-4 py-1.5 text-xs font-bold hover:bg-stone-800 transition">
+            ➕ Thêm đơn thủ công
+          </button>
         </div>
       </div>
+
+      {showManualForm && (
+        <ManualOrderForm
+          onClose={() => setShowManualForm(false)}
+          onCreated={() => { setShowManualForm(false); load() }}
+        />
+      )}
 
       {/* Tìm kiếm + lọc trạng thái + xuất CSV */}
       <div className="flex flex-wrap gap-2 mb-3">
@@ -255,6 +362,10 @@ export default function AdminOrders() {
         <button onClick={exportCsv} disabled={displayed.length === 0}
           className="text-sm font-semibold px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
           ⬇️ Xuất CSV ({displayed.length})
+        </button>
+        <button onClick={exportPurchaseTrackingCsv} disabled={exportingPurchase}
+          className="text-sm font-semibold px-3.5 py-2 rounded-xl bg-orange-50 text-orange-700 hover:bg-orange-100 transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+          🛒 {exportingPurchase ? 'Đang xuất...' : 'Xuất CSV theo dõi nhập hàng'}
         </button>
       </div>
 
@@ -304,6 +415,12 @@ export default function AdminOrders() {
                       <tr className={`border-t border-stone-50 transition ${expanded === o.id ? 'bg-stone-50' : 'hover:bg-stone-50/50'} ${isBankUnpaid ? 'border-l-2 border-l-amber-400' : ''}`}>
                         <td className="py-3 px-4">
                           <div className="font-mono text-xs font-bold text-stone-700">{o.order_code}</div>
+                          {o.channel !== 'website' && (
+                            <div className="flex items-center gap-1 text-[10px] bg-stone-100 text-stone-600 border border-stone-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
+                              <ChannelIcon channel={o.channel} size={11} />
+                              {SALES_CHANNEL_LABEL[o.channel] || o.channel}
+                            </div>
+                          )}
                           {o.coupon_code && (
                             <div className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
                               🏷️ {o.coupon_code}
@@ -444,31 +561,71 @@ export default function AdminOrders() {
                                 ) : (
                                   <div className="space-y-2">
                                     {(items[o.id] || []).map(item => (
-                                      <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-stone-100">
-                                        <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
-                                          {item.product_image
-                                            ? <Image src={item.product_image} alt={item.product_name} fill sizes="48px" className="object-cover" />
-                                            : <div className="w-full h-full flex items-center justify-center text-xl">🛋️</div>}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="font-semibold text-sm truncate">{item.product_name}</div>
-                                          {item.variant_label && (
-                                            <div className="text-[11px] text-stone-400 mt-0.5 bg-stone-50 rounded px-1.5 py-0.5 inline-block">
-                                              {item.variant_label}
-                                            </div>
-                                          )}
-                                          <div className="text-xs text-stone-400 mt-0.5">
-                                            {fmt(item.price)} × {item.quantity} =
-                                            <span className="font-bold text-stone-700 ml-1">{fmt(item.price * item.quantity)}</span>
+                                      <div key={item.id} className="bg-white rounded-xl p-3 border border-stone-100">
+                                        <div className="flex items-center gap-3">
+                                          <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+                                            {item.product_image
+                                              ? <Image src={item.product_image} alt={item.product_name} fill sizes="48px" className="object-cover" />
+                                              : <div className="w-full h-full flex items-center justify-center text-xl">🛋️</div>}
                                           </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-semibold text-sm truncate">{item.product_name}</div>
+                                            {item.variant_label && (
+                                              <div className="text-[11px] text-stone-400 mt-0.5 bg-stone-50 rounded px-1.5 py-0.5 inline-block">
+                                                {item.variant_label}
+                                              </div>
+                                            )}
+                                            <div className="text-xs text-stone-400 mt-0.5">
+                                              {fmt(item.price)} × {item.quantity} =
+                                              <span className="font-bold text-stone-700 ml-1">{fmt(item.price * item.quantity)}</span>
+                                            </div>
+                                          </div>
+                                          {item.origin_url ? (
+                                            <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                              <a href={item.origin_url} target="_blank" rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-2 rounded-lg transition whitespace-nowrap">
+                                                <ShoppingCart size={12} /> Taobao <ExternalLink size={10} />
+                                              </a>
+                                              <select
+                                                value={item.purchase_status}
+                                                onChange={e => updatePurchaseStatus(o.id, item.id, e.target.value as PurchaseStatus)}
+                                                className={`text-[11px] px-2 py-1 rounded-full border font-semibold cursor-pointer outline-none ${PURCHASE_STATUS_COLOR[item.purchase_status]}`}
+                                              >
+                                                {Object.entries(PURCHASE_STATUS_LABEL).map(([k, v]) => (
+                                                  <option key={k} value={k}>{v}</option>
+                                                ))}
+                                              </select>
+                                            </div>
+                                          ) : (
+                                            <span className="text-xs text-stone-300 flex-shrink-0 px-3">Không có link</span>
+                                          )}
                                         </div>
-                                        {item.origin_url ? (
-                                          <a href={item.origin_url} target="_blank" rel="noopener noreferrer"
-                                            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-2 rounded-lg transition whitespace-nowrap flex-shrink-0">
-                                            <ShoppingCart size={12} /> Taobao <ExternalLink size={10} />
-                                          </a>
-                                        ) : (
-                                          <span className="text-xs text-stone-300 flex-shrink-0 px-3">Không có link</span>
+
+                                        {/* Theo dõi nhập hàng — chỉ hiện khi đã bắt đầu đặt hàng TQ */}
+                                        {item.origin_url && item.purchase_status !== 'not_ordered' && (
+                                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 pt-2.5 border-t border-stone-100 text-[11px] text-stone-500">
+                                            <label className="flex items-center gap-1.5">
+                                              Ngày đặt TQ:
+                                              <input type="date" value={toDateInputValue(item.ordered_at)}
+                                                onChange={e => updatePurchaseDate(o.id, item.id, 'ordered_at', e.target.value)}
+                                                className="border border-stone-200 rounded px-1.5 py-0.5 outline-none focus:border-stone-400" />
+                                            </label>
+                                            {item.purchase_status === 'arrived' && (
+                                              <label className="flex items-center gap-1.5">
+                                                Ngày về kho:
+                                                <input type="date" value={toDateInputValue(item.arrived_at)}
+                                                  onChange={e => updatePurchaseDate(o.id, item.id, 'arrived_at', e.target.value)}
+                                                  className="border border-stone-200 rounded px-1.5 py-0.5 outline-none focus:border-stone-400" />
+                                              </label>
+                                            )}
+                                            <label className="flex items-center gap-1.5 flex-1 min-w-[160px]">
+                                              Mã vận chuyển TQ:
+                                              <input type="text" defaultValue={item.taobao_tracking_code || ''}
+                                                onBlur={e => updateTaobaoTrackingCode(o.id, item.id, e.target.value)}
+                                                placeholder="Nhập mã vận đơn TQ"
+                                                className="flex-1 border border-stone-200 rounded px-1.5 py-0.5 outline-none focus:border-stone-400 font-mono min-w-0" />
+                                            </label>
+                                          </div>
                                         )}
                                       </div>
                                     ))}

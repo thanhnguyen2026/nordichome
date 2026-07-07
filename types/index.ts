@@ -53,6 +53,8 @@ export interface Product {
   // Chỉ admin mới fetch (không nằm trong PUBLIC_PRODUCT_COLUMNS phía khách)
   cost_price?: number
   origin_url?: string | null
+  // Giá gốc Taobao (¥) — dùng để tự tính gợi ý giá vốn, xem lib/taobaoCost.ts
+  taobao_price_cny?: number | null
 }
 
 export interface ProductVariant {
@@ -114,8 +116,22 @@ export interface Order {
   cancel_reason?: string | null
   refund_amount?: number
   stock_restored?: boolean
+  channel: SalesChannel
   created_at: string
   order_items?: OrderItem[]
+}
+
+// Kênh phát sinh đơn — 'website' là đơn tự động qua checkout, các kênh còn
+// lại là đơn Facebook/Shopee/TikTok/khác được admin nhập tay để gộp chung
+// vào 1 hệ thống theo dõi (thay vì tách rời sang Excel).
+export type SalesChannel = 'website' | 'facebook' | 'shopee' | 'tiktok' | 'other'
+
+export const SALES_CHANNEL_LABEL: Record<SalesChannel, string> = {
+  website:  'Website',
+  facebook: 'Facebook',
+  shopee:   'Shopee',
+  tiktok:   'TikTok',
+  other:    'Khác',
 }
 
 export interface Coupon {
@@ -145,6 +161,20 @@ export interface OrderItem {
   origin_url?: string | null
   variant_id?: string | null
   variant_label?: string | null
+  purchase_status?: PurchaseStatus
+  ordered_at?: string | null
+  arrived_at?: string | null
+  taobao_tracking_code?: string | null
+}
+
+// Trạng thái nhập hàng nội bộ (Taobao) cho từng dòng sản phẩm — khác với
+// Order['status'] (trạng thái hướng tới khách hàng).
+export type PurchaseStatus = 'not_ordered' | 'ordered' | 'arrived'
+
+export const PURCHASE_STATUS_LABEL: Record<PurchaseStatus, string> = {
+  not_ordered: 'Chưa đặt',
+  ordered:     'Đã đặt TQ',
+  arrived:     'Đã về kho',
 }
 
 // Payload 1 dòng sản phẩm gửi lên POST /api/orders khi đặt hàng — dùng chung

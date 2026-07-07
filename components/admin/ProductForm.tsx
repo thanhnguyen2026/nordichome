@@ -5,6 +5,7 @@ import { Product, Category, ProductSpec, ProductContentBlock } from '@/types'
 import ImageUploader from './ImageUploader'
 import VariantsManager, { Variant } from './VariantsManager'
 import { supabase } from '@/lib/supabase'
+import { calcTaobaoCost } from '@/lib/taobaoCost'
 
 interface Props {
   product?: Product
@@ -21,6 +22,7 @@ interface FormState {
   price: number | string
   sale_price: number | string
   cost_price: number | string
+  taobao_price_cny: string
   short_desc: string
   description: string
   specs: ProductSpec[]
@@ -50,6 +52,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
     price:            product?.price ?? 0,
     sale_price:       product?.sale_price ?? '',
     cost_price:       product?.cost_price ?? 0,
+    taobao_price_cny: product?.taobao_price_cny != null ? String(product.taobao_price_cny) : '',
     short_desc:       product?.short_desc ?? '',
     description:      product?.description ?? '',
     specs:            product?.specs ?? [],
@@ -117,6 +120,39 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       })
   }, [product?.id])
 
+  // Tải công thức tính giá vốn Taobao (dùng chung mọi sản phẩm, cấu hình ở
+  // trang Cài đặt) để gợi ý giá vốn từ giá gốc Taobao (¥).
+  const [costSettings, setCostSettings] = useState<{ rate: number; fee: number; shipPerKg: number } | null>(null)
+  useEffect(() => {
+    supabase.from('settings').select('key,value')
+      .in('key', ['taobao_exchange_rate', 'taobao_fee_percent', 'taobao_shipping_per_kg'])
+      .then(({ data }) => {
+        const s = Object.fromEntries(data?.map(r => [r.key, r.value]) ?? [])
+        setCostSettings({
+          rate:      Number(s.taobao_exchange_rate) || 0,
+          fee:       Number(s.taobao_fee_percent) || 0,
+          shipPerKg: Number(s.taobao_shipping_per_kg) || 0,
+        })
+      })
+  }, [])
+
+  const suggestedCost = costSettings && form.taobao_price_cny
+    ? calcTaobaoCost({
+        priceCny:      Number(form.taobao_price_cny) || 0,
+        weightKg:      Number(form.weight) || 0,
+        exchangeRate:  costSettings.rate,
+        feePercent:    costSettings.fee,
+        shippingPerKg: costSettings.shipPerKg,
+      })
+    : null
+
+  // Lãi so với giá vốn — tính theo markup (lãi / giá vốn), không phải margin
+  // (lãi / giá bán), vì admin hỏi "lời bao nhiêu % so với giá vốn".
+  const priceNum = Number(form.price) || 0
+  const costNum = Number(form.cost_price) || 0
+  const profitAmount = priceNum - costNum
+  const profitPercent = costNum > 0 ? (profitAmount / costNum) * 100 : null
+
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(f => ({ ...f, [k]: v }))
 
   const autoSlug = (name: string) =>
@@ -138,6 +174,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       price:            Math.round(Number(form.price)),
       sale_price:       form.sale_price !== '' ? Math.round(Number(form.sale_price)) : null,
       cost_price:       Math.round(Number(form.cost_price)),
+      taobao_price_cny: form.taobao_price_cny !== '' ? Number(form.taobao_price_cny) : null,
       weight:           Number(form.weight),
       origin_url:       form.origin_url || null,
       video_url:        form.video_url || null,
@@ -209,6 +246,11 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
               onBlur={e => set('price', String(Math.round(Number(e.target.value) || 0)))}
               placeholder="VD: 150000"
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" required />
+            {profitPercent != null && (
+              <p className={`text-[11px] mt-1 ${profitAmount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                {profitAmount >= 0 ? '📈' : '📉'} Lãi {profitAmount.toLocaleString('vi-VN')}₫ ({profitPercent.toFixed(0)}% so với giá vốn)
+              </p>
+            )}
           </div>
 
           <div>
@@ -222,6 +264,18 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           </div>
 
           <div>
+            <label className="text-xs font-semibold text-stone-500 block mb-1">🔒 Giá Taobao gốc (¥) — Chỉ Admin</label>
+            <input type="text" inputMode="decimal"
+              value={form.taobao_price_cny}
+              onChange={e => set('taobao_price_cny', e.target.value)}
+              placeholder="VD: 20"
+              className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            <p className="text-[11px] text-stone-400 mt-1">
+              Tự tính giá vốn theo công thức ở Cài đặt. Bỏ trống nếu muốn tự nhập giá vốn thẳng.
+            </p>
+          </div>
+
+          <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">🔒 Giá vốn (₫) — Chỉ Admin</label>
             <input type="text" inputMode="numeric" pattern="[0-9]*"
               value={form.cost_price}
@@ -229,6 +283,13 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
               onBlur={e => set('cost_price', String(Math.round(Number(e.target.value) || 0)))}
               placeholder="Giá Taobao + ship TQ-VN"
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            {suggestedCost != null && (
+              <p className="text-[11px] text-blue-600 mt-1 flex items-center gap-2">
+                💡 Gợi ý: {suggestedCost.toLocaleString('vi-VN')}₫
+                <button type="button" onClick={() => set('cost_price', String(suggestedCost))}
+                  className="text-blue-600 underline hover:text-blue-800">Dùng giá này</button>
+              </p>
+            )}
             <p className="text-[11px] text-red-400 mt-1">⚠️ Không hiển thị ra trang khách hàng</p>
           </div>
 
