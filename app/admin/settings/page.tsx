@@ -242,17 +242,30 @@ export default function AdminSettings() {
             </button>
           </div>
           <p className="text-xs text-stone-400 mb-4">
-            Bật để áp dụng freeship toàn bộ đơn hàng — bỏ qua tính phí GHTK, hiện badge xanh trên trang đặt hàng.
+            Bật để áp dụng freeship — bỏ qua tính phí GHTK, hiện badge xanh trên trang đặt hàng.
           </p>
           {settings.freeship_enabled === '1' && (
-            <div>
-              <label className="text-xs font-semibold text-stone-500 block mb-1">Nhãn hiển thị (tuỳ chọn)</label>
-              <input
-                value={settings.freeship_label || ''}
-                onChange={e => set('freeship_label', e.target.value)}
-                placeholder="VD: Freeship toàn quốc tháng 7 🎉"
-                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-stone-500 block mb-1">
+                  Đơn tối thiểu để freeship (₫) — để trống hoặc 0 = freeship mọi đơn
+                </label>
+                <input type="text" inputMode="numeric" pattern="[0-9]*"
+                  value={settings.freeship_min_order || ''}
+                  onChange={e => set('freeship_min_order', e.target.value.replace(/\D/g, ''))}
+                  placeholder="VD: 500000"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-500 block mb-1">Nhãn hiển thị (tuỳ chọn)</label>
+                <input
+                  value={settings.freeship_label || ''}
+                  onChange={e => set('freeship_label', e.target.value)}
+                  placeholder="VD: Freeship toàn quốc tháng 7 🎉"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400"
+                />
+              </div>
             </div>
           )}
         </div>

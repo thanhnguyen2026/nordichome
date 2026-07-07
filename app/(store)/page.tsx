@@ -6,7 +6,8 @@ import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
 import type { Look } from '@/components/store/ShopTheLook'
-import type { Product } from '@/types'
+import type { Product, Campaign } from '@/types'
+import { applyCampaignsToProducts } from '@/lib/campaignPrice'
 
 export async function generateMetadata() {
   const { data } = await supabase.from('settings').select('key,value')
@@ -34,7 +35,7 @@ export async function generateMetadata() {
 
 
 export default async function HomePage() {
-  const [{ data: settings }, { data: featuredRaw }, { data: newProdsRaw }, { data: cats }, { data: variantRows }, { data: looksRaw }] =
+  const [{ data: settings }, { data: featuredRaw }, { data: newProdsRaw }, { data: cats }, { data: variantRows }, { data: looksRaw }, { data: campaignsRaw }] =
     await Promise.all([
       supabase.from('settings').select('key,value'),
       supabase.from('products').select(`${PUBLIC_PRODUCT_COLUMNS},category:categories(name,slug)`)
@@ -50,16 +51,24 @@ export default async function HomePage() {
           product:products(id, name, slug, cover_image, price, sale_price)
         )
       `).eq('is_active', true).order('sort_order').order('created_at').limit(4),
+      supabase.from('campaigns').select('*').eq('is_active', true),
     ])
 
   // Tên cột select() truyền qua biến khiến Supabase không suy luận được kiểu
   // trả về tĩnh (chỉ literal string mới suy luận được) — ép kiểu tường minh.
-  const featured = featuredRaw as unknown as Product[] | null
-  const newProds = newProdsRaw as unknown as Product[] | null
+  const featuredRawTyped = featuredRaw as unknown as Product[] | null
+  const newProdsRawTyped = newProdsRaw as unknown as Product[] | null
 
   const looks = (looksRaw ?? []) as unknown as Look[]
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
+
+  // Khuyến mãi đang chạy — áp vào giá hiển thị, trừ sản phẩm đã tự set giá
+  // khuyến mãi riêng.
+  const now = new Date()
+  const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
+  const featured = featuredRawTyped ? applyCampaignsToProducts(featuredRawTyped, campaigns, now) : null
+  const newProds = newProdsRawTyped ? applyCampaignsToProducts(newProdsRawTyped, campaigns, now) : null
 
   const productIdsWithVariants = new Set(variantRows?.map(v => v.product_id) ?? [])
 

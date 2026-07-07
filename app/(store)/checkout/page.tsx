@@ -9,6 +9,8 @@ import { calcTotalWeight } from '@/lib/shipping'
 import { Truck, AlertTriangle, Loader2, ChevronDown } from 'lucide-react'
 import { trackPurchase, generateEventId, getCookie } from '@/lib/analytics'
 import { copyToClipboard } from '@/lib/clipboard'
+import { hasCampaignFor } from '@/lib/campaignPrice'
+import type { Campaign } from '@/types'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
@@ -30,6 +32,8 @@ function SelectWrapper({ children }: { children: React.ReactNode }) {
 export default function CheckoutPage() {
   const { items, total, clearCart } = useCartStore()
   const [settings, setSettings] = useState<Record<string, string>>({})
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [nowRef] = useState(() => new Date())
 
   const [form, setForm] = useState({
     name: '', phone: '', streetAddress: '', note: '',
@@ -75,7 +79,11 @@ export default function CheckoutPage() {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponInput.trim(), subtotal: total() }),
+        body: JSON.stringify({
+          code: couponInput.trim(),
+          subtotal: total(),
+          product_ids: items.map(i => i.product.id),
+        }),
       })
       const data = await res.json()
       if (data.error) { setCouponError(data.error); setAppliedCoupon(null) }
@@ -93,10 +101,13 @@ export default function CheckoutPage() {
     setCouponError('')
   }
 
-  // ── Load settings + tỉnh/thành ──────────────────────────────────────────────
+  // ── Load settings + khuyến mãi + tỉnh/thành ──────────────────────────────────
   useEffect(() => {
     supabase.from('settings').select('key,value').then(({ data }) => {
       setSettings(Object.fromEntries(data?.map(r => [r.key, r.value || '']) ?? []))
+    })
+    supabase.from('campaigns').select('*').eq('is_active', true).then(({ data }) => {
+      if (data) setCampaigns(data as unknown as Campaign[])
     })
     fetch('https://provinces.open-api.vn/api/?depth=1')
       .then(r => r.json())
@@ -143,7 +154,13 @@ export default function CheckoutPage() {
   }, [form.district, districts])
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const isFreeship = settings.freeship_enabled === '1'
+  // Đơn tối thiểu để freeship — để trống/0 nghĩa là freeship mọi đơn (giữ hành vi cũ)
+  const freeshipMinOrder = Number(settings.freeship_min_order) || 0
+  const isFreeship = settings.freeship_enabled === '1' && (freeshipMinOrder === 0 || total() >= freeshipMinOrder)
+
+  // Có sản phẩm nào trong giỏ đang được áp khuyến mãi không → ẩn ô nhập mã
+  // giảm giá, không cộng dồn 2 loại giảm giá cùng lúc.
+  const campaignActive = items.some(i => hasCampaignFor(i.product.id, campaigns, nowRef))
 
   // ── Khi đổi phường → gọi GHTK tính phí (bỏ qua nếu freeship) ──────────────
   const fetchShipping = useCallback(async (province: string, district: string, ward: string) => {
@@ -559,7 +576,14 @@ export default function CheckoutPage() {
                 </div>
               )
             })}
-            {/* Mã giảm giá */}
+            {/* Mã giảm giá — ẩn khi sản phẩm trong giỏ đang có khuyến mãi, tránh cộng dồn 2 loại giảm giá */}
+            {campaignActive ? (
+              <div className="border-t border-stone-100 mt-3 pt-3">
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  🎉 Sản phẩm đang được áp khuyến mãi — không dùng thêm mã giảm giá được trong đợt này.
+                </p>
+              </div>
+            ) : (
             <div className="border-t border-stone-100 mt-3 pt-3">
               {appliedCoupon ? (
                 <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
@@ -584,6 +608,7 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
+            )}
 
             <div className="border-t border-stone-100 mt-3 pt-3 space-y-1.5">
               <div className="flex justify-between text-sm">

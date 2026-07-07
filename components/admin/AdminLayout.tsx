@@ -11,6 +11,7 @@ const NAV = [
   { href: '/admin/categories', label: '🗂️ Danh mục', icon: '🗂️' },
   { href: '/admin/orders', label: '🛒 Đơn hàng', icon: '🛒' },
   { href: '/admin/coupons', label: '🏷️ Mã giảm giá', icon: '🏷️' },
+  { href: '/admin/promotions', label: '🎉 Khuyến mãi', icon: '🎉' },
   { href: '/admin/settings', label: '⚙️ Cài đặt', icon: '⚙️' },
   { href: '/admin/looks', label: '🖼️ Shop the Look', icon: '🖼️' },
   { href: '/admin/social', label: '📣 Kênh bán hàng', icon: '📣' },

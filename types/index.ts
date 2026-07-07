@@ -19,6 +19,19 @@ export interface ProductContentBlock {
   text: string
 }
 
+export interface Campaign {
+  id: string
+  name: string
+  discount_type: 'percent' | 'fixed'
+  discount_value: number
+  scope: 'all' | 'selected'
+  product_ids: string[]
+  starts_at: string | null
+  ends_at: string | null
+  is_active: boolean
+  created_at: string
+}
+
 export interface Product {
   id: string
   name: string

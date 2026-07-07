@@ -7,7 +7,8 @@ import ProductDetailClient from '@/components/store/ProductDetailClient'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import type { Product } from '@/types'
+import type { Product, Campaign } from '@/types'
+import { applyCampaignsToProduct, applyCampaignsToProducts } from '@/lib/campaignPrice'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -54,7 +55,7 @@ export default async function ProductDetailPage({
 }) {
   const { slug } = await params
 
-  const [{ data: settings }, { data: productRaw }] = await Promise.all([
+  const [{ data: settings }, { data: productRaw }, { data: campaignsRaw }] = await Promise.all([
     supabase.from('settings').select('key,value'),
     supabase
       .from('products')
@@ -62,13 +63,17 @@ export default async function ProductDetailPage({
       .eq('slug', slug)
       .eq('is_visible', true)
       .single(),
+    supabase.from('campaigns').select('*').eq('is_active', true),
   ])
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
   if (!productRaw) return notFound()
   // Tên cột select() truyền qua biến khiến Supabase không suy luận được kiểu
   // trả về tĩnh (chỉ literal string mới suy luận được) — ép kiểu tường minh.
-  const product = productRaw as unknown as Product
+  const now = new Date()
+  const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
+  // Khuyến mãi đang chạy — trừ sản phẩm đã tự set giá khuyến mãi riêng.
+  const product = applyCampaignsToProduct(productRaw as unknown as Product, campaigns, now)
 
   const allImages: string[] = [
     product.cover_image,
@@ -85,7 +90,7 @@ export default async function ProductDetailPage({
     .neq('id', product.id)
     .eq('is_visible', true)
     .limit(4)
-  const related = relatedRaw as unknown as Product[] | null
+  const related = relatedRaw ? applyCampaignsToProducts(relatedRaw as unknown as Product[], campaigns, now) : null
 
   const relatedIds = related?.map(p => p.id) ?? []
   const { data: variantRows } = relatedIds.length

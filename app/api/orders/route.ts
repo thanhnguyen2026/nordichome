@@ -4,7 +4,8 @@ import { sendMessengerNotification } from '@/lib/messenger'
 import { sendTelegramNotification } from '@/lib/telegram'
 import { generateOrderCode } from '@/lib/orderCode'
 import { checkCoupon } from '@/lib/coupon'
-import { CreateOrderPayload, Coupon } from '@/types'
+import { hasCampaignFor } from '@/lib/campaignPrice'
+import { CreateOrderPayload, Coupon, Campaign } from '@/types'
 
 export async function POST(req: NextRequest) {
   const body: CreateOrderPayload = await req.json()
@@ -76,9 +77,18 @@ export async function POST(req: NextRequest) {
 
   // Re-validate mã giảm giá ở server — không tin số discount client tự tính,
   // vì giỏ hàng/subtotal có thể đổi giữa lúc khách áp mã và lúc bấm đặt hàng.
+  // Không cho dùng mã giảm giá nếu có sản phẩm trong đơn đang được áp khuyến
+  // mãi — tránh cộng dồn 2 loại giảm giá (chặn cả server phòng client bị bypass).
   let discount_amount = 0
   let appliedCoupon: Coupon | null = null
   if (coupon_code) {
+    const { data: campaignsRaw } = await supabaseAdmin.from('campaigns').select('*').eq('is_active', true)
+    const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
+    const now = new Date()
+    if (items.some(i => hasCampaignFor(i.product_id, campaigns, now))) {
+      return NextResponse.json({ error: 'Sản phẩm đang được áp khuyến mãi, không dùng thêm mã giảm giá được' }, { status: 400 })
+    }
+
     const { data: coupon } = await supabaseAdmin
       .from('coupons')
       .select('*')

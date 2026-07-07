@@ -5,6 +5,8 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useCartStore } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
+import { soonestEndingCampaign } from '@/lib/campaignPrice'
+import type { Campaign } from '@/types'
 import { Menu, X, ChevronDown, ShoppingCart } from 'lucide-react'
 
 // Chỉ hiện khi bấm icon giỏ hàng — tải JS khi cần thay vì cộng vào bundle
@@ -32,6 +34,13 @@ export default function Header({ settings }: { settings: Settings }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [nowRef] = useState(() => new Date())
+
+  const activeCampaign = soonestEndingCampaign(campaigns, nowRef)
+  const campaignDaysLeft = activeCampaign?.ends_at
+    ? Math.max(0, Math.ceil((new Date(activeCampaign.ends_at).getTime() - nowRef.getTime()) / 86_400_000))
+    : null
 
   const items = useCartStore(s => s.items)
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0)
@@ -69,13 +78,18 @@ export default function Header({ settings }: { settings: Settings }) {
       roots.forEach(r => r.children.sort((a, b) => a.sort_order - b.sort_order))
       setCategories(roots)
     })
+    supabase.from('campaigns').select('*').eq('is_active', true).then(({ data }) => {
+      if (data) setCampaigns(data as unknown as Campaign[])
+    })
   }, [])
 
   return (
     <>
-      {/* Top bar */}
-      <div className="bg-stone-800 text-amber-100 text-xs text-center py-2 px-4 tracking-wide">
-        {settings.topbar_text || '🚚 Miễn phí vận chuyển HCM cho đơn trên 2.000.000₫'}
+      {/* Top bar — ưu tiên hiện chiến dịch khuyến mãi đang chạy nếu có */}
+      <div className={`text-xs text-center py-2 px-4 tracking-wide ${activeCampaign ? 'bg-amber-500 text-stone-900 font-semibold' : 'bg-stone-800 text-amber-100'}`}>
+        {activeCampaign
+          ? <>🎉 {activeCampaign.name}{campaignDaysLeft != null && ` — còn ${campaignDaysLeft} ngày`}</>
+          : (settings.topbar_text || '🚚 Miễn phí vận chuyển HCM cho đơn trên 2.000.000₫')}
         {settings.hotline && <> &nbsp;|&nbsp; 📞 {settings.hotline}</>}
       </div>
 

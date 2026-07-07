@@ -6,8 +6,9 @@ import CategorySidebar from '@/components/store/CategorySidebar'
 import SortSelect from '@/components/store/SortSelect'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
 import { PackageOpen } from 'lucide-react'
-import type { Product } from '@/types'
+import type { Product, Campaign } from '@/types'
 import Link from 'next/link'
+import { applyCampaignsToProducts } from '@/lib/campaignPrice'
 
 export default async function ProductsPage({
   searchParams,
@@ -16,15 +17,17 @@ export default async function ProductsPage({
 }) {
   const sp = await searchParams
 
-  const [{ data: settings }, { data: categories }, { data: allProds }, { data: variantCounts }] = await Promise.all([
+  const [{ data: settings }, { data: categories }, { data: allProds }, { data: variantCounts }, { data: campaignsRaw }] = await Promise.all([
     supabase.from('settings').select('key,value'),
     supabase.from('categories').select('*').eq('is_visible', true).order('sort_order'),
     supabase.from('products').select('id,category_id').eq('is_visible', true),
     // Lấy price của tất cả variants để tính giá thấp nhất mỗi SP
     supabase.from('product_variants').select('product_id, price'),
+    supabase.from('campaigns').select('*').eq('is_active', true),
   ])
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
+  const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
 
   const productIdsWithVariants = new Set(variantCounts?.map(v => v.product_id) ?? [])
 
@@ -73,7 +76,9 @@ export default async function ProductsPage({
   // Tên cột select() truyền qua biến khiến Supabase không suy luận được kiểu
   // trả về tĩnh (chỉ literal string mới suy luận được) — ép kiểu tường minh.
   const { data: productsRaw } = await query
-  const products = productsRaw as unknown as Product[] | null
+  const productsTyped = productsRaw as unknown as Product[] | null
+  // Khuyến mãi đang chạy — trừ sản phẩm đã tự set giá khuyến mãi riêng.
+  const products = productsTyped ? applyCampaignsToProducts(productsTyped, campaigns, new Date()) : null
 
   // Breadcrumbs
   const parentCat = activeCategory?.parent_id

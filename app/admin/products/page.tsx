@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { stripDiacritics } from '@/lib/text'
 import AdminLayout from '@/components/admin/AdminLayout'
 import ProductForm from '@/components/admin/ProductForm'
-import { Product, Category } from '@/types'
+import { Product, Category, Campaign } from '@/types'
+import { hasCampaignFor } from '@/lib/campaignPrice'
 import type { Variant } from '@/components/admin/VariantsManager'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
@@ -32,12 +33,17 @@ export default function AdminProducts() {
   const [stockFilter, setStockFilter] = useState<StockFilter>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkCategory, setBulkCategory] = useState('')
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  // Date.now() là hàm "không thuần" (impure), không được gọi trực tiếp trong
+  // render — chốt mốc thời gian 1 lần lúc mount qua lazy initializer của useState.
+  const [now] = useState(() => new Date())
 
   const load = async () => {
-    const [{ data: prods }, { data: cats }, { data: variants }] = await Promise.all([
+    const [{ data: prods }, { data: cats }, { data: variants }, { data: camps }] = await Promise.all([
       supabase.from('products').select('*,category:categories(name)').order('created_at', { ascending: false }),
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('product_variants').select('product_id, stock'),
+      supabase.from('campaigns').select('*').eq('is_active', true),
     ])
     setProducts((prods as unknown as Product[]) || [])
     setCategories(cats || [])
@@ -46,6 +52,7 @@ export default function AdminProducts() {
       stockMap[v.product_id] = (stockMap[v.product_id] ?? 0) + (v.stock ?? 0)
     })
     setVariantStockMap(stockMap)
+    setCampaigns((camps as unknown as Campaign[]) || [])
     setLoading(false)
   }
 
@@ -279,7 +286,14 @@ export default function AdminProducts() {
                               {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="48px" className="object-cover" /> : <span className="text-xl">🛋️</span>}
                             </div>
                           </td>
-                          <td className="py-2 px-4 font-semibold whitespace-nowrap">{p.name}</td>
+                          <td className="py-2 px-4 font-semibold whitespace-nowrap">
+                            {p.name}
+                            {hasCampaignFor(p.id, campaigns, now) && (
+                              <div className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
+                                🔥 Đang giảm giá
+                              </div>
+                            )}
+                          </td>
                           <td className="py-2 px-4 text-stone-400 font-mono text-xs whitespace-nowrap">{p.sku || '—'}</td>
                           <td className="py-2 px-4 text-stone-500 whitespace-nowrap">{p.category?.name || '—'}</td>
                           <td className="py-2 px-4 font-bold text-amber-700 whitespace-nowrap">

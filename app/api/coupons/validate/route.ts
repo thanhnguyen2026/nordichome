@@ -1,17 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { checkCoupon } from '@/lib/coupon'
-import type { Coupon } from '@/types'
+import { hasCampaignFor } from '@/lib/campaignPrice'
+import type { Coupon, Campaign } from '@/types'
 
 // Endpoint riêng cho khách xem trước mức giảm lúc nhập mã ở checkout — không
 // cho khách SELECT thẳng bảng coupons (RLS chỉ cấp cho authenticated), tránh
 // lộ toàn bộ danh sách mã đang có. Đơn hàng vẫn re-validate lại ở /api/orders
 // vì subtotal có thể đổi giữa lúc áp mã và lúc bấm đặt hàng.
 export async function POST(req: NextRequest) {
-  const { code, subtotal } = await req.json()
+  const { code, subtotal, product_ids } = await req.json()
 
   if (!code || typeof subtotal !== 'number') {
     return NextResponse.json({ error: 'Thiếu mã giảm giá hoặc tổng tiền' }, { status: 400 })
+  }
+
+  // Không cho dùng mã nếu có sản phẩm trong giỏ đang được áp khuyến mãi —
+  // tránh cộng dồn 2 loại giảm giá (UI checkout đã ẩn ô nhập mã, đây là chặn
+  // phòng thủ ở server).
+  if (Array.isArray(product_ids) && product_ids.length > 0) {
+    const { data: campaignsRaw } = await supabaseAdmin.from('campaigns').select('*').eq('is_active', true)
+    const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
+    const now = new Date()
+    if (product_ids.some((id: string) => hasCampaignFor(id, campaigns, now))) {
+      return NextResponse.json({ error: 'Sản phẩm đang được áp khuyến mãi, không dùng thêm mã giảm giá được' }, { status: 400 })
+    }
   }
 
   const { data: coupon } = await supabaseAdmin
