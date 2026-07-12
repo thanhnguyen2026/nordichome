@@ -1,9 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search, Loader2 } from 'lucide-react'
 import { ORDER_STATUS_LABEL, OrderStatus } from '@/types'
+import { supabase } from '@/lib/supabase'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
@@ -16,6 +18,13 @@ interface FoundOrder {
 
 export default function TrackPage() {
   const [mode, setMode] = useState<'code' | 'phone'>('code')
+  const [settings, setSettings] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    supabase.from('settings').select('key,value').then(({ data }) => {
+      setSettings(Object.fromEntries(data?.map(r => [r.key, r.value || '']) ?? []))
+    })
+  }, [])
 
   const [code,  setCode]  = useState('')
   const [phone, setPhone] = useState('')
@@ -58,8 +67,18 @@ export default function TrackPage() {
     <main className="min-h-screen bg-stone-50 flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-10">
-          <span className="text-xl font-black text-stone-900">NORDIC HOME</span>
+        <Link href="/" className="flex items-center justify-center gap-3 mb-10">
+          {settings.logo_url && (
+            <Image src={settings.logo_url} alt="Logo" width={48} height={48} className="h-12 w-12 object-contain rounded-lg" />
+          )}
+          <div>
+            <div className="text-xl font-black text-stone-900 leading-tight">
+              {settings.site_name || 'NORDIC HOME'}
+            </div>
+            <div className="font-serif italic font-semibold text-[10px] text-amber-700 tracking-[2px]">
+              Simplify & Enjoy
+            </div>
+          </div>
         </Link>
 
         <div className="bg-white rounded-3xl shadow-sm border border-stone-100 p-8">

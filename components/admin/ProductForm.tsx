@@ -35,6 +35,7 @@ interface FormState {
   in_stock: boolean
   stock: string
   is_preorder: boolean
+  preorder_note: string
   is_bulky: boolean
   is_visible: boolean
   is_featured: boolean
@@ -65,6 +66,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
     in_stock:         product?.in_stock ?? true,
     stock:            product?.stock != null ? String(product.stock) : '',
     is_preorder:      product?.is_preorder ?? false,
+    preorder_note:    product?.preorder_note ?? '',
     is_bulky:         product?.is_bulky ?? false,
     is_visible:       product?.is_visible ?? true,
     is_featured:      product?.is_featured ?? false,
@@ -177,6 +179,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       taobao_price_cny: form.taobao_price_cny !== '' ? Number(form.taobao_price_cny) : null,
       weight:           Number(form.weight),
       origin_url:       form.origin_url || null,
+      preorder_note:    form.preorder_note || null,
       video_url:        form.video_url || null,
       stock:            stockNum,
       in_stock:         trackingStock ? stockNum! > 0 : form.in_stock,
@@ -475,17 +478,28 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
             </label>
           ))}
 
-          <label className="col-span-2 flex items-center gap-3 cursor-pointer bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 hover:bg-orange-100 transition">
-            <input type="checkbox" checked={form.is_preorder}
-              onChange={e => set('is_preorder', e.target.checked)}
-              className="w-4 h-4 accent-orange-500" />
-            <div>
-              <div className="text-sm font-semibold text-orange-700">⏳ Hàng đặt trước (Pre-order)</div>
-              <div className="text-xs text-orange-500 mt-0.5">
-                Hiển thị badge &quot;Đặt trước (7-10 ngày)&quot; thay vì &quot;Còn hàng&quot;
+          <div className="col-span-2 bg-orange-50 border border-orange-100 rounded-xl px-4 py-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={form.is_preorder}
+                onChange={e => set('is_preorder', e.target.checked)}
+                className="w-4 h-4 accent-orange-500" />
+              <div>
+                <div className="text-sm font-semibold text-orange-700">⏳ Hàng đặt trước (Pre-order)</div>
+                <div className="text-xs text-orange-500 mt-0.5">
+                  Hiển thị badge &quot;Đặt trước&quot; kèm thời gian chờ thay vì &quot;Còn hàng&quot;
+                </div>
               </div>
-            </div>
-          </label>
+            </label>
+            {form.is_preorder && (
+              <div className="mt-3 pl-7">
+                <label className="text-xs font-semibold text-orange-700 block mb-1">Thời gian chờ</label>
+                <input value={form.preorder_note} onChange={e => set('preorder_note', e.target.value)}
+                  placeholder="VD: 7-10 ngày"
+                  className="w-full max-w-xs border border-orange-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-orange-400 bg-white" />
+                <p className="text-[11px] text-orange-500 mt-1">Để trống sẽ hiện mặc định &quot;7-10 ngày&quot;</p>
+              </div>
+            )}
+          </div>
 
           <label className="col-span-2 flex items-center gap-3 cursor-pointer bg-red-50 border border-red-100 rounded-xl px-4 py-3 hover:bg-red-100 transition">
             <input type="checkbox" checked={form.is_bulky}

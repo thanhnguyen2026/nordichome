@@ -87,7 +87,17 @@ export default async function OrderDetailPage({
       {/* Header tối giản */}
       <header className="bg-white border-b border-stone-100">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="text-base font-black text-stone-900">{s.site_name || 'NORDIC HOME'}</Link>
+          <Link href="/" className="flex items-center gap-2.5">
+            {s.logo_url && (
+              <Image src={s.logo_url} alt="Logo" width={36} height={36} className="h-9 w-9 object-contain rounded-lg" />
+            )}
+            <div>
+              <div className="text-base font-black text-stone-900 leading-tight">{s.site_name || 'NORDIC HOME'}</div>
+              <div className="font-serif italic font-semibold text-[9px] text-amber-700 tracking-[2px]">
+                Simplify & Enjoy
+              </div>
+            </div>
+          </Link>
           <Link href="/orders/track" className="text-xs text-stone-400 hover:text-stone-700 transition">
             ← Tra cứu đơn khác
           </Link>

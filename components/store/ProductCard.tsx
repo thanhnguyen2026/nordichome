@@ -35,7 +35,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
   const btnLabel = hasVariants
     ? 'Chọn mẫu →'
     : p.is_preorder
-      ? 'Đặt trước (7-10 ngày)'
+      ? `Đặt trước (${p.preorder_note || '7-10 ngày'})`
       : p.in_stock
         ? 'Thêm vào giỏ'
         : 'Hết hàng'

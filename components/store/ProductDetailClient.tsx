@@ -112,7 +112,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         <div className="flex items-center gap-2 mb-5">
           {product.is_preorder ? (
             <span className="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-semibold border border-orange-100 shadow-sm">
-              ⏳ Đặt trước (7-10 ngày)
+              ⏳ Đặt trước ({product.preorder_note || '7-10 ngày'})
             </span>
           ) : product.in_stock ? (
             <span className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 font-semibold border border-green-100">

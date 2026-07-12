@@ -54,6 +54,9 @@ export interface Product {
   // số lượng, dùng in_stock thủ công như trước giờ.
   stock?: number | null
   is_preorder: boolean
+  // Ghi chú thời gian đặt trước tuỳ chỉnh (VD: "7-10 ngày") — để trống thì
+  // hiển thị mặc định "7-10 ngày" ở giao diện.
+  preorder_note?: string | null
   is_visible: boolean
   is_featured: boolean
   is_new: boolean

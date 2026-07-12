@@ -30,7 +30,7 @@ export default function CartPage() {
               <div className="text-base md:text-lg font-black text-stone-900 tracking-wide leading-tight">
                 {settings.site_name || 'NORDIC HOME'}
               </div>
-              <div className="text-[8px] text-amber-700 tracking-[3px] uppercase">
+              <div className="font-serif italic font-semibold text-[10px] text-amber-700 tracking-[2px]">
                 Simplify & Enjoy
               </div>
             </div>

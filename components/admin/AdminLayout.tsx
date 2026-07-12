@@ -88,7 +88,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="text-sm font-black text-amber-50 tracking-wide leading-tight">
                 {settings.site_name || 'NORDIC HOME'}
               </div>
-              <div className="text-[8px] text-amber-600 tracking-[2px] uppercase">
+              <div className="font-serif italic font-semibold text-[8px] text-amber-600 tracking-[2px]">
                 Simplify & Enjoy
               </div>
             </div>
