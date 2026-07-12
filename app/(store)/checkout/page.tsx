@@ -484,9 +484,11 @@ export default function CheckoutPage() {
               <Truck size={18} className="text-green-600 flex-shrink-0" />
               <div>
                 <div className="font-bold text-sm text-green-700">
-                  {settings.freeship_label || '🎉 Miễn phí vận chuyển'}
+                  {thresholdFreeship ? (settings.freeship_label || '🎉 Miễn phí vận chuyển') : '🎉 Miễn phí vận chuyển'}
                 </div>
-                <div className="text-xs text-green-600 mt-0.5">Áp dụng cho toàn bộ đơn hàng</div>
+                <div className="text-xs text-green-600 mt-0.5">
+                  {thresholdFreeship ? 'Áp dụng cho toàn bộ đơn hàng' : 'Sản phẩm trong giỏ hàng được miễn phí vận chuyển'}
+                </div>
               </div>
             </div>
           ) : (hasBulky || form.ward) && (
