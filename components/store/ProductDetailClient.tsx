@@ -133,6 +133,11 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
               ⭐ Nổi bật
             </span>
           )}
+          {product.free_shipping && (
+            <span className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 font-semibold border border-green-100">
+              🚚 Freeship
+            </span>
+          )}
         </div>
 
         {/* Mô tả ngắn */}
@@ -182,7 +187,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
     {product.specs?.length > 0 && (
       <div className="mb-16 max-w-3xl mx-auto">
         <h2 className="font-serif text-2xl font-semibold text-center mb-6">Thông số sản phẩm</h2>
-        <div className="max-w-[260px] sm:max-w-sm mx-auto border-t border-stone-200 divide-y divide-stone-100">
+        <div className="max-w-[320px] sm:max-w-md mx-auto border-t border-stone-200 divide-y divide-stone-100">
           {product.specs.map((spec, i) => (
             <div key={i} className="flex justify-between py-4 text-sm">
               <span className="font-medium text-stone-700">{spec.label}</span>
@@ -205,7 +210,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
             )}
             {block.image_url && (
               <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-stone-50">
-                <Image src={block.image_url} alt={block.text || product.name} fill sizes="(max-width: 768px) 100vw, 768px" className="object-cover" />
+                <Image src={block.image_url} alt={block.text || product.name} fill sizes="(max-width: 768px) 100vw, 768px" className="object-contain" />
               </div>
             )}
           </div>

@@ -41,4 +41,26 @@ describe('calcTotalWeight', () => {
     expect(totalWeight).toBe(0)
     expect(hasBulky).toBe(false)
   })
+
+  it('sản phẩm free_shipping không cộng cân nặng vào phí ship', () => {
+    const { totalWeight } = calcTotalWeight([
+      { product: { weight: 2, free_shipping: true }, quantity: 1 },
+      { product: { weight: 0.5, free_shipping: false }, quantity: 1 },
+    ])
+    expect(totalWeight).toBe(0.5)
+  })
+
+  it('toàn bộ giỏ hàng free_shipping → tổng cân nặng tính phí ship = 0', () => {
+    const { totalWeight } = calcTotalWeight([
+      { product: { weight: 3, free_shipping: true }, quantity: 2 },
+    ])
+    expect(totalWeight).toBe(0)
+  })
+
+  it('free_shipping không ảnh hưởng tới hasBulky', () => {
+    const { hasBulky } = calcTotalWeight([
+      { product: { weight: 20, is_bulky: true, free_shipping: true }, quantity: 1 },
+    ])
+    expect(hasBulky).toBe(true)
+  })
 })

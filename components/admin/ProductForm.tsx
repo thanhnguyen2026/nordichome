@@ -37,6 +37,7 @@ interface FormState {
   is_preorder: boolean
   preorder_note: string
   is_bulky: boolean
+  free_shipping: boolean
   is_visible: boolean
   is_featured: boolean
   is_new: boolean
@@ -68,6 +69,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
     is_preorder:      product?.is_preorder ?? false,
     preorder_note:    product?.preorder_note ?? '',
     is_bulky:         product?.is_bulky ?? false,
+    free_shipping:    product?.free_shipping ?? false,
     is_visible:       product?.is_visible ?? true,
     is_featured:      product?.is_featured ?? false,
     is_new:           product?.is_new ?? false,
@@ -509,6 +511,18 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
               <div className="text-sm font-semibold text-red-700">📦 Hàng cồng kềnh</div>
               <div className="text-xs text-red-500 mt-0.5">
                 Khi đặt hàng, khách sẽ được yêu cầu liên hệ tư vấn thay vì tự tính phí ship
+              </div>
+            </div>
+          </label>
+
+          <label className="col-span-2 flex items-center gap-3 cursor-pointer bg-green-50 border border-green-100 rounded-xl px-4 py-3 hover:bg-green-100 transition">
+            <input type="checkbox" checked={form.free_shipping}
+              onChange={e => set('free_shipping', e.target.checked)}
+              className="w-4 h-4 accent-green-500" />
+            <div>
+              <div className="text-sm font-semibold text-green-700">🚚 Luôn miễn phí ship</div>
+              <div className="text-xs text-green-600 mt-0.5">
+                Cân nặng sản phẩm này không tính vào phí ship của đơn — cộng dồn với freeship theo tổng đơn hàng ở Cài đặt
               </div>
             </div>
           </label>

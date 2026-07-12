@@ -156,7 +156,11 @@ export default function CheckoutPage() {
 
   // Đơn tối thiểu để freeship — để trống/0 nghĩa là freeship mọi đơn (giữ hành vi cũ)
   const freeshipMinOrder = Number(settings.freeship_min_order) || 0
-  const isFreeship = settings.freeship_enabled === '1' && (freeshipMinOrder === 0 || total() >= freeshipMinOrder)
+  const thresholdFreeship = settings.freeship_enabled === '1' && (freeshipMinOrder === 0 || total() >= freeshipMinOrder)
+  // Toàn bộ giỏ hàng đều là sản phẩm free_shipping riêng — cộng dồn với
+  // freeship theo ngưỡng đơn hàng ở trên, không thay thế.
+  const allItemsFreeShip = items.length > 0 && items.every(i => i.product.free_shipping)
+  const isFreeship = thresholdFreeship || allItemsFreeShip
 
   // Có sản phẩm nào trong giỏ đang được áp khuyến mãi không → ẩn ô nhập mã
   // giảm giá, không cộng dồn 2 loại giảm giá cùng lúc.

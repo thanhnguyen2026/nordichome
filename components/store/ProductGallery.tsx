@@ -181,7 +181,7 @@ export default function ProductGallery({ images }: { images: string[] }) {
                 draggable={false}
                 sizes="(max-width: 768px) 100vw, 50vw"
                 priority={i === 0}
-                className="object-cover"
+                className="object-contain"
               />
             </div>
           ))}

@@ -11,7 +11,7 @@ export const supabase = createBrowserClient(
 export const PUBLIC_PRODUCT_COLUMNS =
   'id,name,slug,sku,category_id,price,sale_price,short_desc,description,specs,content_blocks,' +
   'cover_image,images,video_url,weight,in_stock,is_preorder,preorder_note,is_visible,' +
-  'is_featured,is_new,is_bulky,meta_title,meta_description,created_at,updated_at'
+  'is_featured,is_new,is_bulky,free_shipping,meta_title,meta_description,created_at,updated_at'
 
 export const PUBLIC_VARIANT_COLUMNS =
   'id,product_id,group_name,option_name,price,stock,sku,weight,image_url,sort_order'

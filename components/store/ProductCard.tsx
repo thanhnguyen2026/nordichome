@@ -93,6 +93,9 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
             ) : !p.in_stock ? (
               <span className="bg-stone-400/80 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide">HẾT HÀNG</span>
             ) : null}
+            {p.free_shipping && (
+              <span className="bg-green-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide">🚚 FREESHIP</span>
+            )}
           </div>
           {hasVariants && (
             <div className="absolute top-2 right-2">

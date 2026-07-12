@@ -61,6 +61,9 @@ export interface Product {
   is_featured: boolean
   is_new: boolean
   is_bulky: boolean
+  // Luôn miễn phí ship cho sản phẩm này — cộng dồn với ngưỡng freeship theo
+  // tổng đơn hàng ở settings, không thay thế.
+  free_shipping?: boolean
   meta_title: string
   meta_description: string
   created_at?: string
