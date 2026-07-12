@@ -18,13 +18,13 @@ interface AddrItem { code: number; name: string }
 
 const SELECT_CLS = `w-full border border-stone-200 rounded-lg px-3 py-2.5 text-sm
   outline-none focus:border-stone-400 appearance-none bg-white
-  disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed`
+  disabled:bg-stone-50 disabled:text-stone-500 disabled:cursor-not-allowed`
 
 function SelectWrapper({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative">
       {children}
-      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-stone-400" />
+      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-stone-500" />
     </div>
   )
 }
@@ -316,7 +316,7 @@ export default function CheckoutPage() {
         {isBank && hasBank ? (
           <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 text-left">
             <p className="text-sm font-bold text-stone-800 mb-1 text-center">💳 Quét mã QR để thanh toán</p>
-            <p className="text-xs text-stone-400 mb-4 text-center">Mở app ngân hàng → Quét mã QR bên dưới</p>
+            <p className="text-xs text-stone-500 mb-4 text-center">Mở app ngân hàng → Quét mã QR bên dưới</p>
             {qrUrl && (
               <div className="flex justify-center mb-5">
                 <Image src={qrUrl} alt="QR chuyển khoản" width={256} height={256} className="w-64 rounded-xl border border-stone-200 shadow-sm" />
@@ -350,12 +350,12 @@ export default function CheckoutPage() {
                 </button>
               </div>
             </div>
-            <p className="text-xs text-stone-400 mt-4 text-center leading-relaxed">
+            <p className="text-xs text-stone-500 mt-4 text-center leading-relaxed">
               Vui lòng chuyển khoản đúng nội dung để đơn hàng được xử lý nhanh nhất.
             </p>
           </div>
         ) : (
-          <p className="text-stone-400 text-sm">Chúng tôi sẽ liên hệ xác nhận đơn sớm nhất!</p>
+          <p className="text-stone-500 text-sm">Chúng tôi sẽ liên hệ xác nhận đơn sớm nhất!</p>
         )}
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
@@ -502,7 +502,7 @@ export default function CheckoutPage() {
               {hasBulky ? (
                 <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
               ) : loadingFee ? (
-                <Loader2 size={18} className="text-stone-400 flex-shrink-0 mt-0.5 animate-spin" />
+                <Loader2 size={18} className="text-stone-500 flex-shrink-0 mt-0.5 animate-spin" />
               ) : (
                 <Truck size={18} className="text-stone-500 flex-shrink-0 mt-0.5" />
               )}
@@ -513,7 +513,7 @@ export default function CheckoutPage() {
                 <div className={`text-sm mt-0.5 ${
                   hasBulky        ? 'text-red-500'
                   : shippingError ? 'text-orange-600'
-                  : loadingFee    ? 'text-stone-400'
+                  : loadingFee    ? 'text-stone-500'
                                   : 'text-amber-700 font-bold'
                 }`}>
                   {hasBulky        ? 'Sản phẩm có kích thước lớn — vui lòng liên hệ để được báo phí vận chuyển'
@@ -577,7 +577,7 @@ export default function CheckoutPage() {
                 <div key={itemKey(item)} className="flex justify-between text-sm mb-2">
                   <span className="text-stone-500">
                     {item.product.name}
-                    {variantLabel && <span className="text-stone-400"> ({variantLabel})</span>}
+                    {variantLabel && <span className="text-stone-500"> ({variantLabel})</span>}
                     {' '}× {item.quantity}
                   </span>
                   <span className="font-semibold">{fmt((item.product.sale_price ?? item.product.price) * item.quantity)}</span>
@@ -634,7 +634,7 @@ export default function CheckoutPage() {
                 <span>
                   {hasBulky        ? <span className="text-red-500 text-xs">Liên hệ</span>
                   : isFreeship     ? <span className="text-green-600 font-bold">Miễn phí</span>
-                  : loadingFee     ? <span className="text-stone-400">Đang tính...</span>
+                  : loadingFee     ? <span className="text-stone-500">Đang tính...</span>
                   : shippingFee !== null ? fmt(shippingFee)
                                         : '—'}
                 </span>

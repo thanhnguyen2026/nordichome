@@ -134,7 +134,7 @@ export default async function ProductDetailPage({
       <main className="max-w-6xl mx-auto px-4 py-8">
 
         {/* Breadcrumb */}
-        <div className="text-xs text-stone-400 mb-6 flex items-center gap-2">
+        <div className="text-xs text-stone-500 mb-6 flex items-center gap-2">
           <Link href="/" className="hover:text-stone-600 transition">Trang chủ</Link>
           <span>/</span>
           <Link href="/products" className="hover:text-stone-600 transition">Sản phẩm</Link>

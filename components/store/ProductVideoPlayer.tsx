@@ -243,10 +243,10 @@ export default function ProductVideoPlayer({ videoUrl }: Props) {
     if (!tikId) {
       return (
         <div className="w-full aspect-[9/16] max-w-[340px] mx-auto rounded-2xl overflow-hidden shadow-md bg-stone-100 flex items-center justify-center">
-          <div className="text-center text-stone-400 px-6">
+          <div className="text-center text-stone-500 px-6">
             <div className="text-4xl mb-3">🎬</div>
             <p className="text-sm font-medium text-stone-500 mb-1">Cần link TikTok đầy đủ</p>
-            <p className="text-xs text-stone-400 mb-2">Link rút gọn (vm.tiktok.com) chưa nhúng được — mở link trên TikTok, bấm Chia sẻ → Sao chép link để lấy link đầy đủ.</p>
+            <p className="text-xs text-stone-500 mb-2">Link rút gọn (vm.tiktok.com) chưa nhúng được — mở link trên TikTok, bấm Chia sẻ → Sao chép link để lấy link đầy đủ.</p>
             <a href={source.url} target="_blank" rel="noopener noreferrer"
               className="text-xs text-amber-600 hover:text-amber-700 hover:underline transition">
               Xem video trong tab mới →
@@ -284,7 +284,7 @@ export default function ProductVideoPlayer({ videoUrl }: Props) {
   // ── Không nhận diện được ────────────────────────────────────────────────────
   return (
     <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-md bg-stone-100 flex items-center justify-center">
-      <div className="text-center text-stone-400 px-6">
+      <div className="text-center text-stone-500 px-6">
         <div className="text-4xl mb-3">🎬</div>
         <p className="text-sm font-medium text-stone-500 mb-1">Không thể nhúng video này</p>
         <a

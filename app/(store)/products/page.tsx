@@ -93,7 +93,7 @@ export default async function ProductsPage({
       <Header settings={s} />
 
       <div className="border-b border-stone-100 bg-white">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-xs text-stone-400">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-xs text-stone-500">
           <Link href="/" className="hover:text-stone-700 transition">Trang chủ</Link>
           <span>/</span>
           <Link href="/products" className="hover:text-stone-700 transition">Sản phẩm</Link>
@@ -146,7 +146,7 @@ export default async function ProductsPage({
           <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
             <div>
               <h1 className="text-xl font-black text-stone-900">{pageTitle}</h1>
-              <p className="text-stone-400 text-sm mt-0.5">{products?.length || 0} sản phẩm</p>
+              <p className="text-stone-500 text-sm mt-0.5">{products?.length || 0} sản phẩm</p>
             </div>
             <SortSelect defaultValue={sp.sort} />
           </div>
@@ -155,7 +155,7 @@ export default async function ProductsPage({
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <PackageOpen className="w-20 h-20 text-slate-300 mb-4" strokeWidth={1} />
               <p className="text-stone-600 font-semibold text-base mb-1">Chưa có sản phẩm nào trong danh mục này</p>
-              <p className="text-stone-400 text-sm mb-6">Hãy thử xem các danh mục khác nhé!</p>
+              <p className="text-stone-500 text-sm mb-6">Hãy thử xem các danh mục khác nhé!</p>
               <div className="flex gap-3 flex-wrap justify-center">
                 <Link href="/products" className="bg-stone-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-stone-700 transition">
                   Xem tất cả sản phẩm

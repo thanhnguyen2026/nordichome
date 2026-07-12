@@ -258,7 +258,7 @@ export default async function HomePage() {
                       </p>
                     )}
                     {dotCount > 0 && (
-                      <p className="text-xs text-stone-400 mb-3">{dotCount} sản phẩm trong ảnh</p>
+                      <p className="text-xs text-stone-500 mb-3">{dotCount} sản phẩm trong ảnh</p>
                     )}
                     <Link
                       href={`/looks/${look.id}`}

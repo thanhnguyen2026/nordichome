@@ -45,7 +45,7 @@ export default function CartPage() {
         {items.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-5xl mb-4">🛒</div>
-            <p className="text-stone-400 mb-6">Giỏ hàng của bạn đang trống</p>
+            <p className="text-stone-500 mb-6">Giỏ hàng của bạn đang trống</p>
             <Link href="/products" className="bg-stone-900 text-amber-100 px-6 py-3 rounded-lg text-sm font-bold inline-block">
               Khám phá sản phẩm →
             </Link>
@@ -71,7 +71,7 @@ export default function CartPage() {
                       </Link>
                       {/* Hiển thị biến thể đã chọn */}
                       {variantLabel && (
-                        <div className="text-[11px] text-stone-400 mt-0.5">{variantLabel}</div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">{variantLabel}</div>
                       )}
                       <div className="text-amber-700 font-bold text-sm mt-1">
                         {fmt(item.product.sale_price ?? item.product.price)}

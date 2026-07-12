@@ -58,7 +58,7 @@ export default async function OrderDetailPage({
         <div className="text-center max-w-sm">
           <div className="text-5xl mb-4">🔍</div>
           <h1 className="text-xl font-black text-stone-900 mb-2">Không tìm thấy đơn hàng</h1>
-          <p className="text-stone-400 text-sm mb-6">
+          <p className="text-stone-500 text-sm mb-6">
             Mã đơn hoặc số điện thoại không đúng. Vui lòng kiểm tra lại.
           </p>
           <Link href="/orders/track"
@@ -98,7 +98,7 @@ export default async function OrderDetailPage({
               </div>
             </div>
           </Link>
-          <Link href="/orders/track" className="text-xs text-stone-400 hover:text-stone-700 transition">
+          <Link href="/orders/track" className="text-xs text-stone-500 hover:text-stone-700 transition">
             ← Tra cứu đơn khác
           </Link>
         </div>
@@ -110,7 +110,7 @@ export default async function OrderDetailPage({
         <div className="bg-white rounded-2xl border border-stone-100 p-6">
           <div className="flex items-start justify-between gap-4 mb-1">
             <div>
-              <p className="text-xs text-stone-400 mb-0.5">Mã đơn hàng</p>
+              <p className="text-xs text-stone-500 mb-0.5">Mã đơn hàng</p>
               <h1 className="text-xl font-black font-mono tracking-wider text-stone-900">{order.order_code}</h1>
             </div>
             {isCancelled ? (
@@ -127,7 +127,7 @@ export default async function OrderDetailPage({
               </span>
             )}
           </div>
-          <p className="text-xs text-stone-400">
+          <p className="text-xs text-stone-500">
             Đặt ngày {new Date(order.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
           </p>
         </div>
@@ -135,7 +135,7 @@ export default async function OrderDetailPage({
         {/* Timeline */}
         {!isCancelled && (
           <div className="bg-white rounded-2xl border border-stone-100 p-6">
-            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-6">Hành trình đơn hàng</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-6">Hành trình đơn hàng</p>
 
             {/* Desktop: ngang / Mobile: dọc */}
             <div className="hidden sm:flex items-start justify-between relative">
@@ -162,7 +162,7 @@ export default async function OrderDetailPage({
                       {stage.label}
                     </p>
                     {current && (
-                      <p className="text-[10px] text-stone-400 mt-0.5 leading-snug">{stage.desc}</p>
+                      <p className="text-[10px] text-stone-500 mt-0.5 leading-snug">{stage.desc}</p>
                     )}
                   </div>
                 )
@@ -191,7 +191,7 @@ export default async function OrderDetailPage({
                       <p className={`text-sm font-bold ${current ? 'text-amber-700' : done ? 'text-stone-700' : 'text-stone-300'}`}>
                         {stage.label}
                       </p>
-                      {current && <p className="text-xs text-stone-400 mt-0.5">{stage.desc}</p>}
+                      {current && <p className="text-xs text-stone-500 mt-0.5">{stage.desc}</p>}
                     </div>
                   </div>
                 )
@@ -219,7 +219,7 @@ export default async function OrderDetailPage({
 
         {/* Sản phẩm */}
         <div className="bg-white rounded-2xl border border-stone-100 p-6">
-          <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-4">
+          <p className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-4">
             <Package size={12} className="inline mr-1" />Sản phẩm đặt mua
           </p>
           <div className="space-y-3">
@@ -233,7 +233,7 @@ export default async function OrderDetailPage({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-stone-800 truncate">{item.product_name}</p>
                   {item.variant_label && (
-                    <p className="text-[11px] text-stone-400 mt-0.5">{item.variant_label}</p>
+                    <p className="text-[11px] text-stone-500 mt-0.5">{item.variant_label}</p>
                   )}
                   <p className="text-xs text-stone-500 mt-0.5">{fmt(item.price)} × {item.quantity}</p>
                 </div>
@@ -264,7 +264,7 @@ export default async function OrderDetailPage({
         {/* Thông tin giao hàng + thanh toán */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl border border-stone-100 p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">
               <MapPin size={12} className="inline mr-1" />Địa chỉ giao hàng
             </p>
             <p className="text-sm text-stone-700 leading-relaxed">{order.customer_address}</p>
@@ -274,7 +274,7 @@ export default async function OrderDetailPage({
           </div>
 
           <div className="bg-white rounded-2xl border border-stone-100 p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">
               <CreditCard size={12} className="inline mr-1" />Thanh toán
             </p>
             <p className="text-sm text-stone-700">{paymentLabel}</p>

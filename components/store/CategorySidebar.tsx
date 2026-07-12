@@ -31,7 +31,7 @@ export default function CategorySidebar({ categories, activeSlug, countMap }: Pr
   return (
     <aside className="w-52 flex-shrink-0 hidden md:block">
       <div className="bg-white rounded-2xl p-4 border border-stone-100 sticky top-24">
-        <div className="font-bold text-xs uppercase tracking-widest text-stone-400 mb-3 px-1">Danh mục</div>
+        <div className="font-bold text-xs uppercase tracking-widest text-stone-500 mb-3 px-1">Danh mục</div>
 
         <Link href="/products"
           className={`flex items-center px-3 py-2 rounded-lg text-sm mb-1 transition font-medium ${!activeSlug ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>
@@ -60,7 +60,7 @@ export default function CategorySidebar({ categories, activeSlug, countMap }: Pr
                 {children.length > 0 && (
                   <button
                     onClick={() => setOpenParent(prev => prev === cat.id ? null : cat.id)}
-                    className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-400 transition flex-shrink-0"
+                    className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500 transition flex-shrink-0"
                   >
                     {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </button>
@@ -74,7 +74,7 @@ export default function CategorySidebar({ categories, activeSlug, countMap }: Pr
                       className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition ${activeSlug === child.slug ? 'bg-stone-100 font-bold text-stone-900' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-700'}`}>
                       <span>{child.name}</span>
                       {(countMap[child.id] || 0) > 0 && (
-                        <span className="text-[10px] text-stone-400">{countMap[child.id]}</span>
+                        <span className="text-[10px] text-stone-500">{countMap[child.id]}</span>
                       )}
                     </Link>
                   ))}
