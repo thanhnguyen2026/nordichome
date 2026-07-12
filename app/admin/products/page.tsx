@@ -257,7 +257,7 @@ export default function AdminProducts() {
               <button onClick={() => bulkSetVisible(false)} className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">🚫 Ẩn</button>
               <div className="flex items-center gap-1.5">
                 <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}
-                  className="text-xs bg-white/10 rounded-lg px-2.5 py-1.5 outline-none text-white [&>option]:text-stone-900">
+                  className="text-xs bg-white/10 rounded-lg px-2.5 py-1.5 outline-none text-white [&_option]:text-stone-900 [&_optgroup]:text-stone-900">
                   <option value="">Chuyển danh mục...</option>
                   {(() => {
                     const parents  = categories.filter(c => !c.parent_id)
