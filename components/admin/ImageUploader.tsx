@@ -48,6 +48,14 @@ export default function ImageUploader({ coverImage, images, onCoverChange, onIma
     onImagesChange(images.filter((_, i) => i !== idx))
   }
 
+  const moveImage = (idx: number, dir: -1 | 1) => {
+    const target = idx + dir
+    if (target < 0 || target >= images.length) return
+    const next = [...images]
+    ;[next[idx], next[target]] = [next[target], next[idx]]
+    onImagesChange(next)
+  }
+
   return (
     <div className="space-y-4">
       {/* Cover image */}
@@ -76,12 +84,22 @@ export default function ImageUploader({ coverImage, images, onCoverChange, onIma
         <label className="text-xs font-semibold text-stone-500 block mb-2">Ảnh chi tiết (nhiều ảnh)</label>
         <div className="flex flex-wrap gap-2 mb-2">
           {images.map((img, i) => (
-            <div key={i} className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden group">
+            <div key={i} className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden">
               <Image src={img} alt={`Ảnh chi tiết ${i + 1}`} fill sizes="80px" className="object-cover" />
               <button type="button" onClick={() => removeImage(i)}
-                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow-sm">
                 ✕
               </button>
+              <div className="absolute bottom-1 left-1 right-1 flex justify-between gap-1">
+                <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0}
+                  className="bg-black/60 text-white rounded w-5 h-5 text-xs flex items-center justify-center disabled:opacity-30">
+                  ‹
+                </button>
+                <button type="button" onClick={() => moveImage(i, 1)} disabled={i === images.length - 1}
+                  className="bg-black/60 text-white rounded w-5 h-5 text-xs flex items-center justify-center disabled:opacity-30">
+                  ›
+                </button>
+              </div>
             </div>
           ))}
         </div>

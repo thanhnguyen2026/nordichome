@@ -109,7 +109,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         </div>
 
         {/* Badge trạng thái */}
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex flex-wrap items-center gap-2 mb-5">
           {product.is_preorder ? (
             <span className="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-semibold border border-orange-100 shadow-sm">
               ⏳ Đặt trước{product.preorder_note ? ` (${product.preorder_note})` : ''}

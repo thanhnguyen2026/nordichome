@@ -42,6 +42,19 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
 
   const btnClass = 'bg-stone-900 text-amber-100 hover:bg-stone-700'
 
+  // Card nhỏ trên mobile không đủ chỗ xếp chồng nhiều badge cùng lúc (dễ rối
+  // mắt) — chỉ hiện 1 badge quan trọng nhất theo thứ tự ưu tiên, freeship
+  // đưa xuống dòng chữ nhỏ cạnh giá thay vì badge riêng.
+  const primaryBadge = p.is_preorder
+    ? { label: 'ĐẶT TRƯỚC', className: 'bg-stone-900/80 text-amber-300' }
+    : !p.in_stock
+      ? { label: 'HẾT HÀNG', className: 'bg-stone-400/80 text-white' }
+      : p.sale_price
+        ? { label: 'SALE', className: 'bg-red-500 text-white' }
+        : p.is_new
+          ? { label: 'MỚI', className: 'bg-stone-900 text-amber-200' }
+          : null
+
   return (
     <div
       className="bg-white rounded-2xl overflow-hidden border border-stone-100 hover:-translate-y-1 hover:shadow-lg transition group"
@@ -81,22 +94,13 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
             <span className="text-5xl">🛋️</span>
           )}
 
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {p.is_new && !p.sale_price && (
-              <span className="bg-stone-900 text-amber-200 text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide">MỚI</span>
-            )}
-            {p.sale_price && (
-              <span className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide">SALE</span>
-            )}
-            {p.is_preorder ? (
-              <span className="bg-stone-900/80 text-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide">ĐẶT TRƯỚC</span>
-            ) : !p.in_stock ? (
-              <span className="bg-stone-400/80 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide">HẾT HÀNG</span>
-            ) : null}
-            {p.free_shipping && (
-              <span className="bg-green-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide">🚚 FREESHIP</span>
-            )}
-          </div>
+          {primaryBadge && (
+            <div className="absolute top-2 left-2">
+              <span className={`${primaryBadge.className} text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide`}>
+                {primaryBadge.label}
+              </span>
+            </div>
+          )}
           {hasVariants && (
             <div className="absolute top-2 right-2">
               <span className="bg-white/90 text-stone-700 text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide shadow-sm">NHIỀU MẪU</span>
@@ -117,6 +121,9 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
               <span className="text-xs text-stone-400 line-through">{fmt(p.price)}</span>
             )}
           </div>
+          {p.free_shipping && (
+            <div className="text-[11px] text-green-600 font-semibold -mt-2 mb-2">🚚 Freeship</div>
+          )}
         </div>
       </a>
 
