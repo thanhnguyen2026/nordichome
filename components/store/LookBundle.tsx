@@ -57,7 +57,7 @@ export default function LookBundle({ title, products }: { title: string; product
               <p className="text-sm font-bold text-stone-900 hover:underline leading-snug">{p.name}</p>
               <p className="text-sm text-stone-500 mt-0.5">{fmt(p.sale_price ?? p.price)}</p>
               {p.variant_label && (
-                <p className="text-xs text-stone-500 underline decoration-stone-200 mt-0.5">{p.variant_label}</p>
+                <p className="text-xs text-stone-400 underline decoration-stone-200 mt-0.5">{p.variant_label}</p>
               )}
             </a>
           </li>

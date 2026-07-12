@@ -85,7 +85,7 @@ export default function TrackPage() {
           {mode === 'code' ? (
             <>
               <h1 className="text-2xl font-black text-stone-900 mb-1">Theo dõi đơn hàng</h1>
-              <p className="text-stone-500 text-sm mb-8">
+              <p className="text-stone-400 text-sm mb-8">
                 Nhập mã đơn và số điện thoại để xem trạng thái đơn hàng của bạn.
               </p>
 
@@ -130,7 +130,7 @@ export default function TrackPage() {
               <button
                 type="button"
                 onClick={() => { setMode('phone'); setResults(null); setSearched(false) }}
-                className="w-full text-center text-xs text-stone-500 hover:text-stone-600 underline mt-5 transition"
+                className="w-full text-center text-xs text-stone-400 hover:text-stone-600 underline mt-5 transition"
               >
                 Quên mã đơn hàng?
               </button>
@@ -138,7 +138,7 @@ export default function TrackPage() {
           ) : (
             <>
               <h1 className="text-2xl font-black text-stone-900 mb-1">Tìm đơn theo số điện thoại</h1>
-              <p className="text-stone-500 text-sm mb-8">
+              <p className="text-stone-400 text-sm mb-8">
                 Nhập số điện thoại đã dùng khi đặt hàng, chúng tôi sẽ hiện các đơn gần đây.
               </p>
 
@@ -171,7 +171,7 @@ export default function TrackPage() {
                 <div className="mt-5">
                   {results && results.length > 0 ? (
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-stone-500 mb-2">
+                      <p className="text-xs font-semibold text-stone-400 mb-2">
                         Tìm thấy {results.length} đơn hàng:
                       </p>
                       {results.map(o => (
@@ -182,7 +182,7 @@ export default function TrackPage() {
                         >
                           <div className="min-w-0">
                             <p className="font-mono font-bold text-sm text-stone-900">{o.order_code}</p>
-                            <p className="text-xs text-stone-500">
+                            <p className="text-xs text-stone-400">
                               {new Date(o.created_at).toLocaleDateString('vi-VN')} · {ORDER_STATUS_LABEL[o.status]}
                             </p>
                           </div>
@@ -191,7 +191,7 @@ export default function TrackPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-stone-500 text-center py-2">
+                    <p className="text-sm text-stone-400 text-center py-2">
                       Không tìm thấy đơn hàng nào với số điện thoại này.
                     </p>
                   )}
@@ -201,7 +201,7 @@ export default function TrackPage() {
               <button
                 type="button"
                 onClick={() => { setMode('code'); setResults(null); setSearched(false) }}
-                className="w-full text-center text-xs text-stone-500 hover:text-stone-600 underline mt-5 transition"
+                className="w-full text-center text-xs text-stone-400 hover:text-stone-600 underline mt-5 transition"
               >
                 ← Tôi có mã đơn hàng
               </button>
@@ -209,7 +209,7 @@ export default function TrackPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-stone-500 mt-6">
+        <p className="text-center text-xs text-stone-400 mt-6">
           Cần hỗ trợ? <Link href="/" className="underline hover:text-stone-600">Liên hệ Nordic Home</Link>
         </p>
       </div>

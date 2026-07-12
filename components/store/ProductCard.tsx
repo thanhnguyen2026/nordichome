@@ -109,7 +109,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
         </div>
 
         <div className="p-3">
-          <div className="text-[10px] text-stone-500 mb-1">{p.category?.name}</div>
+          <div className="text-[10px] text-stone-400 mb-1">{p.category?.name}</div>
           <div className="font-bold text-sm text-stone-800 leading-tight mb-2 line-clamp-2">{p.name}</div>
           <div className="flex items-baseline gap-2 mb-3">
             <span className="font-black text-stone-900">
@@ -118,7 +118,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
                 : fmt(p.sale_price ?? p.price)}
             </span>
             {!hasVariants && p.sale_price && (
-              <span className="text-xs text-stone-500 line-through">{fmt(p.price)}</span>
+              <span className="text-xs text-stone-400 line-through">{fmt(p.price)}</span>
             )}
           </div>
           {p.free_shipping && (

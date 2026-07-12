@@ -114,12 +114,12 @@ function HotspotDot({ hotspot, open, onToggle, onClose }: { hotspot: Hotspot; op
               <div className="flex-1 min-w-0 flex flex-col">
                 <p className="text-sm font-bold text-stone-900 leading-snug mb-1 line-clamp-2">{p.name}</p>
                 {p.variant_label && (
-                  <p className="text-xs text-stone-500 mb-1">{p.variant_label}</p>
+                  <p className="text-xs text-stone-400 mb-1">{p.variant_label}</p>
                 )}
                 <div className="flex items-baseline gap-1.5 mb-auto">
                   <span className="text-base font-black text-amber-700">{fmt(p.sale_price ?? p.price)}</span>
                   {p.sale_price && (
-                    <span className="text-xs text-stone-500 line-through">{fmt(p.price)}</span>
+                    <span className="text-xs text-stone-400 line-through">{fmt(p.price)}</span>
                   )}
                 </div>
                 <a
@@ -156,14 +156,14 @@ function HotspotCardContent({ product: p }: { product: HotspotProduct }) {
       <div className="p-2.5">
         <p className="text-xs font-bold text-stone-900 leading-snug mb-1 line-clamp-2">{p.name}</p>
         {p.variant_label && (
-          <p className="text-[10px] text-stone-500 mb-1">{p.variant_label}</p>
+          <p className="text-[10px] text-stone-400 mb-1">{p.variant_label}</p>
         )}
         <div className="flex items-baseline gap-1.5 mb-2">
           <span className="text-xs font-black text-amber-700">
             {fmt(p.sale_price ?? p.price)}
           </span>
           {p.sale_price && (
-            <span className="text-[10px] text-stone-500 line-through">{fmt(p.price)}</span>
+            <span className="text-[10px] text-stone-400 line-through">{fmt(p.price)}</span>
           )}
         </div>
         <a

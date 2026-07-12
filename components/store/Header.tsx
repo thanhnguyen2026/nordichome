@@ -124,7 +124,7 @@ export default function Header({ settings }: { settings: Settings }) {
                   {cat.children.length > 0 && (
                     <ChevronDown
                       size={13}
-                      className="text-stone-500 transition-transform duration-200 group-hover:rotate-180"
+                      className="text-stone-400 transition-transform duration-200 group-hover:rotate-180"
                     />
                   )}
                 </a>
@@ -192,7 +192,7 @@ export default function Header({ settings }: { settings: Settings }) {
                       {cat.name}
                       <ChevronDown
                         size={16}
-                        className={`text-stone-500 transition-transform duration-200 ${expandedId === cat.id ? 'rotate-180' : ''}`}
+                        className={`text-stone-400 transition-transform duration-200 ${expandedId === cat.id ? 'rotate-180' : ''}`}
                       />
                     </button>
                     <div className={`overflow-hidden transition-all duration-200 ${expandedId === cat.id ? 'max-h-96' : 'max-h-0'}`}>

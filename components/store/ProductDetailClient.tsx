@@ -70,7 +70,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         <ProductGallery images={displayImages} />
         {product.video_url && (
           <div>
-            <div className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+            <div className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">
               🎬 Video sản phẩm
             </div>
             <ProductVideoPlayer videoUrl={product.video_url} />
@@ -80,12 +80,12 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
 
       {/* Right — thông tin + nút mua */}
       <div>
-        <div className="text-xs text-stone-500 mb-2">
+        <div className="text-xs text-stone-400 mb-2">
           {product.category?.name}
         </div>
         <h1 className="font-serif text-3xl font-semibold mb-2 leading-tight">{product.name}</h1>
         {product.sku && (
-          <div className="text-xs text-stone-500 mb-4 font-mono">
+          <div className="text-xs text-stone-400 mb-4 font-mono">
             Mã SP: {product.sku}
           </div>
         )}
@@ -98,7 +98,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
           {/* Chỉ hiện giá gạch ngang khi KHÔNG có variant price */}
           {!variantPrice && product.sale_price && (
             <>
-              <span className="text-base text-stone-500 line-through">
+              <span className="text-base text-stone-400 line-through">
                 {product.price.toLocaleString('vi-VN')}₫
               </span>
               <span className="text-xs bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded-full">
