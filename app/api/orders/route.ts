@@ -20,10 +20,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Thiếu thông tin' }, { status: 400 })
   }
 
+  // Hàng đặt trước chưa về kho nên không có số tồn kho thật — bỏ qua toàn bộ
+  // kiểm tra tồn kho bên dưới cho các sản phẩm này (khớp với việc VariantSelector
+  // cũng không khóa mẫu hết hàng khi is_preorder).
+  const allProductIds = Array.from(new Set(items.map(i => i.product_id)))
+  const preorderProductIds = new Set<string>()
+  if (allProductIds.length > 0) {
+    const { data: preorderRows } = await supabaseAdmin
+      .from('products')
+      .select('id, is_preorder')
+      .in('id', allProductIds)
+    preorderRows?.forEach(p => { if (p.is_preorder) preorderProductIds.add(p.id) })
+  }
+
   // Kiểm tra tồn kho biến thể — chặn ở server vì VariantSelector chỉ ẩn/disable
   // mẫu hết hàng ở client, không ngăn được người cố tình gọi thẳng API. Sản
   // phẩm không có biến thể chỉ có cờ in_stock thủ công, không có số để kiểm.
-  const variantItems = items.filter(i => i.variant_id)
+  const variantItems = items.filter(i => i.variant_id && !preorderProductIds.has(i.product_id))
   const variantStockMap: Record<string, number> = {}
   if (variantItems.length > 0) {
     const { data: variants } = await supabaseAdmin
@@ -47,7 +60,7 @@ export async function POST(req: NextRequest) {
   // Kiểm tra tồn kho cấp sản phẩm cho sản phẩm KHÔNG biến thể (chỉ khi admin
   // có nhập số lượng cụ thể — products.stock null nghĩa là không theo dõi,
   // bỏ qua, giữ hành vi cũ dựa vào cờ in_stock thủ công).
-  const noVariantItems = items.filter(i => !i.variant_id)
+  const noVariantItems = items.filter(i => !i.variant_id && !preorderProductIds.has(i.product_id))
   const neededByProduct: Record<string, number> = {}
   noVariantItems.forEach(i => { neededByProduct[i.product_id] = (neededByProduct[i.product_id] || 0) + i.quantity })
 

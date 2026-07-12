@@ -89,7 +89,9 @@ export default function AdminProducts() {
             option_name: v.option_name,
             sku:         v.sku || null,
             price:       v.price ? Math.round(Number(v.price)) : null,
-            cost_price:  Math.round(Number(v.cost_price)) || 0,
+            // Để trống giá vốn biến thể → kế thừa giá vốn chung của sản phẩm,
+            // tránh bị mặc định về 0 làm sai lệch tính lợi nhuận.
+            cost_price:  v.cost_price ? Math.round(Number(v.cost_price)) : Math.round(Number(data.cost_price) || 0),
             stock:       Number(v.stock) || 0,
             weight:      Number(v.weight) || 0.5,
             image_url:   v.image_url || null,   // ← FIX: thêm dòng này

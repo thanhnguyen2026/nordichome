@@ -109,6 +109,7 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
       <VariantSelector
         productId={product.id}
         basePrice={product.sale_price ?? product.price}
+        isPreorder={product.is_preorder}
         onVariantChange={handleVariantChange}
       />
 

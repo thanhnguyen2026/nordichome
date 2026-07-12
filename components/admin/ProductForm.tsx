@@ -321,8 +321,8 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
 
           <div className="col-span-2">
             <label className="text-xs font-semibold text-stone-500 block mb-1">Mô tả chi tiết</label>
-            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={4}
-              className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400 resize-none" />
+            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={8}
+              className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400 resize-y" />
           </div>
         </div>
       </div>
@@ -388,9 +388,9 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
                   <button type="button" onClick={() => removeBlock(i)}
                     className="text-red-400 hover:text-red-600 text-xs">Xoá khối</button>
                 </div>
-                <textarea value={block.text} onChange={e => updateBlock(i, { text: e.target.value })} rows={2}
+                <textarea value={block.text} onChange={e => updateBlock(i, { text: e.target.value })} rows={4}
                   placeholder="Đoạn mô tả đi kèm ảnh (để trống nếu ảnh đã có chữ)"
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400 resize-none" />
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400 resize-y" />
               </div>
             </div>
           ))}
@@ -430,7 +430,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       </div>
 
       {/* ── Biến thể ─────────────────────────────────────────────── */}
-      <VariantsManager variants={variants} onChange={setVariants} />
+      <VariantsManager variants={variants} onChange={setVariants} isPreorder={form.is_preorder} />
 
       {/* ── Trạng thái & Hiển thị ────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">

@@ -19,9 +19,10 @@ export interface Variant {
 interface Props {
   variants: Variant[]
   onChange: (variants: Variant[]) => void
+  isPreorder?: boolean
 }
 
-export default function VariantsManager({ variants, onChange }: Props) {
+export default function VariantsManager({ variants, onChange, isPreorder }: Props) {
   const [open, setOpen] = useState(true)
   const [newGroup, setNewGroup] = useState('')
   const [newOption, setNewOption] = useState('')
@@ -104,6 +105,10 @@ export default function VariantsManager({ variants, onChange }: Props) {
 
       {open && (
         <div className="px-5 pb-5 border-t border-stone-50">
+          <p className="text-[11px] text-stone-400 mt-3">
+            Bỏ trống <span className="font-semibold">Giá vốn</span> sẽ tự lấy giá vốn chung của sản phẩm.
+            {isPreorder && <> Hàng đặt trước không cần nhập <span className="font-semibold">Tồn kho</span>.</>}
+          </p>
           {/* Form thêm biến thể */}
           <div className="mt-4 flex gap-2 flex-wrap">
             <div className="flex-1 min-w-[140px]">
@@ -205,8 +210,8 @@ export default function VariantsManager({ variants, onChange }: Props) {
                           {([
                             { key: 'sku',        label: 'SKU',             type: 'text',   placeholder: 'VD: LY-DONUT', isPrice: false },
                             { key: 'price',      label: 'Giá bán (₫)',     type: 'text',   placeholder: 'Trống = giá SP', isPrice: true },
-                            { key: 'cost_price', label: '🔒 Giá vốn (₫)', type: 'text',   placeholder: '0', isPrice: true },
-                            { key: 'stock',      label: 'Tồn kho',         type: 'number', placeholder: '0', isPrice: false },
+                            { key: 'cost_price', label: '🔒 Giá vốn (₫)', type: 'text',   placeholder: 'Trống = giá vốn SP', isPrice: true },
+                            { key: 'stock',      label: 'Tồn kho',         type: 'number', placeholder: isPreorder ? 'Chưa cần' : '0', isPrice: false },
                             { key: 'weight',     label: 'Cân nặng (kg)',   type: 'number', placeholder: '0.5', isPrice: false },
                           ] as { key: 'sku' | 'price' | 'cost_price' | 'stock' | 'weight'; label: string; type: string; placeholder: string; isPrice: boolean }[]).map(field => (
                             <div key={field.key}>

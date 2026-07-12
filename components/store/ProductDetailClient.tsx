@@ -199,7 +199,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         {product.content_blocks.map((block, i) => (
           <div key={i}>
             {block.text && (
-              <p className="font-serif text-2xl md:text-3xl text-stone-700 leading-snug text-center mb-5 whitespace-pre-line">
+              <p className="font-serif text-lg md:text-xl text-stone-700 leading-snug text-center mb-5 whitespace-pre-line">
                 {block.text}
               </p>
             )}

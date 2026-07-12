@@ -17,10 +17,11 @@ interface Variant {
 interface Props {
   productId: string
   basePrice: number
+  isPreorder?: boolean
   onVariantChange: (variant: Variant | null) => void
 }
 
-export default function VariantSelector({ productId, basePrice, onVariantChange }: Props) {
+export default function VariantSelector({ productId, basePrice, isPreorder, onVariantChange }: Props) {
   const [variants, setVariants] = useState<Variant[]>([])
   const [selected, setSelected] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -32,9 +33,11 @@ export default function VariantSelector({ productId, basePrice, onVariantChange 
   // Đọc qua ref để luôn lấy giá trị mới nhất mà không cần liệt kê vào deps.
   const basePriceRef = useRef(basePrice)
   const onVariantChangeRef = useRef(onVariantChange)
+  const isPreorderRef = useRef(isPreorder)
   useLayoutEffect(() => {
     basePriceRef.current = basePrice
     onVariantChangeRef.current = onVariantChange
+    isPreorderRef.current = isPreorder
   })
 
   useEffect(() => {
@@ -47,8 +50,9 @@ export default function VariantSelector({ productId, basePrice, onVariantChange 
         setVariants(list)
         setLoading(false)
 
-        // Auto-select variant có giá thấp nhất (trong các variant còn hàng)
-        const inStock = list.filter(v => v.stock > 0)
+        // Auto-select variant có giá thấp nhất (trong các variant còn hàng —
+        // hàng đặt trước thì coi mọi mẫu đều "còn hàng", không cần tồn kho thật)
+        const inStock = isPreorderRef.current ? list : list.filter(v => v.stock > 0)
         const pool = inStock.length > 0 ? inStock : list
         const cheapest = pool.reduce((min, v) => {
           const vPrice = v.price ?? basePriceRef.current
@@ -102,7 +106,7 @@ export default function VariantSelector({ productId, basePrice, onVariantChange 
             <div className="flex flex-wrap gap-2">
               {options.map(v => {
                 const isActive = selected[group] === v.option_name
-                const isOutOfStock = v.stock === 0
+                const isOutOfStock = v.stock === 0 && !isPreorder
                 return (
                   <button
                     key={v.id}
