@@ -17,6 +17,7 @@ export default function SortSelect({ defaultValue = 'newest' }: Props) {
       <select
         defaultValue={defaultValue}
         onChange={handleChange}
+        aria-label="Sắp xếp sản phẩm"
         className="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 cursor-pointer"
       >
         <option value="newest">Mới nhất</option>

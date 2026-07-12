@@ -139,6 +139,7 @@ export default function ProductGallery({ images }: { images: string[] }) {
             <button
               key={i}
               onClick={() => goTo(i)}
+              aria-label={`Xem ảnh ${i + 1}`}
               className={`
                 relative flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200
                 w-[68px] h-[68px] md:w-full md:h-auto md:aspect-square
@@ -193,6 +194,7 @@ export default function ProductGallery({ images }: { images: string[] }) {
             <button
               onClick={() => goTo(active - 1)}
               disabled={active === 0}
+              aria-label="Ảnh trước"
               className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 backdrop-blur-sm shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 disabled:!opacity-0"
             >
               <ChevronLeft size={18} className="text-stone-700" />
@@ -200,6 +202,7 @@ export default function ProductGallery({ images }: { images: string[] }) {
             <button
               onClick={() => goTo(active + 1)}
               disabled={active === images.length - 1}
+              aria-label="Ảnh tiếp theo"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 backdrop-blur-sm shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 disabled:!opacity-0"
             >
               <ChevronRight size={18} className="text-stone-700" />
@@ -209,6 +212,7 @@ export default function ProductGallery({ images }: { images: string[] }) {
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
               {images.map((_, i) => (
                 <button key={i} onClick={() => goTo(i)}
+                  aria-label={`Xem ảnh ${i + 1}`}
                   className={`rounded-full transition-all duration-300 ${
                     i === active ? 'w-5 h-1.5 bg-white shadow-sm' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
                   }`}
