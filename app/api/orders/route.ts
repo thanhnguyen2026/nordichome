@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   const body: CreateOrderPayload = await req.json()
   const {
     customer_name, customer_phone, customer_address,
+    customer_district, customer_ward,
     customer_note, payment_method, items,
     shipping_fee = 0, shipping_zone = '', total_weight = 0,
     coupon_code,
@@ -151,7 +152,8 @@ export async function POST(req: NextRequest) {
     .from('orders')
     .insert({
       order_code, customer_name, customer_phone,
-      customer_address, customer_note, payment_method,
+      customer_address, customer_district: customer_district || null, customer_ward: customer_ward || null,
+      customer_note, payment_method,
       subtotal, total, status: 'pending',
       shipping_fee, shipping_zone, total_weight,
       revenue, cost, profit,

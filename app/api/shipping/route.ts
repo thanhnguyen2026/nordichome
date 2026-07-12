@@ -27,10 +27,14 @@ export async function POST(req: NextRequest) {
     transport: 'road',
   })
 
+  const partnerCode = process.env.GHTK_PARTNER_CODE
+  const headers: Record<string, string> = { Token: token, 'Content-Type': 'application/json' }
+  if (partnerCode) headers['X-Client-Source'] = partnerCode
+
   try {
     const res = await fetch(
       `https://services.giaohangtietkiem.vn/services/shipment/fee?${params}`,
-      { headers: { Token: token, 'Content-Type': 'application/json' }, cache: 'no-store' }
+      { headers, cache: 'no-store' }
     )
     const data = await res.json()
 

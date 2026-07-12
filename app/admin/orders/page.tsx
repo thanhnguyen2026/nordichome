@@ -6,7 +6,7 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import { Order, OrderStatus, ORDER_STATUS_LABEL, PurchaseStatus, PURCHASE_STATUS_LABEL, SALES_CHANNEL_LABEL } from '@/types'
 import { copyToClipboard } from '@/lib/clipboard'
 import { stripDiacritics } from '@/lib/text'
-import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, MessageCircle } from 'lucide-react'
+import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, MessageCircle, Printer } from 'lucide-react'
 import ManualOrderForm from '@/components/admin/ManualOrderForm'
 import ChannelIcon from '@/components/admin/ChannelIcon'
 
@@ -79,6 +79,8 @@ export default function AdminOrders() {
   const [settings, setSettings]     = useState<Record<string, string>>({})
   const [copiedId, setCopiedId]     = useState<string | null>(null)
   const [showManualForm, setShowManualForm] = useState(false)
+  const [creatingGhtkId, setCreatingGhtkId] = useState<string | null>(null)
+  const [syncingGhtkId, setSyncingGhtkId] = useState<string | null>(null)
 
   const load = async () => {
     const [{ data: ordersData }, { data: settingsData }] = await Promise.all([
@@ -157,6 +159,16 @@ export default function AdminOrders() {
       setOrders(prev => prev.map(x => x.id === o.id
         ? { ...x, status, cancel_reason: reason.trim(), refund_amount, stock_restored: true }
         : x))
+
+      // Hủy luôn vận đơn bên GHTK nếu có — không chặn việc hủy đơn nội bộ
+      // nếu GHTK từ chối (vd: đơn đã bắt đầu giao thì GHTK không cho hủy).
+      if (o.tracking_code) {
+        const res = await fetch(`/api/admin/orders/${o.id}/ghtk-cancel`, { method: 'POST' })
+        if (!res.ok) {
+          const data = await res.json()
+          alert(`Đã hủy đơn, nhưng không hủy được vận đơn GHTK: ${data.error || 'lỗi không rõ'}`)
+        }
+      }
       return
     }
 
@@ -218,6 +230,47 @@ export default function AdminOrders() {
   const saveTracking = async (id: string, code: string) => {
     await supabase.from('orders').update({ tracking_code: code || null }).eq('id', id)
     setOrders(prev => prev.map(x => x.id === id ? { ...x, tracking_code: code } : x))
+  }
+
+  // Gọi GHTK tạo đơn thật để lấy mã vận đơn tự động (thay vì admin tự tạo
+  // đơn trên web GHTK rồi gõ tay mã vào ô tracking_code).
+  const createGhtkOrder = async (o: Order) => {
+    setCreatingGhtkId(o.id)
+    try {
+      const res = await fetch(`/api/admin/orders/${o.id}/ghtk`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Không tạo được đơn GHTK')
+        return
+      }
+      setOrders(prev => prev.map(x => x.id === o.id ? { ...x, tracking_code: data.trackingCode } : x))
+    } catch {
+      alert('Lỗi kết nối, vui lòng thử lại')
+    } finally {
+      setCreatingGhtkId(null)
+    }
+  }
+
+  // Mở nhãn PDF gốc do GHTK phát hành cho mã vận đơn — admin in thẳng từ đó.
+  const printGhtkLabel = (o: Order) => {
+    window.open(`/api/admin/orders/${o.id}/label`, '_blank')
+  }
+
+  const syncGhtkStatus = async (o: Order) => {
+    setSyncingGhtkId(o.id)
+    try {
+      const res = await fetch(`/api/admin/orders/${o.id}/ghtk-status`)
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Không tra cứu được trạng thái')
+        return
+      }
+      alert(`Trạng thái GHTK: ${data.statusText || data.status || 'không rõ'}`)
+    } catch {
+      alert('Lỗi kết nối, vui lòng thử lại')
+    } finally {
+      setSyncingGhtkId(null)
+    }
   }
 
   const remindCustomer = (o: Order) => {
@@ -530,6 +583,28 @@ export default function AdminOrders() {
                                         className="text-xs bg-stone-100 hover:bg-stone-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1 transition">
                                         Xem <ExternalLink size={10} />
                                       </a>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-2 mt-2">
+                                    {!o.tracking_code && (
+                                      <button onClick={() => createGhtkOrder(o)}
+                                        disabled={creatingGhtkId === o.id}
+                                        className="text-xs bg-stone-900 hover:bg-stone-800 text-white rounded-lg px-2.5 py-1.5 flex items-center gap-1 transition disabled:opacity-50">
+                                        {creatingGhtkId === o.id ? 'Đang tạo...' : '📦 Tạo đơn GHTK'}
+                                      </button>
+                                    )}
+                                    {o.tracking_code && (
+                                      <>
+                                        <button onClick={() => printGhtkLabel(o)}
+                                          className="text-xs bg-stone-100 hover:bg-stone-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1 transition">
+                                          <Printer size={10} /> In nhãn
+                                        </button>
+                                        <button onClick={() => syncGhtkStatus(o)}
+                                          disabled={syncingGhtkId === o.id}
+                                          className="text-xs bg-stone-100 hover:bg-stone-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1 transition disabled:opacity-50">
+                                          🔄 {syncingGhtkId === o.id ? 'Đang tra...' : 'Đồng bộ trạng thái'}
+                                        </button>
+                                      </>
                                     )}
                                   </div>
                                 </div>

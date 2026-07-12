@@ -116,6 +116,8 @@ export interface Order {
   customer_name: string
   customer_phone: string
   customer_address: string
+  customer_district?: string | null
+  customer_ward?: string | null
   customer_note: string
   payment_method: 'cod' | 'bank'
   payment_status?: 'pending' | 'paid'
@@ -216,6 +218,8 @@ export interface CreateOrderPayload {
   customer_name: string
   customer_phone: string
   customer_address: string
+  customer_district?: string
+  customer_ward?: string
   customer_note: string
   payment_method: 'cod' | 'bank'
   shipping_fee?: number

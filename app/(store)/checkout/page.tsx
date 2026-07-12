@@ -218,6 +218,8 @@ export default function CheckoutPage() {
         customer_name:    form.name,
         customer_phone:   form.phone,
         customer_address: fullAddress,
+        customer_district: form.district,
+        customer_ward:     form.ward,
         customer_note:    form.note,
         payment_method:   form.payment,
         shipping_fee:     shippingFee ?? 0,
