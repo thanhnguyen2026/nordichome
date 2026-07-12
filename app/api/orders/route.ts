@@ -23,15 +23,36 @@ export async function POST(req: NextRequest) {
   // Hàng đặt trước chưa về kho nên không có số tồn kho thật — bỏ qua toàn bộ
   // kiểm tra tồn kho bên dưới cho các sản phẩm này (khớp với việc VariantSelector
   // cũng không khóa mẫu hết hàng khi is_preorder).
+  //
+  // Giá vốn cũng tra lại ở đây (không tin client gửi lên) — cost_price bị cố
+  // tình giấu khỏi PUBLIC_PRODUCT_COLUMNS để không lộ cho khách, nên phía
+  // trình duyệt không bao giờ có giá trị thật để gửi lên; phải tự tra DB.
   const allProductIds = Array.from(new Set(items.map(i => i.product_id)))
   const preorderProductIds = new Set<string>()
+  const productCostMap: Record<string, number> = {}
   if (allProductIds.length > 0) {
-    const { data: preorderRows } = await supabaseAdmin
+    const { data: productRows } = await supabaseAdmin
       .from('products')
-      .select('id, is_preorder')
+      .select('id, is_preorder, cost_price')
       .in('id', allProductIds)
-    preorderRows?.forEach(p => { if (p.is_preorder) preorderProductIds.add(p.id) })
+    productRows?.forEach(p => {
+      if (p.is_preorder) preorderProductIds.add(p.id)
+      productCostMap[p.id] = p.cost_price || 0
+    })
   }
+
+  const allVariantIds = Array.from(new Set(items.map(i => i.variant_id).filter((id): id is string => !!id)))
+  const variantCostMap: Record<string, number> = {}
+  if (allVariantIds.length > 0) {
+    const { data: variantCostRows } = await supabaseAdmin
+      .from('product_variants')
+      .select('id, cost_price')
+      .in('id', allVariantIds)
+    variantCostRows?.forEach(v => { variantCostMap[v.id] = v.cost_price || 0 })
+  }
+
+  const realCostOf = (i: (typeof items)[number]) =>
+    i.variant_id ? (variantCostMap[i.variant_id] ?? 0) : (productCostMap[i.product_id] ?? 0)
 
   // Kiểm tra tồn kho biến thể — chặn ở server vì VariantSelector chỉ ẩn/disable
   // mẫu hết hàng ở client, không ngăn được người cố tình gọi thẳng API. Sản
@@ -120,11 +141,9 @@ export async function POST(req: NextRequest) {
 
   // Revenue = tiền hàng sau giảm giá (không tính ship)
   const revenue = subtotal - discount_amount
-  // Cost = giá vốn variant nếu có, fallback về giá vốn sản phẩm
-  const cost = items.reduce((s, i) => {
-    const unitCost = i.variant_cost_price ?? i.cost_price ?? 0
-    return s + unitCost * i.quantity
-  }, 0)
+  // Cost = giá vốn variant nếu có, fallback về giá vốn sản phẩm — tra thật
+  // từ DB ở trên (realCostOf), không dùng số cost_price client gửi lên.
+  const cost = items.reduce((s, i) => s + realCostOf(i) * i.quantity, 0)
   // Profit = doanh thu - giá vốn (ship do khách trả cho GHTK, không tính vào P&L)
   const profit = revenue - cost
 
@@ -179,7 +198,7 @@ export async function POST(req: NextRequest) {
       product_image: i.variant_image || i.product_image,
       price:         i.price,
       quantity:      i.quantity,
-      cost_price:    i.variant_cost_price ?? i.cost_price ?? 0,
+      cost_price:    realCostOf(i),
       origin_url:    i.origin_url || null,
       // Thông tin biến thể
       variant_id:    i.variant_id || null,
