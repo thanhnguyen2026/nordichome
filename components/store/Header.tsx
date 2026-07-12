@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useCartStore } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
@@ -30,6 +31,7 @@ interface Category {
 }
 
 export default function Header({ settings }: { settings: Settings }) {
+  const pathname = usePathname()
   const [showCart, setShowCart] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -98,7 +100,14 @@ export default function Header({ settings }: { settings: Settings }) {
         <div className="max-w-6xl mx-auto px-4 h-16 md:h-20 flex items-center">
 
           {/* Logo — về trang chủ */}
-          <Link href="/" className="flex items-center gap-3 flex-shrink-0">
+          <Link href="/" className="flex items-center gap-3 flex-shrink-0"
+            onClick={() => {
+              // Link tới cùng route ("/" → "/") không kích hoạt điều hướng nên
+              // Next.js bỏ qua luôn việc cuộn lên đầu — tự cuộn tay cho trường
+              // hợp này (đang đứng sẵn ở trang chủ mà bấm lại logo).
+              if (pathname === '/') window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          >
             {settings.logo_url && (
               <Image src={settings.logo_url} alt="Logo" width={48} height={48} className="h-12 w-12 object-contain rounded-lg" />
             )}
