@@ -218,7 +218,21 @@ export default function AdminProducts() {
             <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
               className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white">
               <option value="all">Mọi danh mục</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {(() => {
+                const parents  = categories.filter(c => !c.parent_id)
+                const children = (pid: string) => categories.filter(c => c.parent_id === pid)
+                return parents.map(p => {
+                  const kids = children(p.id)
+                  return kids.length > 0 ? (
+                    <optgroup key={p.id} label={p.name}>
+                      <option value={p.id}>📁 {p.name} (tất cả)</option>
+                      {kids.map(k => <option key={k.id} value={k.id}>└─ {k.name}</option>)}
+                    </optgroup>
+                  ) : (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  )
+                })
+              })()}
             </select>
             <select value={visibilityFilter} onChange={e => setVisibilityFilter(e.target.value as VisibilityFilter)}
               className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white">
@@ -245,7 +259,21 @@ export default function AdminProducts() {
                 <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}
                   className="text-xs bg-white/10 rounded-lg px-2.5 py-1.5 outline-none text-white [&>option]:text-stone-900">
                   <option value="">Chuyển danh mục...</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {(() => {
+                    const parents  = categories.filter(c => !c.parent_id)
+                    const children = (pid: string) => categories.filter(c => c.parent_id === pid)
+                    return parents.map(p => {
+                      const kids = children(p.id)
+                      return kids.length > 0 ? (
+                        <optgroup key={p.id} label={p.name}>
+                          <option value={p.id}>📁 {p.name} (tất cả)</option>
+                          {kids.map(k => <option key={k.id} value={k.id}>└─ {k.name}</option>)}
+                        </optgroup>
+                      ) : (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      )
+                    })
+                  })()}
                 </select>
                 <button onClick={bulkApplyCategory} disabled={!bulkCategory}
                   className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed">Áp dụng</button>
