@@ -496,7 +496,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
                 <input value={form.preorder_note} onChange={e => set('preorder_note', e.target.value)}
                   placeholder="VD: 7-10 ngày"
                   className="w-full max-w-xs border border-orange-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-orange-400 bg-white" />
-                <p className="text-[11px] text-orange-500 mt-1">Để trống sẽ hiện mặc định &quot;7-10 ngày&quot;</p>
+                <p className="text-[11px] text-orange-500 mt-1">Để trống sẽ chỉ hiện &quot;Đặt trước&quot;, không kèm số ngày</p>
               </div>
             )}
           </div>
