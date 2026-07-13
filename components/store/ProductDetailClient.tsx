@@ -211,8 +211,12 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
               </p>
             )}
             {block.image_url && (
-              <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen aspect-[4/3] md:aspect-[21/9] overflow-hidden bg-stone-50">
-                <Image src={block.image_url} alt={block.text || product.name} fill sizes="100vw" className="object-cover" />
+              // object-contain — không cắt mất nội dung ảnh. max-h chặn ảnh
+              // cao quá 1 màn hình trên PC (aspect-ratio chỉ là tỷ lệ nền tối
+              // đa, contain sẽ tự thu nhỏ ảnh bên trong nếu khung bị giới hạn
+              // chiều cao, không bao giờ bị vỡ hình hay tràn khỏi viewport).
+              <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen aspect-[4/3] md:aspect-[16/9] max-h-[75vh] overflow-hidden bg-stone-50">
+                <Image src={block.image_url} alt={block.text || product.name} fill sizes="100vw" className="object-contain" />
               </div>
             )}
           </div>
