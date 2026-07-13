@@ -9,6 +9,9 @@ import type { Look } from '@/components/store/ShopTheLook'
 import type { Product, Campaign } from '@/types'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function generateMetadata() {
   const { data } = await supabase.from('settings').select('key,value')
   const s = Object.fromEntries(data?.map(r => [r.key, r.value]) ?? [])

@@ -10,6 +10,9 @@ import type { Product, Campaign } from '@/types'
 import Link from 'next/link'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ProductsPage({
   searchParams,
 }: {
