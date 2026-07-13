@@ -90,7 +90,24 @@ export default async function ProductDetailPage({
     .neq('id', product.id)
     .eq('is_visible', true)
     .limit(4)
-  const related = relatedRaw ? applyCampaignsToProducts(relatedRaw as unknown as Product[], campaigns, now) : null
+  let related = relatedRaw ? applyCampaignsToProducts(relatedRaw as unknown as Product[], campaigns, now) : []
+
+  // Danh mục chưa đủ 4 sản phẩm khác (catalog còn mỏng) — bù thêm bằng hàng
+  // mới nhất bất kỳ danh mục nào, để mục "Có thể bạn sẽ thích" không bao giờ
+  // trống hoặc cụt ngủn, tránh khách hết hành trình mua sắm giữa chừng.
+  if (related.length < 4) {
+    const excludeIds = new Set([product.id, ...related.map(p => p.id)])
+    const { data: fallbackRaw } = await supabase
+      .from('products')
+      .select(PUBLIC_PRODUCT_COLUMNS)
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(4 - related.length + excludeIds.size)
+    const fallback = (fallbackRaw as unknown as Product[] | null)
+      ?.filter(p => !excludeIds.has(p.id))
+      .slice(0, 4 - related.length) ?? []
+    related = [...related, ...applyCampaignsToProducts(fallback, campaigns, now)]
+  }
 
   const relatedIds = related?.map(p => p.id) ?? []
   const { data: variantRows } = relatedIds.length
