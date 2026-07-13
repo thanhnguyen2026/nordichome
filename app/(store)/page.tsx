@@ -8,6 +8,7 @@ import RevealOnScroll from '@/components/store/RevealOnScroll'
 import type { Look } from '@/components/store/ShopTheLook'
 import type { Product, Campaign } from '@/types'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
+import { getCategoryTree } from '@/lib/categories'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -38,7 +39,7 @@ export async function generateMetadata() {
 
 
 export default async function HomePage() {
-  const [{ data: settings }, { data: featuredRaw }, { data: newProdsRaw }, { data: cats }, { data: variantRows }, { data: looksRaw }, { data: campaignsRaw }] =
+  const [{ data: settings }, { data: featuredRaw }, { data: newProdsRaw }, { data: cats }, { data: variantRows }, { data: looksRaw }, { data: campaignsRaw }, categoryTree] =
     await Promise.all([
       supabase.from('settings').select('key,value'),
       supabase.from('products').select(`${PUBLIC_PRODUCT_COLUMNS},category:categories(name,slug)`)
@@ -55,6 +56,7 @@ export default async function HomePage() {
         )
       `).eq('is_active', true).order('sort_order').order('created_at').limit(4),
       supabase.from('campaigns').select('*').eq('is_active', true),
+      getCategoryTree(),
     ])
 
   // Tên cột select() truyền qua biến khiến Supabase không suy luận được kiểu
@@ -84,7 +86,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Header settings={s} />
+      <Header settings={s} categories={categoryTree} campaigns={campaigns} />
       <main>
         {/* BANNER — mobile: full-screen, nội dung neo đáy · desktop: banner cố định, nội dung căn giữa */}
         <section className="relative min-h-[100svh] md:min-h-0 md:h-[520px] flex flex-col justify-end md:justify-center md:items-center overflow-hidden bg-stone-100">

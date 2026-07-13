@@ -9,6 +9,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import type { Product, Campaign } from '@/types'
 import { applyCampaignsToProduct, applyCampaignsToProducts } from '@/lib/campaignPrice'
+import { getCategoryTree } from '@/lib/categories'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -55,7 +56,7 @@ export default async function ProductDetailPage({
 }) {
   const { slug } = await params
 
-  const [{ data: settings }, { data: productRaw }, { data: campaignsRaw }] = await Promise.all([
+  const [{ data: settings }, { data: productRaw }, { data: campaignsRaw }, categoryTree] = await Promise.all([
     supabase.from('settings').select('key,value'),
     supabase
       .from('products')
@@ -64,6 +65,7 @@ export default async function ProductDetailPage({
       .eq('is_visible', true)
       .single(),
     supabase.from('campaigns').select('*').eq('is_active', true),
+    getCategoryTree(),
   ])
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
@@ -147,7 +149,7 @@ export default async function ProductDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Header settings={s} />
+      <Header settings={s} categories={categoryTree} campaigns={campaigns} />
       <main className="max-w-6xl mx-auto px-4 py-8">
 
         {/* Breadcrumb */}

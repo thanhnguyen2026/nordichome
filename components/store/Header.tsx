@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic'
 import { useCartStore } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { soonestEndingCampaign } from '@/lib/campaignPrice'
-import type { Campaign } from '@/types'
+import type { Campaign, Category } from '@/types'
 import { Menu, X, ChevronDown, ShoppingCart } from 'lucide-react'
 
 // Chỉ hiện khi bấm icon giỏ hàng — tải JS khi cần thay vì cộng vào bundle
@@ -21,22 +21,25 @@ interface Settings {
   topbar_text?: string
 }
 
-interface Category {
-  id: string
-  name: string
-  slug: string
-  parent_id: string | null
-  sort_order: number
-  children: Category[]
+interface Props {
+  settings: Settings
+  // Trang server-render (home, products, chi tiết SP...) đã tự fetch sẵn 2
+  // thứ này — truyền xuống để Header khỏi phải tự gọi Supabase phía client,
+  // đỡ phải gửi cả thư viện Supabase JS xuống trình duyệt chỉ để làm việc
+  // này (Header nằm ở mọi trang nên chi phí bundle nhân lên rất nhiều lần).
+  // Trang thuần client (cart, checkout) không truyền thì Header tự fetch
+  // như cũ, không có gì thay đổi.
+  categories?: Category[]
+  campaigns?: Campaign[]
 }
 
-export default function Header({ settings }: { settings: Settings }) {
+export default function Header({ settings, categories: categoriesProp, campaigns: campaignsProp }: Props) {
   const pathname = usePathname()
   const [showCart, setShowCart] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [categories, setCategories] = useState<Category[]>(categoriesProp ?? [])
+  const [campaigns, setCampaigns] = useState<Campaign[]>(campaignsProp ?? [])
   const [nowRef] = useState(() => new Date())
 
   const activeCampaign = soonestEndingCampaign(campaigns, nowRef)
@@ -61,6 +64,7 @@ export default function Header({ settings }: { settings: Settings }) {
   }, [cartCount])
 
   useEffect(() => {
+    if (categoriesProp) return // đã có sẵn từ server, khỏi fetch lại phía client
     supabase.from('categories').select('*').eq('is_visible', true).order('sort_order').then(({ data }) => {
       if (!data) return
       const map = new Map<string, Category>()
@@ -68,7 +72,7 @@ export default function Header({ settings }: { settings: Settings }) {
       const roots: Category[] = []
       data.forEach(c => {
         if (c.parent_id && map.has(c.parent_id)) {
-          map.get(c.parent_id)!.children.push(map.get(c.id)!)
+          map.get(c.parent_id)!.children!.push(map.get(c.id)!)
         } else if (!c.parent_id) {
           roots.push(map.get(c.id)!)
         }
@@ -77,13 +81,17 @@ export default function Header({ settings }: { settings: Settings }) {
       // bị trùng giá trị giữa các nhóm — sắp xếp tường minh để không phụ
       // thuộc vào thứ tự không ổn định khi ORDER BY có nhiều dòng trùng.
       roots.sort((a, b) => a.sort_order - b.sort_order)
-      roots.forEach(r => r.children.sort((a, b) => a.sort_order - b.sort_order))
+      roots.forEach(r => r.children!.sort((a, b) => a.sort_order - b.sort_order))
       setCategories(roots)
     })
+  }, [categoriesProp])
+
+  useEffect(() => {
+    if (campaignsProp) return // đã có sẵn từ server, khỏi fetch lại phía client
     supabase.from('campaigns').select('*').eq('is_active', true).then(({ data }) => {
       if (data) setCampaigns(data as unknown as Campaign[])
     })
-  }, [])
+  }, [campaignsProp])
 
   return (
     <>
@@ -130,7 +138,7 @@ export default function Header({ settings }: { settings: Settings }) {
                   className="flex items-center gap-1 px-3 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900 rounded-lg hover:bg-stone-50 transition-colors"
                 >
                   {cat.name}
-                  {cat.children.length > 0 && (
+                  {!!cat.children?.length && (
                     <ChevronDown
                       size={13}
                       className="text-stone-400 transition-transform duration-200 group-hover:rotate-180"
@@ -139,10 +147,10 @@ export default function Header({ settings }: { settings: Settings }) {
                 </a>
 
                 {/* Dropdown */}
-                {cat.children.length > 0 && (
+                {!!cat.children?.length && (
                   <div className="absolute top-full left-0 pt-2 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 ease-out">
                     <div className="bg-white rounded-xl shadow-lg border border-stone-100 py-2 min-w-[168px]">
-                      {cat.children.map(child => (
+                      {cat.children?.map(child => (
                         <a
                           key={child.id}
                           href={`/products?category=${child.slug}`}
@@ -192,7 +200,7 @@ export default function Header({ settings }: { settings: Settings }) {
           <div className="bg-white px-4 py-3 space-y-0.5 overflow-y-auto max-h-[75vh]">
             {categories.map(cat => (
               <div key={cat.id}>
-                {cat.children.length > 0 ? (
+                {!!cat.children?.length ? (
                   <>
                     <button
                       onClick={() => setExpandedId(expandedId === cat.id ? null : cat.id)}
@@ -213,7 +221,7 @@ export default function Header({ settings }: { settings: Settings }) {
                         >
                           Tất cả {cat.name}
                         </a>
-                        {cat.children.map(child => (
+                        {cat.children?.map(child => (
                           <a
                             key={child.id}
                             href={`/products?category=${child.slug}`}

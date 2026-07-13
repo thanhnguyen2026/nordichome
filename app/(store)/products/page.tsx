@@ -9,6 +9,7 @@ import { PackageOpen } from 'lucide-react'
 import type { Product, Campaign } from '@/types'
 import Link from 'next/link'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
+import { getCategoryTree } from '@/lib/categories'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -20,13 +21,14 @@ export default async function ProductsPage({
 }) {
   const sp = await searchParams
 
-  const [{ data: settings }, { data: categories }, { data: allProds }, { data: variantCounts }, { data: campaignsRaw }] = await Promise.all([
+  const [{ data: settings }, { data: categories }, { data: allProds }, { data: variantCounts }, { data: campaignsRaw }, categoryTree] = await Promise.all([
     supabase.from('settings').select('key,value'),
     supabase.from('categories').select('*').eq('is_visible', true).order('sort_order'),
     supabase.from('products').select('id,category_id').eq('is_visible', true),
     // Lấy price của tất cả variants để tính giá thấp nhất mỗi SP
     supabase.from('product_variants').select('product_id, price'),
     supabase.from('campaigns').select('*').eq('is_active', true),
+    getCategoryTree(),
   ])
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
@@ -93,7 +95,7 @@ export default async function ProductsPage({
 
   return (
     <>
-      <Header settings={s} />
+      <Header settings={s} categories={categoryTree} campaigns={campaigns} />
 
       <div className="border-b border-stone-100 bg-white">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-xs text-stone-400">

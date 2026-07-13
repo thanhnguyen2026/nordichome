@@ -5,6 +5,8 @@ import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import ShopTheLook, { Look, HotspotProduct } from '@/components/store/ShopTheLook'
 import LookBundle from '@/components/store/LookBundle'
+import { getCategoryTree } from '@/lib/categories'
+import type { Campaign } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,7 +64,7 @@ export default async function LookDetailPage({
 }) {
   const { id } = await params
 
-  const [{ data: settings }, { data: look }] = await Promise.all([
+  const [{ data: settings }, { data: look }, { data: campaignsRaw }, categoryTree] = await Promise.all([
     supabase.from('settings').select('key,value'),
     supabase.from('looks').select(`
       id, title, description, image_url,
@@ -76,11 +78,14 @@ export default async function LookDetailPage({
         )
       )
     `).eq('id', id).eq('is_active', true).single(),
+    supabase.from('campaigns').select('*').eq('is_active', true),
+    getCategoryTree(),
   ])
 
   if (!look) return notFound()
 
   const s = Object.fromEntries(settings?.map(r => [r.key, r.value]) ?? [])
+  const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
   const rawLook = look as unknown as Look & {
     hotspots: { id: string; x_percent: number; y_percent: number; product: (HotspotProduct & { variants?: RawVariant[] }) | null }[]
   }
@@ -103,7 +108,7 @@ export default async function LookDetailPage({
 
   return (
     <>
-      <Header settings={s} />
+      <Header settings={s} categories={categoryTree} campaigns={campaigns} />
       <main className="max-w-6xl mx-auto px-4 py-10">
 
         {/* Breadcrumb */}
