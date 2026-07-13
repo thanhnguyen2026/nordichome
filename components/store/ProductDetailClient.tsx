@@ -198,9 +198,11 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
       </div>
     )}
 
-    {/* Mô tả kèm ảnh minh hoạ — ảnh tràn hết chiều ngang màn hình (phá khung
-        lề của <main>), giống cách trình bày ảnh lifestyle trên tạp chí thay
-        vì bị bó hẹp lọt thỏm trong cột nội dung như trước. */}
+    {/* Mô tả kèm ảnh minh hoạ — khung bo góc, rộng hơn cột nội dung nhưng
+        không tràn hết màn hình (tràn full-bleed từng thử nhưng object-contain
+        để lại 2 dải nền trống 2 bên trên PC, xấu hơn cả có viền). Không ép
+        tỷ lệ khung cứng — ảnh tự hiện đúng theo tỷ lệ gốc, không cắt/không
+        đệm màu thừa. */}
     {product.content_blocks?.length > 0 && (
       <div className="mb-16 space-y-10">
         {product.content_blocks.map((block, i) => (
@@ -211,12 +213,15 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
               </p>
             )}
             {block.image_url && (
-              // object-contain — không cắt mất nội dung ảnh. max-h chặn ảnh
-              // cao quá 1 màn hình trên PC (aspect-ratio chỉ là tỷ lệ nền tối
-              // đa, contain sẽ tự thu nhỏ ảnh bên trong nếu khung bị giới hạn
-              // chiều cao, không bao giờ bị vỡ hình hay tràn khỏi viewport).
-              <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen aspect-[4/3] md:aspect-[16/9] max-h-[75vh] overflow-hidden bg-stone-50">
-                <Image src={block.image_url} alt={block.text || product.name} fill sizes="100vw" className="object-contain" />
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden bg-stone-50">
+                <Image
+                  src={block.image_url}
+                  alt={block.text || product.name}
+                  width={1200}
+                  height={800}
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  className="w-full h-auto"
+                />
               </div>
             )}
           </div>
