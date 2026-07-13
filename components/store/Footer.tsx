@@ -136,9 +136,9 @@ export default async function Footer({ settings }: { settings: Settings }) {
       <div className="border-t border-stone-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-stone-400">
         <span>{settings.footer_copyright || `© ${new Date().getFullYear()} ${settings.site_name || 'Nordic Home'}. All rights reserved.`}</span>
         <div className="flex gap-4">
-          <a href="#" className="hover:text-white transition">Chính sách bảo mật</a>
-          <a href="#" className="hover:text-white transition">Điều khoản sử dụng</a>
-          <a href="#" className="hover:text-white transition">Chính sách đổi trả</a>
+          <Link href="/chinh-sach-bao-mat" className="hover:text-white transition">Chính sách bảo mật</Link>
+          <Link href="/dieu-khoan-su-dung" className="hover:text-white transition">Điều khoản sử dụng</Link>
+          <Link href="/chinh-sach-doi-tra" className="hover:text-white transition">Chính sách đổi trả</Link>
         </div>
       </div>
     </footer>
