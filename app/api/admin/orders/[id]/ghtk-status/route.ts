@@ -31,10 +31,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: data.message || 'Không tra cứu được trạng thái' }, { status: 400 })
     }
 
-    return NextResponse.json({
-      status: data.order?.status,
-      statusText: data.order?.status_text,
-    })
+    // GHTK gắn nhãn status_text sai cho mã -1 (thực chất là "Đã hủy", nhãn
+    // chữ họ trả về lại ghi "Đã tiếp nhận") — tự sửa lại cho đúng thay vì
+    // tin theo nhãn chữ của họ.
+    const status = data.order?.status
+    const statusText = status === -1 ? 'Đã hủy' : data.order?.status_text
+
+    return NextResponse.json({ status, statusText })
   } catch {
     return NextResponse.json({ error: 'Lỗi kết nối GHTK, vui lòng thử lại' }, { status: 500 })
   }
