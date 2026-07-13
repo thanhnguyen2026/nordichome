@@ -6,28 +6,16 @@ import { useCartStore, itemKey } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { calcTotalWeight } from '@/lib/shipping'
-import { Truck, AlertTriangle, Loader2, ChevronDown } from 'lucide-react'
+import { Truck, AlertTriangle, Loader2 } from 'lucide-react'
 import { trackPurchase, generateEventId, getCookie } from '@/lib/analytics'
 import { copyToClipboard } from '@/lib/clipboard'
 import { hasCampaignFor } from '@/lib/campaignPrice'
+import SearchableSelect from '@/components/store/SearchableSelect'
 import type { Campaign } from '@/types'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
 interface AddrItem { code: number; name: string }
-
-const SELECT_CLS = `w-full border border-stone-200 rounded-lg px-3 py-2.5 text-sm
-  outline-none focus:border-stone-400 appearance-none bg-white
-  disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed`
-
-function SelectWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative">
-      {children}
-      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-stone-400" />
-    </div>
-  )
-}
 
 export default function CheckoutPage() {
   const { items, total, clearCart } = useCartStore()
@@ -421,46 +409,41 @@ export default function CheckoutPage() {
               {/* Tỉnh / Thành phố */}
               <div>
                 <label className="text-xs font-semibold text-stone-500 block mb-1">Tỉnh / Thành phố *</label>
-                <SelectWrapper>
-                  <select value={form.province}
-                    onChange={e => setForm(f => ({ ...f, province: e.target.value, district: '', ward: '' }))}
-                    className={SELECT_CLS} required>
-                    <option value="">-- Chọn tỉnh/TP --</option>
-                    {provinces.map(p => <option key={p.code} value={p.name}>{p.name}</option>)}
-                  </select>
-                </SelectWrapper>
+                <SearchableSelect
+                  value={form.province}
+                  onChange={name => setForm(f => ({ ...f, province: name, district: '', ward: '' }))}
+                  options={provinces}
+                  placeholder="-- Chọn tỉnh/TP --"
+                  required
+                />
               </div>
 
               {/* Quận / Huyện */}
               <div>
                 <label className="text-xs font-semibold text-stone-500 block mb-1">Quận / Huyện *</label>
-                <SelectWrapper>
-                  <select value={form.district}
-                    onChange={e => setForm(f => ({ ...f, district: e.target.value, ward: '' }))}
-                    disabled={!form.province || addrLoading === 'districts'}
-                    className={SELECT_CLS} required>
-                    <option value="">
-                      {addrLoading === 'districts' ? 'Đang tải...' : '-- Chọn quận/huyện --'}
-                    </option>
-                    {districts.map(d => <option key={d.code} value={d.name}>{d.name}</option>)}
-                  </select>
-                </SelectWrapper>
+                <SearchableSelect
+                  value={form.district}
+                  onChange={name => setForm(f => ({ ...f, district: name, ward: '' }))}
+                  options={districts}
+                  placeholder="-- Chọn quận/huyện --"
+                  disabled={!form.province}
+                  loading={addrLoading === 'districts'}
+                  required
+                />
               </div>
 
               {/* Phường / Xã */}
               <div>
                 <label className="text-xs font-semibold text-stone-500 block mb-1">Phường / Xã *</label>
-                <SelectWrapper>
-                  <select value={form.ward}
-                    onChange={e => setForm(f => ({ ...f, ward: e.target.value }))}
-                    disabled={!form.district || addrLoading === 'wards'}
-                    className={SELECT_CLS} required>
-                    <option value="">
-                      {addrLoading === 'wards' ? 'Đang tải...' : '-- Chọn phường/xã --'}
-                    </option>
-                    {wards.map(w => <option key={w.code} value={w.name}>{w.name}</option>)}
-                  </select>
-                </SelectWrapper>
+                <SearchableSelect
+                  value={form.ward}
+                  onChange={name => setForm(f => ({ ...f, ward: name }))}
+                  options={wards}
+                  placeholder="-- Chọn phường/xã --"
+                  disabled={!form.district}
+                  loading={addrLoading === 'wards'}
+                  required
+                />
               </div>
             </div>
 
