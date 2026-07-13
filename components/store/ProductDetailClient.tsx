@@ -198,19 +198,21 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
       </div>
     )}
 
-    {/* Mô tả kèm ảnh minh hoạ — full-width, xen kẽ ảnh + text */}
+    {/* Mô tả kèm ảnh minh hoạ — ảnh tràn hết chiều ngang màn hình (phá khung
+        lề của <main>), giống cách trình bày ảnh lifestyle trên tạp chí thay
+        vì bị bó hẹp lọt thỏm trong cột nội dung như trước. */}
     {product.content_blocks?.length > 0 && (
-      <div className="mb-16 max-w-3xl mx-auto space-y-10">
+      <div className="mb-16 space-y-10">
         {product.content_blocks.map((block, i) => (
           <div key={i}>
             {block.text && (
-              <p className="font-serif font-medium text-xl md:text-2xl text-stone-700 leading-snug text-center mb-5 whitespace-pre-line">
+              <p className="max-w-3xl mx-auto font-serif font-medium text-xl md:text-2xl text-stone-700 leading-snug text-center mb-5 whitespace-pre-line">
                 {block.text}
               </p>
             )}
             {block.image_url && (
-              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-stone-50">
-                <Image src={block.image_url} alt={block.text || product.name} fill sizes="(max-width: 768px) 100vw, 768px" className="object-contain" />
+              <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen aspect-[4/3] md:aspect-[21/9] overflow-hidden bg-stone-50">
+                <Image src={block.image_url} alt={block.text || product.name} fill sizes="100vw" className="object-cover" />
               </div>
             )}
           </div>
