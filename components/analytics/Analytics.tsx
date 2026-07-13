@@ -7,7 +7,6 @@ const GTM_ID     = process.env.NEXT_PUBLIC_GTM_ID
 const GA_ID      = process.env.NEXT_PUBLIC_GA_ID
 const GADS_ID    = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
 const PIXEL_ID   = process.env.NEXT_PUBLIC_META_PIXEL_ID
-const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID
 
 export default function Analytics() {
   useEffect(() => {
@@ -72,16 +71,6 @@ export default function Analytics() {
               src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`} />
           </noscript>
         </>
-      )}
-
-      {/* ── Microsoft Clarity ─────────────────────────────────────── */}
-      {CLARITY_ID && (
-        <Script id="clarity" strategy="afterInteractive">{`
-          (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-          })(window,document,"clarity","script","${CLARITY_ID}");
-        `}</Script>
       )}
     </>
   )
