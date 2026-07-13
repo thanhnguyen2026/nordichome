@@ -213,14 +213,18 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
               </p>
             )}
             {block.image_url && (
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden bg-stone-50">
+              // Mobile: rộng hết khung, cao tự nhiên theo tỷ lệ ảnh — ổn vì
+              // màn hình hẹp. Desktop: ảnh dọc/chân dung theo tỷ lệ gốc sẽ bị
+              // kéo quá cao so với 1 màn hình — chặn chiều cao tối đa, để
+              // chiều rộng tự co theo (không cắt, không méo ảnh).
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden bg-stone-50 md:flex md:justify-center">
                 <Image
                   src={block.image_url}
                   alt={block.text || product.name}
                   width={1200}
                   height={800}
                   sizes="(max-width: 896px) 100vw, 896px"
-                  className="w-full h-auto"
+                  className="w-full h-auto md:w-auto md:max-w-full md:max-h-[70vh]"
                 />
               </div>
             )}
