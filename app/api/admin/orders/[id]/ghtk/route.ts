@@ -71,6 +71,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       value: Math.round(order.total),
       transport: 'road',
       pick_option: pickOption,
+      // Tag 10 — cho khách xem hàng trước khi nhận/trả tiền. Mặc định của
+      // GHTK là KHÔNG cho xem nếu bỏ trống, không phù hợp với đơn COD.
+      tags: [10],
     },
   }
 
