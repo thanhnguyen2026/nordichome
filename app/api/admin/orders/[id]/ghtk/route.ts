@@ -43,13 +43,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Đơn hàng đã có mã vận đơn' }, { status: 400 })
   }
 
+  const { data: orderItems } = await supabaseAdmin
+    .from('order_items')
+    .select('product_name, variant_label, quantity')
+    .eq('order_id', id)
+
+  // Chia đều tổng cân nặng đơn theo số lượng từng dòng — order_items không
+  // lưu cân nặng riêng, chỉ orders.total_weight có tổng cho cả đơn.
+  const totalWeight = Math.max(order.total_weight || 0.5, 0.1)
+  const totalQty = orderItems?.reduce((s, i) => s + i.quantity, 0) || 0
+  const weightPerUnit = totalQty > 0 ? totalWeight / totalQty : totalWeight
+
+  const products = orderItems?.length
+    ? orderItems.map(i => ({
+        name: i.variant_label ? `${i.product_name} - ${i.variant_label}` : i.product_name,
+        weight: Math.max(weightPerUnit * i.quantity, 0.1),
+        quantity: i.quantity,
+        product_code: order.order_code,
+      }))
+    : [{
+        name: `Đơn hàng ${order.order_code}`,
+        weight: totalWeight,
+        quantity: 1,
+        product_code: order.order_code,
+      }]
+
   const payload = {
-    products: [{
-      name: `Đơn hàng ${order.order_code}`,
-      weight: Math.max(order.total_weight || 0.5, 0.1),
-      quantity: 1,
-      product_code: order.order_code,
-    }],
+    products,
     order: {
       id: order.order_code,
       pick_name: PICK_NAME,
