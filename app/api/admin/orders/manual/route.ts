@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getAdminUser } from '@/lib/adminAuth'
 import { generateOrderCode } from '@/lib/orderCode'
+import { sendLowStockAlert } from '@/lib/telegram'
+import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
 import { SalesChannel } from '@/types'
 
 interface ManualOrderItem {
@@ -116,6 +118,7 @@ export async function POST(req: NextRequest) {
   // (VD: khách đặt website đúng lúc admin nhập đơn Facebook cho cùng sản phẩm).
   const decrementedVariants: { id: string; qty: number }[] = []
   const decrementedProducts: { id: string; qty: number }[] = []
+  const lowStockAlerts: { name: string; stock: number }[] = []
 
   const rollbackDecrements = async () => {
     for (const d of decrementedVariants) {
@@ -135,6 +138,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `"${i.product_name}"${label} vừa hết hàng, vui lòng thử lại` }, { status: 400 })
     }
     decrementedVariants.push({ id: i.variant_id!, qty: i.quantity })
+    if (newStock > 0 && newStock <= LOW_STOCK_THRESHOLD) {
+      const label = i.variant_label ? ` (${i.variant_label})` : ''
+      lowStockAlerts.push({ name: `${i.product_name}${label}`, stock: newStock })
+    }
   }
 
   for (const [productId, needed] of Object.entries(neededByProduct)) {
@@ -147,6 +154,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `"${item?.product_name}" vừa hết hàng, vui lòng thử lại` }, { status: 400 })
     }
     decrementedProducts.push({ id: productId, qty: needed })
+    if (newStock > 0 && newStock <= LOW_STOCK_THRESHOLD) {
+      const item = noVariantItems.find(i => i.product_id === productId)
+      if (item) lowStockAlerts.push({ name: item.product_name, stock: newStock })
+    }
   }
 
   const { data: order, error } = await supabaseAdmin
@@ -164,6 +175,14 @@ export async function POST(req: NextRequest) {
   if (error) {
     await rollbackDecrements()
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (lowStockAlerts.length > 0) {
+    const { data: setting } = await supabaseAdmin
+      .from('settings').select('value').eq('key', 'notify_low_stock_on').maybeSingle()
+    if (setting?.value === '1') {
+      try { await sendLowStockAlert(lowStockAlerts) } catch (e) { console.error('Low stock alert error:', e) }
+    }
   }
 
   await supabaseAdmin.from('order_items').insert(

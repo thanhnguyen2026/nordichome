@@ -70,3 +70,27 @@ export async function sendTelegramNotification(order: {
     }
   }
 }
+
+// Báo ngay khi 1 đơn vừa đặt làm tồn kho 1 sản phẩm/biến thể tụt xuống mức
+// "sắp hết" — trước đây chỉ thấy khi admin tự mở tab Sản phẩm và nhìn badge.
+export async function sendLowStockAlert(items: Array<{ name: string; stock: number }>) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN
+  const chatId   = process.env.TELEGRAM_CHAT_ID
+  if (!botToken || !chatId || items.length === 0) return
+
+  const lines: string[] = ['⚠️ SẮP HẾT HÀNG', '']
+  items.forEach(i => lines.push(`- ${i.name}: còn ${i.stock}`))
+  const text = lines.join('\n')
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    })
+    const data = await res.json()
+    if (!data.ok) console.error('Telegram low-stock alert error:', data.description)
+  } catch (err) {
+    console.error('Telegram low-stock alert failed:', err)
+  }
+}

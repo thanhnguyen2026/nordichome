@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendMessengerNotification } from '@/lib/messenger'
-import { sendTelegramNotification } from '@/lib/telegram'
+import { sendTelegramNotification, sendLowStockAlert } from '@/lib/telegram'
 import { generateOrderCode } from '@/lib/orderCode'
 import { checkCoupon } from '@/lib/coupon'
 import { hasCampaignFor } from '@/lib/campaignPrice'
+import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
 import { CreateOrderPayload, Coupon, Campaign } from '@/types'
 
 export async function POST(req: NextRequest) {
@@ -169,6 +170,7 @@ export async function POST(req: NextRequest) {
   const decrementedVariants: { id: string; qty: number }[] = []
   const decrementedProducts: { id: string; qty: number }[] = []
   let couponIncremented = false
+  const lowStockAlerts: { name: string; stock: number }[] = []
 
   const rollbackDecrements = async () => {
     for (const d of decrementedVariants) {
@@ -191,6 +193,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `"${i.product_name}"${label} vừa hết hàng, vui lòng thử lại` }, { status: 400 })
     }
     decrementedVariants.push({ id: i.variant_id!, qty: i.quantity })
+    if (newStock > 0 && newStock <= LOW_STOCK_THRESHOLD) {
+      const label = i.variant_label ? ` (${i.variant_label})` : ''
+      lowStockAlerts.push({ name: `${i.product_name}${label}`, stock: newStock })
+    }
   }
 
   for (const [productId, needed] of Object.entries(neededByProduct)) {
@@ -203,6 +209,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `"${item?.product_name}" vừa hết hàng, vui lòng thử lại` }, { status: 400 })
     }
     decrementedProducts.push({ id: productId, qty: needed })
+    if (newStock > 0 && newStock <= LOW_STOCK_THRESHOLD) {
+      const item = noVariantItems.find(i => i.product_id === productId)
+      if (item) lowStockAlerts.push({ name: item.product_name, stock: newStock })
+    }
   }
 
   if (appliedCoupon) {
@@ -260,14 +270,20 @@ export async function POST(req: NextRequest) {
     }))
   )
 
-  // Đọc cài đặt bật/tắt kênh thông báo (mặc định Telegram bật, Messenger tắt)
+  // Đọc cài đặt bật/tắt kênh thông báo (mặc định Telegram bật, Messenger/cảnh
+  // báo tồn kho thấp tắt — tính năng mới, không tự bật cho user đã có sẵn cấu hình)
   const { data: notifySettings } = await supabaseAdmin
     .from('settings')
     .select('key,value')
-    .in('key', ['notify_telegram_on', 'notify_messenger_on'])
+    .in('key', ['notify_telegram_on', 'notify_messenger_on', 'notify_low_stock_on'])
   const notifyMap = Object.fromEntries(notifySettings?.map(r => [r.key, r.value]) ?? [])
   const telegramOn  = notifyMap.notify_telegram_on !== '0'
   const messengerOn = notifyMap.notify_messenger_on === '1'
+  const lowStockOn  = notifyMap.notify_low_stock_on === '1'
+
+  if (lowStockOn && lowStockAlerts.length > 0) {
+    try { await sendLowStockAlert(lowStockAlerts) } catch (e) { console.error('Low stock alert error:', e) }
+  }
 
   if (telegramOn) {
     try {

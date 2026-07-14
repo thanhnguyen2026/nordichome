@@ -367,6 +367,26 @@ export default function AdminSettings() {
           </div>
         </div>
 
+        {/* Low stock notifications */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <h2 className="font-bold text-sm mb-1">⚠️ Cảnh báo tồn kho thấp</h2>
+          <p className="text-xs text-stone-400 mb-5">Báo qua Telegram ngay khi có đơn làm tồn kho sản phẩm/biến thể tụt xuống mức sắp hết.</p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-stone-700">Telegram</span>
+            <button
+              type="button"
+              onClick={() => set('notify_low_stock_on', settings.notify_low_stock_on === '1' ? '0' : '1')}
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+                settings.notify_low_stock_on === '1' ? 'bg-green-500' : 'bg-stone-200'
+              }`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                settings.notify_low_stock_on === '1' ? 'translate-x-6' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
+        </div>
+
         {/* Chat channels */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
           <h2 className="font-bold text-sm mb-1">💬 Kênh tư vấn chat (dưới nút mua)</h2>
