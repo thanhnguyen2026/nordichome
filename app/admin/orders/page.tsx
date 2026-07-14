@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState, Fragment } from 'react'
-import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Order, OrderStatus, ORDER_STATUS_LABEL, PurchaseStatus, PURCHASE_STATUS_LABEL, SALES_CHANNEL_LABEL } from '@/types'
@@ -24,6 +23,7 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 
 interface OrderItem {
   id: string
+  product_id: string | null
   product_name: string
   product_image: string
   price: number
@@ -35,7 +35,16 @@ interface OrderItem {
   ordered_at: string | null
   arrived_at: string | null
   taobao_tracking_code: string | null
+  // Link Taobao thật tra theo sản phẩm hiện tại — đơn từ website luôn có
+  // origin_url rỗng ở trên (cột public cố tình giấu link nguồn với khách),
+  // nên phải tra sống từ bảng products mới thấy link nếu admin đã nhập sau đó.
+  product?: { origin_url: string | null } | null
 }
+
+// Link Taobao hiệu lực: ưu tiên tra sống từ sản phẩm (luôn mới nhất, và bù
+// được cho đơn website vốn không lưu origin_url lúc tạo đơn); origin_url lưu
+// sẵn trên order_items chỉ còn dùng khi sản phẩm gốc đã bị xoá.
+const effectiveOriginUrl = (item: OrderItem) => item.product?.origin_url ?? item.origin_url
 
 const PURCHASE_STATUS_COLOR: Record<PurchaseStatus, string> = {
   not_ordered: 'bg-stone-100 text-stone-500 border-stone-200',
@@ -75,6 +84,11 @@ export default function AdminOrders() {
   const [expanded, setExpanded]     = useState<string | null>(null)
   const [items, setItems]           = useState<Record<string, OrderItem[]>>({})
   const [loadingItems, setLoadingItems] = useState<string | null>(null)
+  // Ảnh sản phẩm trong chi tiết đơn có thể là link ngoài dán tay (VariantsManager
+  // cho phép dán link ảnh trực tiếp, không giới hạn domain) — next/image sẽ lỗi
+  // nếu domain không nằm trong remotePatterns, hoặc file đã bị xoá khỏi storage.
+  // Theo dõi item nào lỗi ảnh để tự chuyển sang icon thay vì hiện ảnh vỡ/trống.
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set())
   const [payFilter, setPayFilter]   = useState<PaymentFilter>('all')
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all')
   const [search, setSearch]         = useState('')
@@ -109,11 +123,24 @@ export default function AdminOrders() {
     setExpanded(id)
     if (!items[id]) {
       setLoadingItems(id)
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('order_items')
-        .select('id, product_name, product_image, price, quantity, origin_url, variant_id, variant_label, purchase_status, ordered_at, arrived_at, taobao_tracking_code')
+        .select('id, product_id, product_name, product_image, price, quantity, origin_url, variant_id, variant_label, purchase_status, ordered_at, arrived_at, taobao_tracking_code')
         .eq('order_id', id)
-      setItems(prev => ({ ...prev, [id]: (data as unknown as OrderItem[]) || [] }))
+      if (error) console.error('Lỗi tải sản phẩm đơn hàng:', error)
+      const rows = (data as unknown as OrderItem[]) || []
+
+      // Tra sống link Taobao theo sản phẩm bằng query riêng (không join) — đơn
+      // giản, tránh mọi rủi ro Postgrest không resolve được quan hệ embedded.
+      const productIds = Array.from(new Set(rows.map(r => r.product_id).filter((v): v is string => !!v)))
+      if (productIds.length > 0) {
+        const { data: prods, error: prodErr } = await supabase.from('products').select('id, origin_url').in('id', productIds)
+        if (prodErr) console.error('Lỗi tra link Taobao:', prodErr)
+        const originMap = new Map((prods || []).map(p => [p.id, p.origin_url as string | null]))
+        rows.forEach(r => { if (r.product_id) r.product = { origin_url: originMap.get(r.product_id) ?? null } })
+      }
+
+      setItems(prev => ({ ...prev, [id]: rows }))
       setLoadingItems(null)
     }
   }
@@ -337,7 +364,7 @@ export default function AdminOrders() {
   }
 
   const countTaobaoLinks = (orderItems: OrderItem[]) =>
-    orderItems.filter(i => i.origin_url).length
+    orderItems.filter(i => effectiveOriginUrl(i)).length
 
   const q = stripDiacritics(search.trim())
 
@@ -386,19 +413,38 @@ export default function AdminOrders() {
   const [exportingPurchase, setExportingPurchase] = useState(false)
   const exportPurchaseTrackingCsv = async () => {
     setExportingPurchase(true)
-    const { data } = await supabase
+    // Không lọc origin_url ở DB nữa — đơn website luôn có order_items.origin_url
+    // rỗng (cột public giấu link nguồn với khách), phải tra sống qua product mới
+    // biết sản phẩm có link Taobao hay không, nên lọc ở JS sau khi có cả 2 nguồn.
+    const { data, error } = await supabase
       .from('order_items')
-      .select('product_name, variant_label, quantity, origin_url, purchase_status, ordered_at, arrived_at, taobao_tracking_code, order:orders(order_code, customer_name, created_at)')
-      .not('origin_url', 'is', null)
-    setExportingPurchase(false)
+      .select('product_id, product_name, variant_label, quantity, origin_url, purchase_status, ordered_at, arrived_at, taobao_tracking_code, order:orders(order_code, customer_name, created_at)')
+    if (error) console.error('Lỗi xuất CSV theo dõi nhập hàng:', error)
 
     type Row = {
+      product_id: string | null
       product_name: string; variant_label: string | null; quantity: number
-      origin_url: string; purchase_status: PurchaseStatus
+      origin_url: string | null; purchase_status: PurchaseStatus
       ordered_at: string | null; arrived_at: string | null; taobao_tracking_code: string | null
       order: { order_code: string; customer_name: string; created_at: string } | null
+      product?: { origin_url: string | null } | null
     }
-    const rows = ((data as unknown as Row[]) || [])
+    const allRows = (data as unknown as Row[]) || []
+
+    // Tra sống link Taobao theo sản phẩm bằng query riêng (không join), cùng
+    // cách với toggleExpand — tránh rủi ro Postgrest không resolve được quan hệ embedded.
+    const productIds = Array.from(new Set(allRows.map(r => r.product_id).filter((v): v is string => !!v)))
+    if (productIds.length > 0) {
+      const { data: prods } = await supabase.from('products').select('id, origin_url').in('id', productIds)
+      const originMap = new Map((prods || []).map(p => [p.id, p.origin_url as string | null]))
+      allRows.forEach(r => { if (r.product_id) r.product = { origin_url: originMap.get(r.product_id) ?? null } })
+    }
+    setExportingPurchase(false)
+
+    const effectiveUrl = (r: Row) => r.product?.origin_url ?? r.origin_url
+
+    const rows = allRows
+      .filter(effectiveUrl)
       .sort((a, b) => (b.order?.created_at || '').localeCompare(a.order?.created_at || ''))
 
     const header = ['Mã đơn', 'Khách hàng', 'Sản phẩm', 'Số lượng', 'Link Taobao', 'Trạng thái', 'Ngày đặt TQ', 'Ngày về kho', 'Mã vận chuyển TQ']
@@ -407,7 +453,7 @@ export default function AdminOrders() {
       r.order?.customer_name || '',
       r.variant_label ? `${r.product_name} (${r.variant_label})` : r.product_name,
       r.quantity,
-      r.origin_url,
+      effectiveUrl(r) || '',
       PURCHASE_STATUS_LABEL[r.purchase_status],
       r.ordered_at ? new Date(r.ordered_at).toLocaleDateString('vi-VN') : '',
       r.arrived_at ? new Date(r.arrived_at).toLocaleDateString('vi-VN') : '',
@@ -529,7 +575,7 @@ export default function AdminOrders() {
               onChange={toggleSelectAll} />
             Chọn tất cả ({displayed.length})
           </label>
-          <div className="overflow-x-auto bg-stone-100 md:bg-transparent p-3 md:p-0">
+          <div className="overflow-x-auto bg-stone-100 md:bg-transparent px-1.5 py-2 md:p-0">
             <table className="w-full text-sm block md:table md:min-w-[900px]">
               <thead className="hidden md:table-header-group">
                 <tr className="bg-stone-50 border-b border-stone-100">
@@ -758,9 +804,19 @@ export default function AdminOrders() {
                                       <div key={item.id} className="bg-white rounded-xl p-3 border border-stone-100">
                                         <div className="flex items-center gap-3">
                                           <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
-                                            {item.product_image
-                                              ? <Image src={item.product_image} alt={item.product_name} fill sizes="48px" className="object-cover" />
-                                              : <div className="w-full h-full flex items-center justify-center text-xl">🛋️</div>}
+                                            {item.product_image && !brokenImageIds.has(item.id) ? (
+                                              // Ảnh có thể là link ngoài dán tay, không giới hạn domain — dùng <img>
+                                              // thường thay vì next/image để không bị chặn bởi remotePatterns.
+                                              // eslint-disable-next-line @next/next/no-img-element
+                                              <img
+                                                src={item.product_image}
+                                                alt={item.product_name}
+                                                className="w-full h-full object-cover"
+                                                onError={() => setBrokenImageIds(prev => new Set(prev).add(item.id))}
+                                              />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center text-xl">🛋️</div>
+                                            )}
                                           </div>
                                           <div className="flex-1 min-w-0">
                                             <div className="font-semibold text-sm truncate">{item.product_name}</div>
@@ -774,9 +830,9 @@ export default function AdminOrders() {
                                               <span className="font-bold text-stone-700 ml-1">{fmt(item.price * item.quantity)}</span>
                                             </div>
                                           </div>
-                                          {item.origin_url ? (
+                                          {effectiveOriginUrl(item) ? (
                                             <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                              <a href={item.origin_url} target="_blank" rel="noopener noreferrer"
+                                              <a href={effectiveOriginUrl(item)!} target="_blank" rel="noopener noreferrer"
                                                 className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-2 rounded-lg transition whitespace-nowrap">
                                                 <ShoppingCart size={12} /> Taobao <ExternalLink size={10} />
                                               </a>
@@ -796,7 +852,7 @@ export default function AdminOrders() {
                                         </div>
 
                                         {/* Theo dõi nhập hàng — chỉ hiện khi đã bắt đầu đặt hàng TQ */}
-                                        {item.origin_url && item.purchase_status !== 'not_ordered' && (
+                                        {effectiveOriginUrl(item) && item.purchase_status !== 'not_ordered' && (
                                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 pt-2.5 border-t border-stone-100 text-[11px] text-stone-500">
                                             <label className="flex items-center gap-1.5">
                                               Ngày đặt TQ:

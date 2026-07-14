@@ -1,6 +1,5 @@
 'use client'
 import { useState, useRef } from 'react'
-import Image from 'next/image'
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X } from 'lucide-react'
 
 export interface Variant {
@@ -28,6 +27,10 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
   const [newOption, setNewOption] = useState('')
   const [uploading, setUploading] = useState<number | null>(null)
   const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  // Link ảnh dán tay không giới hạn domain — next/image sẽ lỗi nếu domain không
+  // nằm trong remotePatterns của next.config.ts. Theo dõi mẫu nào lỗi ảnh để tự
+  // chuyển sang icon upload thay vì hiện ảnh vỡ/trống không rõ lý do.
+  const [brokenImageIdx, setBrokenImageIdx] = useState<Set<number>>(new Set())
 
   const addVariant = () => {
     if (!newGroup.trim() || !newOption.trim()) return
@@ -50,6 +53,9 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
 
   const updateVariant = (idx: number, key: keyof Variant, value: string) => {
     onChange(variants.map((v, i) => i === idx ? { ...v, [key]: value } : v))
+    if (key === 'image_url') {
+      setBrokenImageIdx(prev => { const next = new Set(prev); next.delete(idx); return next })
+    }
   }
 
   const removeVariant = (idx: number) => {
@@ -175,9 +181,20 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
                             >
                               {uploading === idx ? (
                                 <div className="text-[10px] text-stone-400 text-center">Đang tải...</div>
-                              ) : v.image_url ? (
-                                <Image src={v.image_url} alt={v.option_name} fill sizes="80px"
-                                  className="object-cover" />
+                              ) : v.image_url && !brokenImageIdx.has(idx) ? (
+                                // Link dán tay không giới hạn domain — dùng <img> thường thay vì
+                                // next/image để không bị chặn bởi remotePatterns của next.config.ts.
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={v.image_url}
+                                  alt={v.option_name}
+                                  className="w-full h-full object-cover"
+                                  onError={() => setBrokenImageIdx(prev => new Set(prev).add(idx))}
+                                />
+                              ) : v.image_url && brokenImageIdx.has(idx) ? (
+                                <div className="text-center px-1">
+                                  <span className="text-[10px] text-red-400 leading-tight">⚠️ Ảnh lỗi, không tải được</span>
+                                </div>
                               ) : (
                                 <div className="text-center">
                                   <Upload size={16} className="text-stone-300 mx-auto mb-1" />
