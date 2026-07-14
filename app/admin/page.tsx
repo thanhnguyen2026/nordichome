@@ -47,7 +47,7 @@ export default function AdminDashboard() {
           { label: 'Sản phẩm', value: stats.products, icon: '🛋️', color: '#a07abb', bg: '#f5f3ff', sub: 'Đang kinh doanh' },
           { label: 'Chờ xác nhận', value: stats.pending, icon: '⏳', color: '#d4a96a', bg: '#fffbeb', sub: 'Cần xử lý ngay' },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100 relative overflow-hidden">
+          <div key={i} className="bg-white rounded-2xl p-3 md:p-5 shadow-sm border border-stone-100 relative overflow-hidden">
             <div className="absolute -top-2 -right-2 text-5xl opacity-10">{s.icon}</div>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3" style={{ background: s.bg }}>{s.icon}</div>
             <div className="text-xl font-black text-stone-800">{loading ? '...' : s.value}</div>
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+      <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-stone-100">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-sm">Đơn hàng gần đây</h2>
           <a href="/admin/orders" className="text-xs text-amber-700 font-semibold hover:underline">Xem tất cả →</a>
