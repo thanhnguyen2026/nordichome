@@ -9,6 +9,8 @@ import { stripDiacritics } from '@/lib/text'
 import { ExternalLink, ShoppingCart, ChevronDown, ChevronUp, CheckCircle, MessageCircle, Printer } from 'lucide-react'
 import ManualOrderForm from '@/components/admin/ManualOrderForm'
 import ChannelIcon from '@/components/admin/ChannelIcon'
+import { usePrompt } from '@/components/admin/usePrompt'
+import { useToast } from '@/components/admin/useToast'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
 
@@ -85,6 +87,8 @@ export default function AdminOrders() {
   const [syncingGhtkId, setSyncingGhtkId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
+  const { promptValue, PromptDialog } = usePrompt()
+  const { showToast, Toast } = useToast()
 
   const load = async () => {
     const [{ data: ordersData }, { data: settingsData }] = await Promise.all([
@@ -143,12 +147,12 @@ export default function AdminOrders() {
 
   const updateStatus = async (o: Order, status: OrderStatus) => {
     if (status === 'cancelled' && o.status !== 'cancelled') {
-      const reason = prompt('Lý do hủy đơn (bắt buộc):')
+      const reason = await promptValue('Lý do hủy đơn (bắt buộc):')
       if (!reason?.trim()) return
 
       let refund_amount = 0
       if (o.payment_status === 'paid') {
-        const input = prompt(`Đơn đã thanh toán ${fmt(o.total)} — số tiền hoàn lại cho khách:`, String(o.total))
+        const input = await promptValue(`Đơn đã thanh toán ${fmt(o.total)} — số tiền hoàn lại cho khách:`, { defaultValue: String(o.total), type: 'number' })
         if (input === null) return
         refund_amount = Math.max(0, Math.round(Number(input) || 0))
       }
@@ -170,7 +174,7 @@ export default function AdminOrders() {
         const res = await fetch(`/api/admin/orders/${o.id}/ghtk-cancel`, { method: 'POST' })
         if (!res.ok) {
           const data = await res.json()
-          alert(`Đã hủy đơn, nhưng không hủy được vận đơn GHTK: ${data.error || 'lỗi không rõ'}`)
+          showToast(`Đã hủy đơn, nhưng không hủy được vận đơn GHTK: ${data.error || 'lỗi không rõ'}`)
         }
       }
       return
@@ -285,12 +289,12 @@ export default function AdminOrders() {
       })
       const data = await res.json()
       if (!res.ok) {
-        alert(data.error || 'Không tạo được đơn GHTK')
+        showToast(data.error || 'Không tạo được đơn GHTK')
         return
       }
       setOrders(prev => prev.map(x => x.id === o.id ? { ...x, tracking_code: data.trackingCode } : x))
     } catch {
-      alert('Lỗi kết nối, vui lòng thử lại')
+      showToast('Lỗi kết nối, vui lòng thử lại')
     } finally {
       setCreatingGhtkId(null)
     }
@@ -307,12 +311,12 @@ export default function AdminOrders() {
       const res = await fetch(`/api/admin/orders/${o.id}/ghtk-status`)
       const data = await res.json()
       if (!res.ok) {
-        alert(data.error || 'Không tra cứu được trạng thái')
+        showToast(data.error || 'Không tra cứu được trạng thái')
         return
       }
-      alert(`Trạng thái GHTK: ${data.statusText || data.status || 'không rõ'}`)
+      showToast(`Trạng thái GHTK: ${data.statusText || data.status || 'không rõ'}`, { variant: 'info' })
     } catch {
-      alert('Lỗi kết nối, vui lòng thử lại')
+      showToast('Lỗi kết nối, vui lòng thử lại')
     } finally {
       setSyncingGhtkId(null)
     }
@@ -414,6 +418,8 @@ export default function AdminOrders() {
 
   return (
     <AdminLayout>
+      {PromptDialog}
+      {Toast}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-black">🛒 Đơn hàng</h1>

@@ -67,27 +67,41 @@ export default function AdminDashboard() {
         ) : recentOrders.length === 0 ? (
           <div className="text-center py-8 text-stone-400 text-sm">Chưa có đơn hàng nào</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
+          <table className="w-full text-sm block md:table">
+            <thead className="hidden md:table-header-group">
               <tr className="border-b border-stone-100">
                 {['Mã đơn', 'Khách hàng', 'SĐT', 'Tổng tiền', 'Trạng thái', 'Ngày'].map(h => (
                   <th key={h} className="text-left py-2 px-2 text-[11px] uppercase text-stone-400 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="block md:table-row-group">
               {recentOrders.map(o => (
-                <tr key={o.id} className="border-b border-stone-50">
-                  <td className="py-2.5 px-2 font-mono text-xs">{o.order_code}</td>
-                  <td className="py-2.5 px-2 font-semibold">{o.customer_name}</td>
-                  <td className="py-2.5 px-2 text-stone-500">{o.customer_phone}</td>
-                  <td className="py-2.5 px-2 font-bold text-amber-700">{fmt(Number(o.total))}</td>
-                  <td className="py-2.5 px-2">
+                <tr key={o.id} className="block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 border-stone-100 md:border-b md:border-b-stone-50">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 font-mono text-xs">
+                    <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Mã đơn</span>
+                    {o.order_code}
+                  </td>
+                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 font-semibold">
+                    <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Khách hàng</span>
+                    {o.customer_name}
+                  </td>
+                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 text-stone-500">
+                    <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">SĐT</span>
+                    {o.customer_phone}
+                  </td>
+                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 font-bold text-amber-700">
+                    <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Tổng tiền</span>
+                    {fmt(Number(o.total))}
+                  </td>
+                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2">
+                    <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100">
                       {ORDER_STATUS_LABEL[o.status as keyof typeof ORDER_STATUS_LABEL]}
                     </span>
                   </td>
-                  <td className="py-2.5 px-2 text-stone-400 text-xs">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 text-stone-400 text-xs">
+                    <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Ngày</span>
                     {new Date(o.created_at).toLocaleDateString('vi-VN')}
                   </td>
                 </tr>

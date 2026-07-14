@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Campaign, Product } from '@/types'
 import { Edit2, Trash2, Plus, X } from 'lucide-react'
+import { useConfirm } from '@/components/admin/useConfirm'
+import { useToast } from '@/components/admin/useToast'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
@@ -28,6 +30,8 @@ export default function AdminPromotions() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
+  const { showToast, Toast } = useToast()
   // Date.now() là hàm "không thuần" (impure), không được gọi trực tiếp trong
   // render — chốt mốc thời gian 1 lần lúc mount qua lazy initializer của useState.
   const [now] = useState(() => new Date())
@@ -92,14 +96,14 @@ export default function AdminPromotions() {
       : await supabase.from('campaigns').insert(payload)
 
     setSaving(false)
-    if (error) { alert('Lỗi: ' + error.message); return }
+    if (error) { showToast('Lỗi: ' + error.message); return }
 
     resetForm()
     load()
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Xoá khuyến mãi này?')) return
+    if (!(await confirm('Xoá khuyến mãi này?', { danger: true }))) return
     await supabase.from('campaigns').delete().eq('id', id)
     load()
   }
@@ -118,6 +122,8 @@ export default function AdminPromotions() {
 
   return (
     <AdminLayout>
+      {ConfirmDialog}
+      {Toast}
       <h1 className="text-2xl font-black mb-1">🎉 Khuyến mãi</h1>
       <p className="text-stone-400 text-sm mb-6">
         Tự động giảm giá — áp cho toàn bộ sản phẩm hoặc chỉ sản phẩm được chọn, không cần khách nhập mã.

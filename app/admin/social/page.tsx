@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Plus, Trash2, GripVertical, Upload, Link, Save } from 'lucide-react'
+import { useConfirm } from '@/components/admin/useConfirm'
 
 const FLOAT_CHANNELS = [
   { key: 'zalo',      label: 'Zalo',       placeholder: 'https://zalo.me/...',              color: '#0068FF' },
@@ -44,6 +45,7 @@ export default function AdminSocialChannels() {
   // Float settings
   const [floatSettings, setFloatSettings] = useState<Record<string, string>>({})
   const [savingFloat, setSavingFloat] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
   const [savedFloat, setSavedFloat] = useState(false)
 
   const setFloat = (key: string, val: string) =>
@@ -115,7 +117,7 @@ export default function AdminSocialChannels() {
 
   const removeChannel = async (id: string, isNew?: boolean) => {
     if (!isNew) {
-      if (!confirm('Xoá kênh này?')) return
+      if (!(await confirm('Xoá kênh này?', { danger: true }))) return
       await supabase.from('social_channels').delete().eq('id', id)
     }
     setChannels(prev => prev.filter(c => c.id !== id))
@@ -156,6 +158,7 @@ export default function AdminSocialChannels() {
 
   return (
     <AdminLayout>
+      {ConfirmDialog}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-black">📣 Kênh bán hàng</h1>

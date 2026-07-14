@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Folder, FolderOpen, Edit2, Trash2, Plus, X, Eye, EyeOff, ChevronUp, ChevronDown, Upload } from 'lucide-react'
+import { useConfirm } from '@/components/admin/useConfirm'
 
 interface Category {
   id: string
@@ -25,6 +26,7 @@ export default function AdminCategories() {
   const [imageUrl, setImageUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const load = async () => {
     const { data } = await supabase.from('categories').select('*').order('sort_order')
@@ -80,7 +82,7 @@ export default function AdminCategories() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Xoá danh mục này? Sản phẩm thuộc danh mục sẽ không bị xoá.')) return
+    if (!(await confirm('Xoá danh mục này? Sản phẩm thuộc danh mục sẽ không bị xoá.', { danger: true }))) return
     await supabase.from('categories').delete().eq('id', id)
     load()
   }
@@ -130,6 +132,7 @@ export default function AdminCategories() {
 
   return (
     <AdminLayout>
+      {ConfirmDialog}
       <h1 className="text-2xl font-black mb-1">🗂️ Danh mục sản phẩm</h1>
       <p className="text-stone-400 text-sm mb-6">Tạo danh mục cha và danh mục con để khách hàng dễ lọc sản phẩm</p>
 

@@ -9,6 +9,9 @@ import { Product, Category, Campaign } from '@/types'
 import { hasCampaignFor } from '@/lib/campaignPrice'
 import type { Variant } from '@/components/admin/VariantsManager'
 import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
+import { useConfirm } from '@/components/admin/useConfirm'
+import { usePrompt } from '@/components/admin/usePrompt'
+import { useToast } from '@/components/admin/useToast'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
 
@@ -35,6 +38,9 @@ export default function AdminProducts() {
   // Date.now() là hàm "không thuần" (impure), không được gọi trực tiếp trong
   // render — chốt mốc thời gian 1 lần lúc mount qua lazy initializer của useState.
   const [now] = useState(() => new Date())
+  const { confirm, ConfirmDialog } = useConfirm()
+  const { promptValue, PromptDialog } = usePrompt()
+  const { showToast, Toast } = useToast()
 
   const load = async () => {
     const [{ data: prods }, { data: cats }, { data: variants }, { data: camps }] = await Promise.all([
@@ -68,11 +74,11 @@ export default function AdminProducts() {
       const { error } = await supabase.from('products')
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq('id', editing.id)
-      if (error) { alert('Lỗi: ' + error.message); return }
+      if (error) { showToast('Lỗi: ' + error.message); return }
     } else {
       const { data: newProd, error } = await supabase.from('products')
         .insert(data).select().single()
-      if (error) { alert('Lỗi: ' + error.message); return }
+      if (error) { showToast('Lỗi: ' + error.message); return }
       productId = newProd.id
     }
 
@@ -104,7 +110,7 @@ export default function AdminProducts() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Xoá sản phẩm này?')) return
+    if (!(await confirm('Xoá sản phẩm này?', { danger: true }))) return
     await supabase.from('products').delete().eq('id', id)
     setSelected(prev => { const s = new Set(prev); s.delete(id); return s })
     load()
@@ -171,7 +177,7 @@ export default function AdminProducts() {
 
   const bulkDelete = async () => {
     if (selected.size === 0) return
-    if (!confirm(`Xoá ${selected.size} sản phẩm đã chọn?`)) return
+    if (!(await confirm(`Xoá ${selected.size} sản phẩm đã chọn?`, { danger: true }))) return
     await supabase.from('products').delete().in('id', Array.from(selected))
     setSelected(new Set())
     load()
@@ -189,10 +195,10 @@ export default function AdminProducts() {
   // dùng khi tăng/giảm giá đồng loạt 1 đợt (VD: sale toàn shop -10%).
   const bulkAdjustPrice = async () => {
     if (selected.size === 0) return
-    const input = prompt('Điều chỉnh giá bao nhiêu %? (VD: 10 = tăng 10%, -10 = giảm 10%)')
+    const input = await promptValue('Điều chỉnh giá bao nhiêu %? (VD: 10 = tăng 10%, -10 = giảm 10%)', { type: 'number' })
     if (input === null) return
     const pct = Number(input)
-    if (!pct || Number.isNaN(pct)) return alert('Số % không hợp lệ')
+    if (!pct || Number.isNaN(pct)) return showToast('Số % không hợp lệ')
 
     const targets = products.filter(p => selected.has(p.id))
     await Promise.all(targets.map(p => {
@@ -210,14 +216,14 @@ export default function AdminProducts() {
   // riêng từng mẫu trong form vì mỗi mẫu tồn kho khác nhau.
   const bulkAdjustStock = async () => {
     if (selected.size === 0) return
-    const input = prompt('Cộng/trừ bao nhiêu vào tồn kho? (VD: 10 = cộng thêm 10, -5 = trừ 5)\nChỉ áp dụng cho sản phẩm không biến thể, có theo dõi số lượng.')
+    const input = await promptValue('Cộng/trừ bao nhiêu vào tồn kho? (VD: 10 = cộng thêm 10, -5 = trừ 5)\nChỉ áp dụng cho sản phẩm không biến thể, có theo dõi số lượng.', { type: 'number' })
     if (input === null) return
     const delta = Number(input)
-    if (!delta || Number.isNaN(delta)) return alert('Số lượng không hợp lệ')
+    if (!delta || Number.isNaN(delta)) return showToast('Số lượng không hợp lệ')
 
     const targets = products.filter(p => selected.has(p.id) && p.stock != null && !variantStockMap[p.id])
     if (targets.length === 0) {
-      alert('Không có sản phẩm nào trong lựa chọn có theo dõi tồn kho cấp sản phẩm (không biến thể).')
+      showToast('Không có sản phẩm nào trong lựa chọn có theo dõi tồn kho cấp sản phẩm (không biến thể).')
       return
     }
     await Promise.all(targets.map(p => {
@@ -230,6 +236,9 @@ export default function AdminProducts() {
 
   return (
     <AdminLayout>
+      {ConfirmDialog}
+      {PromptDialog}
+      {Toast}
       {showForm ? (
         <div>
           <button onClick={() => setShowForm(false)} className="text-sm text-stone-500 hover:text-stone-800 mb-4">← Quay lại danh sách</button>
@@ -335,8 +344,8 @@ export default function AdminProducts() {
               <div className="text-center py-12 text-stone-400 text-sm">Không tìm thấy sản phẩm nào khớp bộ lọc.</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[760px]">
-                  <thead>
+                <table className="w-full text-sm block md:table md:min-w-[760px]">
+                  <thead className="hidden md:table-header-group">
                     <tr className="bg-stone-50">
                       <th className="py-3 px-4 w-8">
                         <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} className="cursor-pointer" />
@@ -346,20 +355,25 @@ export default function AdminProducts() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="block md:table-row-group">
                     {filtered.map(p => {
                       const status = stockStatus(p)
                       return (
-                        <tr key={p.id} className={`border-t border-stone-50 ${selected.has(p.id) ? 'bg-amber-50/40' : ''}`}>
-                          <td className="py-2 px-4">
+                        <tr key={p.id} className={`block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 border-stone-100 md:border-t md:border-t-stone-50 ${selected.has(p.id) ? 'bg-amber-50/40' : ''}`}>
+                          <td className="hidden md:table-cell py-2 px-4">
                             <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelectOne(p.id)} className="cursor-pointer" />
                           </td>
-                          <td className="py-2 px-4">
-                            <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center">
+                          <td className="flex items-center gap-3 md:table-cell py-2.5 px-4">
+                            <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelectOne(p.id)} className="cursor-pointer md:hidden flex-shrink-0" />
+                            <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
                               {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="48px" className="object-cover" /> : <span className="text-xl">🛋️</span>}
                             </div>
+                            <div className="min-w-0 md:hidden">
+                              <div className="font-semibold truncate">{p.name}</div>
+                              {p.sku && <div className="text-stone-400 font-mono text-xs">{p.sku}</div>}
+                            </div>
                           </td>
-                          <td className="py-2 px-4 font-semibold whitespace-nowrap">
+                          <td className="hidden md:table-cell py-2 px-4 font-semibold whitespace-nowrap">
                             {p.name}
                             {hasCampaignFor(p.id, campaigns, now) && (
                               <div className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
@@ -367,19 +381,27 @@ export default function AdminProducts() {
                               </div>
                             )}
                           </td>
-                          <td className="py-2 px-4 text-stone-400 font-mono text-xs whitespace-nowrap">{p.sku || '—'}</td>
-                          <td className="py-2 px-4 text-stone-500 whitespace-nowrap">{p.category?.name || '—'}</td>
-                          <td className="py-2 px-4 font-bold text-amber-700 whitespace-nowrap">
-                            {fmt(p.sale_price || p.price)}
-                            {!!p.sale_price && p.sale_price !== p.price && <div className="text-[11px] text-stone-400 line-through font-normal">{fmt(p.price)}</div>}
+                          <td className="hidden md:table-cell py-2 px-4 text-stone-400 font-mono text-xs whitespace-nowrap">{p.sku || '—'}</td>
+                          <td className="flex items-center justify-between md:table-cell py-2 px-4 text-stone-500 md:whitespace-nowrap">
+                            <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Danh mục</span>
+                            {p.category?.name || '—'}
                           </td>
-                          <td className="py-2 px-4 whitespace-nowrap">
+                          <td className="flex items-center justify-between md:table-cell py-2 px-4 font-bold text-amber-700 md:whitespace-nowrap">
+                            <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Giá bán</span>
+                            <div className="text-right md:text-left">
+                              {fmt(p.sale_price || p.price)}
+                              {!!p.sale_price && p.sale_price !== p.price && <div className="text-[11px] text-stone-400 line-through font-normal">{fmt(p.price)}</div>}
+                            </div>
+                          </td>
+                          <td className="flex items-center justify-between md:table-cell py-2 px-4 md:whitespace-nowrap">
+                            <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Tồn kho</span>
                             {stockCount(p) !== undefined
                               ? <span className={`font-semibold ${status === 'out_of_stock' ? 'text-red-600' : status === 'low_stock' ? 'text-amber-600' : 'text-stone-700'}`}>{stockCount(p)}</span>
                               : <span className="text-stone-300">—</span>}
                           </td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <div className="flex flex-col gap-1">
+                          <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-[10px] md:px-[14px]">
+                            <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
+                            <div className="flex flex-col items-end md:items-start gap-1">
                               <span className={`text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${
                                 p.is_preorder
                                   ? 'bg-orange-50 text-orange-600'
@@ -402,8 +424,8 @@ export default function AdminProducts() {
                               </button>
                             </div>
                           </td>
-                          <td className="py-2 px-4 text-right whitespace-nowrap">
-                            <button onClick={() => openEdit(p)} className="text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 mr-1 hover:bg-stone-200">✏️ Sửa</button>
+                          <td className="flex items-center justify-end gap-1 md:table-cell py-2 px-4 md:text-right md:whitespace-nowrap">
+                            <button onClick={() => openEdit(p)} className="text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200">✏️ Sửa</button>
                             <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100">🗑️</button>
                           </td>
                         </tr>

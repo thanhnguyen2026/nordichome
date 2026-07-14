@@ -4,6 +4,8 @@ import Image from 'next/image'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2, X, ArrowLeft, Eye, EyeOff, Pencil } from 'lucide-react'
+import { useConfirm } from '@/components/admin/useConfirm'
+import { useToast } from '@/components/admin/useToast'
 
 interface Look {
   id: string
@@ -38,6 +40,8 @@ export default function AdminLooks() {
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null)
   const [pendingProductId, setPendingProductId] = useState('')
   const [saving, setSaving] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
+  const { showToast, Toast } = useToast()
   const [showCreate, setShowCreate] = useState(false)
   const [newLook, setNewLook] = useState({ title: '', description: '', image_url: '' })
   const [uploading, setUploading] = useState(false)
@@ -101,7 +105,7 @@ export default function AdminLooks() {
   }
 
   const handleDeleteLook = async (id: string) => {
-    if (!confirm('Xoá look này? Toàn bộ điểm hotspot cũng bị xoá.')) return
+    if (!(await confirm('Xoá look này? Toàn bộ điểm hotspot cũng bị xoá.', { danger: true }))) return
     await supabase.from('looks').delete().eq('id', id)
     setLooks(prev => prev.filter(l => l.id !== id))
   }
@@ -126,7 +130,7 @@ export default function AdminLooks() {
   }
 
   const handleCreateLook = async () => {
-    if (!newLook.title || !newLook.image_url) return alert('Cần có tiêu đề và ảnh!')
+    if (!newLook.title || !newLook.image_url) return showToast('Cần có tiêu đề và ảnh!')
     setSaving(true)
     const { data } = await supabase.from('looks').insert({ ...newLook, sort_order: looks.length }).select().single()
     setSaving(false)
@@ -298,6 +302,8 @@ export default function AdminLooks() {
   // ── List view ────────────────────────────────────────────────────────────────
   return (
     <AdminLayout>
+      {ConfirmDialog}
+      {Toast}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-black mb-1">🖼️ Shop the Look</h1>
