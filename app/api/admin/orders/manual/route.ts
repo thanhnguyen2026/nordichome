@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getAdminUser } from '@/lib/adminAuth'
 import { generateOrderCode } from '@/lib/orderCode'
 import { SalesChannel } from '@/types'
 
@@ -29,14 +29,7 @@ interface ManualOrderPayload {
 }
 
 export async function POST(req: NextRequest) {
-  // Đơn thủ công chỉ dành cho admin — route này không nằm trong matcher của
-  // proxy.ts (chỉ chặn /admin/*), nên phải tự xác thực phiên đăng nhập ở đây.
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
-  )
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAdminUser(req)
   if (!user) return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 })
 
   const body: ManualOrderPayload = await req.json()
@@ -118,6 +111,44 @@ export async function POST(req: NextRequest) {
   const cost = items.reduce((s, i) => s + (i.cost_price || 0) * i.quantity, 0)
   const profit = revenue - cost
 
+  // Trừ tồn kho qua RPC nguyên tử TRƯỚC khi tạo đơn — kho hàng vật lý dùng
+  // chung giữa website và đơn nhập tay, cần chặn race giống hệt /api/orders
+  // (VD: khách đặt website đúng lúc admin nhập đơn Facebook cho cùng sản phẩm).
+  const decrementedVariants: { id: string; qty: number }[] = []
+  const decrementedProducts: { id: string; qty: number }[] = []
+
+  const rollbackDecrements = async () => {
+    for (const d of decrementedVariants) {
+      await supabaseAdmin.rpc('increment_variant_stock', { p_variant_id: d.id, p_qty: d.qty })
+    }
+    for (const d of decrementedProducts) {
+      await supabaseAdmin.rpc('increment_product_stock', { p_product_id: d.id, p_qty: d.qty })
+    }
+  }
+
+  for (const i of variantItems) {
+    const { data: newStock, error: decErr } = await supabaseAdmin
+      .rpc('decrement_variant_stock', { p_variant_id: i.variant_id, p_qty: i.quantity })
+    if (decErr || newStock == null) {
+      await rollbackDecrements()
+      const label = i.variant_label ? ` (${i.variant_label})` : ''
+      return NextResponse.json({ error: `"${i.product_name}"${label} vừa hết hàng, vui lòng thử lại` }, { status: 400 })
+    }
+    decrementedVariants.push({ id: i.variant_id!, qty: i.quantity })
+  }
+
+  for (const [productId, needed] of Object.entries(neededByProduct)) {
+    if (!(productId in productStockMap)) continue
+    const { data: newStock, error: decErr } = await supabaseAdmin
+      .rpc('decrement_product_stock', { p_product_id: productId, p_qty: needed })
+    if (decErr || newStock == null) {
+      await rollbackDecrements()
+      const item = noVariantItems.find(i => i.product_id === productId)
+      return NextResponse.json({ error: `"${item?.product_name}" vừa hết hàng, vui lòng thử lại` }, { status: 400 })
+    }
+    decrementedProducts.push({ id: productId, qty: needed })
+  }
+
   const { data: order, error } = await supabaseAdmin
     .from('orders')
     .insert({
@@ -130,21 +161,9 @@ export async function POST(req: NextRequest) {
     })
     .select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  for (const i of variantItems) {
-    const current = variantStockMap[i.variant_id!] ?? 0
-    await supabaseAdmin.from('product_variants')
-      .update({ stock: Math.max(0, current - i.quantity) })
-      .eq('id', i.variant_id!)
-  }
-
-  for (const [productId, needed] of Object.entries(neededByProduct)) {
-    if (!(productId in productStockMap)) continue
-    const newStock = Math.max(0, productStockMap[productId] - needed)
-    await supabaseAdmin.from('products')
-      .update({ stock: newStock, in_stock: newStock > 0 })
-      .eq('id', productId)
+  if (error) {
+    await rollbackDecrements()
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   await supabaseAdmin.from('order_items').insert(

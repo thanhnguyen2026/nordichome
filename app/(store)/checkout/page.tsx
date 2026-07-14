@@ -22,6 +22,9 @@ export default function CheckoutPage() {
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [nowRef] = useState(() => new Date())
+  // Sinh 1 lần khi vào trang, giữ nguyên qua các lần bấm lại nút đặt hàng —
+  // chống tạo trùng đơn khi double-click hoặc mạng tự động retry request.
+  const [idempotencyKey] = useState(() => crypto.randomUUID())
 
   const [form, setForm] = useState({
     name: '', phone: '', streetAddress: '', note: '',
@@ -41,6 +44,7 @@ export default function CheckoutPage() {
   const [loadingFee,    setLoadingFee]    = useState(false)
 
   const [submitting,    setSubmitting]    = useState(false)
+  const [formError,     setFormError]     = useState('')
   const [orderCode,     setOrderCode]     = useState('')
   const [paidTotal,     setPaidTotal]     = useState(0)
   const [paidMethod,    setPaidMethod]    = useState('')
@@ -189,11 +193,15 @@ export default function CheckoutPage() {
   // ── Submit đơn ──────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
+    if (!form.name.trim() || !form.phone.trim()) {
+      return setFormError('Vui lòng điền đầy đủ họ tên và số điện thoại!')
+    }
     if (!form.province || !form.district || !form.ward || !form.streetAddress) {
-      return alert('Vui lòng điền đầy đủ địa chỉ!')
+      return setFormError('Vui lòng điền đầy đủ địa chỉ!')
     }
     if (!hasBulky && shippingFee === null) {
-      return alert('Vui lòng chờ hệ thống tính phí vận chuyển!')
+      return setFormError('Vui lòng chờ hệ thống tính phí vận chuyển!')
     }
     setSubmitting(true)
 
@@ -214,6 +222,7 @@ export default function CheckoutPage() {
         shipping_zone:    form.province,
         total_weight:     totalWeight,
         coupon_code:      appliedCoupon?.code ?? null,
+        idempotency_key:  idempotencyKey,
         items: items.map(i => ({
           product_id:         i.product.id,
           product_name:       i.product.name,
@@ -274,7 +283,7 @@ export default function CheckoutPage() {
       setOrderCode(data.order_code)
       clearCart()
     } else {
-      alert('Có lỗi: ' + (data.error || 'Vui lòng thử lại'))
+      setFormError(data.error || 'Có lỗi xảy ra, vui lòng thử lại')
     }
   }
 
@@ -692,14 +701,22 @@ export default function CheckoutPage() {
               )}
             </div>
           ) : (
-            <button type="submit"
-              disabled={submitting || loadingFee || shippingFee === null}
-              className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-lg text-sm hover:bg-stone-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-              {submitting  ? <><Loader2 size={16} className="animate-spin" /> Đang xử lý...</>
-              : loadingFee ? <><Loader2 size={16} className="animate-spin" /> Đang tính phí ship...</>
-              : shippingFee === null ? 'Chọn địa chỉ để tính phí ship'
-                                     : '✅ Xác nhận đặt hàng'}
-            </button>
+            <div className="space-y-2">
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
+                  <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                  <span>{formError}</span>
+                </div>
+              )}
+              <button type="submit"
+                disabled={submitting || loadingFee || shippingFee === null}
+                className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-lg text-sm hover:bg-stone-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                {submitting  ? <><Loader2 size={16} className="animate-spin" /> Đang xử lý...</>
+                : loadingFee ? <><Loader2 size={16} className="animate-spin" /> Đang tính phí ship...</>
+                : shippingFee === null ? 'Chọn địa chỉ để tính phí ship'
+                                       : '✅ Xác nhận đặt hàng'}
+              </button>
+            </div>
           )}
 
         </form>

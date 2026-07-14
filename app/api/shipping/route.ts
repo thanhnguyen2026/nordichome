@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     const res = await fetch(
       `https://services.giaohangtietkiem.vn/services/shipment/fee?${params}`,
-      { headers, cache: 'no-store' }
+      { headers, cache: 'no-store', signal: AbortSignal.timeout(10_000) }
     )
     const data = await res.json()
 

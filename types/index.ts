@@ -227,6 +227,9 @@ export interface CreateOrderPayload {
   total_weight?: number
   items: CreateOrderItem[]
   coupon_code?: string | null
+  // Sinh 1 lần lúc vào trang checkout, giữ nguyên qua các lần submit lại —
+  // chống tạo trùng đơn khi double-click hoặc mạng tự động retry request.
+  idempotency_key?: string
 }
 
 export type OrderStatus = Order['status']

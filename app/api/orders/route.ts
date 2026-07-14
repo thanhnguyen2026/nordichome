@@ -14,11 +14,24 @@ export async function POST(req: NextRequest) {
     customer_district, customer_ward,
     customer_note, payment_method, items,
     shipping_fee = 0, shipping_zone = '', total_weight = 0,
-    coupon_code,
+    coupon_code, idempotency_key,
   } = body
 
   if (!customer_name || !customer_phone || !customer_address || !items?.length) {
     return NextResponse.json({ error: 'Thiếu thông tin' }, { status: 400 })
+  }
+
+  // Double-click / mạng tự retry gửi lại đúng khoá này — trả về đơn đã tạo
+  // thay vì tạo mới và trừ kho/coupon thêm lần nữa.
+  if (idempotency_key) {
+    const { data: existing } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_code')
+      .eq('idempotency_key', idempotency_key)
+      .maybeSingle()
+    if (existing) {
+      return NextResponse.json({ order_code: existing.order_code, id: existing.id })
+    }
   }
 
   // Hàng đặt trước chưa về kho nên không có số tồn kho thật — bỏ qua toàn bộ
@@ -148,6 +161,60 @@ export async function POST(req: NextRequest) {
   // Profit = doanh thu - giá vốn (ship do khách trả cho GHTK, không tính vào P&L)
   const profit = revenue - cost
 
+  // Trừ tồn kho + cộng lượt dùng mã qua RPC nguyên tử TRƯỚC khi tạo đơn — mỗi
+  // RPC chỉ ghi nếu điều kiện (đủ hàng/chưa hết lượt) còn đúng tại thời điểm
+  // ghi, tránh bán vượt tồn kho hoặc vượt usage_limit khi nhiều đơn cùng
+  // tranh giành. Pre-check ở trên chỉ để báo lỗi thân thiện ở trường hợp
+  // thường gặp (không có đua tranh); RPC ở đây mới là chốt chặn thật.
+  const decrementedVariants: { id: string; qty: number }[] = []
+  const decrementedProducts: { id: string; qty: number }[] = []
+  let couponIncremented = false
+
+  const rollbackDecrements = async () => {
+    for (const d of decrementedVariants) {
+      await supabaseAdmin.rpc('increment_variant_stock', { p_variant_id: d.id, p_qty: d.qty })
+    }
+    for (const d of decrementedProducts) {
+      await supabaseAdmin.rpc('increment_product_stock', { p_product_id: d.id, p_qty: d.qty })
+    }
+    if (couponIncremented && appliedCoupon) {
+      await supabaseAdmin.rpc('decrement_coupon_usage', { p_coupon_id: appliedCoupon.id })
+    }
+  }
+
+  for (const i of variantItems) {
+    const { data: newStock, error: decErr } = await supabaseAdmin
+      .rpc('decrement_variant_stock', { p_variant_id: i.variant_id, p_qty: i.quantity })
+    if (decErr || newStock == null) {
+      await rollbackDecrements()
+      const label = i.variant_label ? ` (${i.variant_label})` : ''
+      return NextResponse.json({ error: `"${i.product_name}"${label} vừa hết hàng, vui lòng thử lại` }, { status: 400 })
+    }
+    decrementedVariants.push({ id: i.variant_id!, qty: i.quantity })
+  }
+
+  for (const [productId, needed] of Object.entries(neededByProduct)) {
+    if (!(productId in productStockMap)) continue
+    const { data: newStock, error: decErr } = await supabaseAdmin
+      .rpc('decrement_product_stock', { p_product_id: productId, p_qty: needed })
+    if (decErr || newStock == null) {
+      await rollbackDecrements()
+      const item = noVariantItems.find(i => i.product_id === productId)
+      return NextResponse.json({ error: `"${item?.product_name}" vừa hết hàng, vui lòng thử lại` }, { status: 400 })
+    }
+    decrementedProducts.push({ id: productId, qty: needed })
+  }
+
+  if (appliedCoupon) {
+    const { data: newUsed, error: couponErr } = await supabaseAdmin
+      .rpc('increment_coupon_usage', { p_coupon_id: appliedCoupon.id, p_limit: appliedCoupon.usage_limit })
+    if (couponErr || newUsed == null) {
+      await rollbackDecrements()
+      return NextResponse.json({ error: 'Mã giảm giá vừa hết lượt sử dụng, vui lòng bỏ mã và thử lại' }, { status: 400 })
+    }
+    couponIncremented = true
+  }
+
   const { data: order, error } = await supabaseAdmin
     .from('orders')
     .insert({
@@ -159,35 +226,20 @@ export async function POST(req: NextRequest) {
       revenue, cost, profit,
       coupon_code: appliedCoupon?.code ?? null,
       discount_amount,
+      idempotency_key: idempotency_key || null,
     })
     .select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Cộng lượt dùng mã — không tuyệt đối atomic dưới tải đồng thời cao, nhưng
-  // đủ dùng ở quy mô hiện tại (không có race condition thực tế đáng lo)
-  if (appliedCoupon) {
-    await supabaseAdmin.from('coupons')
-      .update({ used_count: appliedCoupon.used_count + 1 })
-      .eq('id', appliedCoupon.id)
-  }
-
-  // Trừ tồn kho biến thể đã đặt (không atomic, cùng mức chấp nhận rủi ro như used_count ở trên)
-  for (const i of variantItems) {
-    const current = variantStockMap[i.variant_id!] ?? 0
-    await supabaseAdmin.from('product_variants')
-      .update({ stock: Math.max(0, current - i.quantity) })
-      .eq('id', i.variant_id!)
-  }
-
-  // Trừ tồn kho cấp sản phẩm (không biến thể, có theo dõi số lượng) — in_stock
-  // tự suy ra từ số còn lại, không cần admin bật/tắt tay nữa.
-  for (const [productId, needed] of Object.entries(neededByProduct)) {
-    if (!(productId in productStockMap)) continue
-    const newStock = Math.max(0, productStockMap[productId] - needed)
-    await supabaseAdmin.from('products')
-      .update({ stock: newStock, in_stock: newStock > 0 })
-      .eq('id', productId)
+  if (error) {
+    await rollbackDecrements()
+    // Request khác với cùng idempotency_key đã tạo đơn trước — trả về đơn đó
+    // thay vì báo lỗi, thay vì tạo đơn thứ 2.
+    if (idempotency_key && error.code === '23505') {
+      const { data: existing } = await supabaseAdmin
+        .from('orders').select('id, order_code').eq('idempotency_key', idempotency_key).maybeSingle()
+      if (existing) return NextResponse.json({ order_code: existing.order_code, id: existing.id })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   // Lưu order_items kèm variant info (server-side only)
