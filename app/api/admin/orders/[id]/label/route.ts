@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getAdminUser } from '@/lib/adminAuth'
 
 // Lấy đúng file nhãn PDF gốc do GHTK phát hành cho mã vận đơn của đơn này —
 // admin mở tab mới rồi in thẳng từ trình xem PDF, giống hệt phiếu in tại
 // bưu cục GHTK. Phải proxy qua server vì GHTK yêu cầu header Token mà
 // trình duyệt không gắn được khi mở link trực tiếp.
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAdminUser(req)
+  if (!user) return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 })
+
   const { id } = await params
   const token = process.env.GHTK_TOKEN
   if (!token) {
@@ -24,7 +28,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // page_size=A6 — khổ nhãn nhỏ tiêu chuẩn để cắt dán lên gói hàng.
   const res = await fetch(
     `https://services.giaohangtietkiem.vn/services/label/${encodeURIComponent(order.tracking_code)}?page_size=A6`,
-    { headers, cache: 'no-store' }
+    { headers, cache: 'no-store', signal: AbortSignal.timeout(15_000) }
   )
 
   if (!res.ok) {

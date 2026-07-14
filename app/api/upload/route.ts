@@ -1,16 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getAdminUser } from '@/lib/adminAuth'
 
 // Ảnh gốc từ điện thoại/máy ảnh thường 10-20MB, khiến next/image optimizer
 // timeout ngẫu nhiên (500) khi resize lúc runtime. Nén ngay lúc upload để
 // tránh lặp lại vấn đề này với mọi ảnh admin thêm sau này.
 const MAX_DIMENSION = 2000
+const MAX_FILE_SIZE = 20 * 1024 * 1024
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
 
 export async function POST(req: NextRequest) {
+  const user = await getAdminUser(req)
+  if (!user) return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 })
+
   const formData = await req.formData()
   const file = formData.get('file') as File
   if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
+
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json({ error: 'File quá lớn (tối đa 20MB)' }, { status: 400 })
+  }
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return NextResponse.json({ error: 'Định dạng file không được hỗ trợ' }, { status: 400 })
+  }
 
   const inputBuffer = Buffer.from(await file.arrayBuffer())
   const isImage = file.type.startsWith('image/')

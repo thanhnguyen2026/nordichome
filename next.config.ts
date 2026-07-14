@@ -14,6 +14,22 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "upload.wikimedia.org" }, // icon mặc định cho kênh mạng xã hội
     ],
   },
+  // Header bảo mật cơ bản chống clickjacking/MIME-sniffing. Không thêm CSP ở
+  // đây vì trang dùng Facebook Pixel/Messenger, Google Analytics và các
+  // script inline — cần audit riêng từng nguồn trước khi bật CSP kẻo gãy.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

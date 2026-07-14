@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getAdminUser } from '@/lib/adminAuth'
 
 // Hủy vận đơn thật bên GHTK khi admin hủy đơn trong hệ thống — tránh quên
 // hủy bên GHTK khiến shipper vẫn đi giao đơn đã hủy. GHTK chỉ cho hủy khi
 // đơn còn ở trạng thái chưa lấy/đã lấy/đang lấy hàng (không hủy được nếu
 // đã bắt đầu giao), nên lỗi ở đây không nên chặn việc hủy đơn nội bộ.
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAdminUser(req)
+  if (!user) return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 })
+
   const { id } = await params
   const token = process.env.GHTK_TOKEN
   if (!token) {
@@ -24,7 +28,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   try {
     const res = await fetch(
       `https://services.giaohangtietkiem.vn/services/shipment/cancel/${encodeURIComponent(order.tracking_code)}`,
-      { method: 'POST', headers, cache: 'no-store' }
+      { method: 'POST', headers, cache: 'no-store', signal: AbortSignal.timeout(10_000) }
     )
     const data = await res.json()
 

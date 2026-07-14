@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getAdminUser } from '@/lib/adminAuth'
 
 const PICK_PROVINCE = process.env.GHTK_PICK_PROVINCE || 'Hồ Chí Minh'
 const PICK_DISTRICT = process.env.GHTK_PICK_DISTRICT || 'Quận Phú Nhuận'
@@ -13,6 +14,9 @@ const PICK_TEL         = process.env.GHTK_PICK_TEL
 // customer_district/customer_ward (đơn tạo từ sau khi thêm 2 cột này —
 // đơn cũ vẫn phải nhập mã tay như trước).
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAdminUser(req)
+  if (!user) return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 })
+
   const { id } = await params
   const body = await req.json().catch(() => ({}))
   const pickOption = body.pickOption === 'post' ? 'post' : 'cod'
@@ -107,6 +111,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       headers,
       body: JSON.stringify(payload),
       cache: 'no-store',
+      signal: AbortSignal.timeout(15_000),
     })
     const data = await res.json()
 

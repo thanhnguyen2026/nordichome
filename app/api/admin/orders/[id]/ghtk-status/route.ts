@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getAdminUser } from '@/lib/adminAuth'
 
 // Tra cứu trạng thái vận đơn thật bên GHTK (đã lấy hàng/đang giao/đã giao...)
 // — admin bấm thủ công để kiểm tra, không tự động đổi status nội bộ (tránh
 // map sai trạng thái GHTK sang trạng thái đơn của shop).
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAdminUser(req)
+  if (!user) return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 })
+
   const { id } = await params
   const token = process.env.GHTK_TOKEN
   if (!token) {
@@ -23,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const res = await fetch(
       `https://services.giaohangtietkiem.vn/services/shipment/v2/${encodeURIComponent(order.tracking_code)}`,
-      { headers, cache: 'no-store' }
+      { headers, cache: 'no-store', signal: AbortSignal.timeout(10_000) }
     )
     const data = await res.json()
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { checkCoupon } from '@/lib/coupon'
 import { hasCampaignFor } from '@/lib/campaignPrice'
+import { getClientIp, rateLimit } from '@/lib/rateLimit'
 import type { Coupon, Campaign } from '@/types'
 
 // Endpoint riêng cho khách xem trước mức giảm lúc nhập mã ở checkout — không
@@ -9,6 +10,11 @@ import type { Coupon, Campaign } from '@/types'
 // lộ toàn bộ danh sách mã đang có. Đơn hàng vẫn re-validate lại ở /api/orders
 // vì subtotal có thể đổi giữa lúc áp mã và lúc bấm đặt hàng.
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  if (!rateLimit(`coupon-validate:${ip}`, 20, 60_000)) {
+    return NextResponse.json({ error: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút' }, { status: 429 })
+  }
+
   const { code, subtotal, product_ids } = await req.json()
 
   if (!code || typeof subtotal !== 'number') {
