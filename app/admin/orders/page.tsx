@@ -121,28 +121,31 @@ export default function AdminOrders() {
   const toggleExpand = async (id: string) => {
     if (expanded === id) { setExpanded(null); return }
     setExpanded(id)
-    if (!items[id]) {
-      setLoadingItems(id)
-      const { data, error } = await supabase
-        .from('order_items')
-        .select('id, product_id, product_name, product_image, price, quantity, origin_url, variant_id, variant_label, purchase_status, ordered_at, arrived_at, taobao_tracking_code')
-        .eq('order_id', id)
-      if (error) console.error('Lỗi tải sản phẩm đơn hàng:', error)
-      const rows = (data as unknown as OrderItem[]) || []
 
-      // Tra sống link Taobao theo sản phẩm bằng query riêng (không join) — đơn
-      // giản, tránh mọi rủi ro Postgrest không resolve được quan hệ embedded.
-      const productIds = Array.from(new Set(rows.map(r => r.product_id).filter((v): v is string => !!v)))
-      if (productIds.length > 0) {
-        const { data: prods, error: prodErr } = await supabase.from('products').select('id, origin_url').in('id', productIds)
-        if (prodErr) console.error('Lỗi tra link Taobao:', prodErr)
-        const originMap = new Map((prods || []).map(p => [p.id, p.origin_url as string | null]))
-        rows.forEach(r => { if (r.product_id) r.product = { origin_url: originMap.get(r.product_id) ?? null } })
-      }
+    // Luôn gọi lại API mỗi lần mở "Chi tiết" thay vì cache theo items[id] —
+    // mảng rỗng [] vẫn là giá trị "truthy" trong JS, nên nếu 1 lần lỡ fetch
+    // lỗi/rỗng (mất mạng, lỗi tạm thời...) thì trước đây sẽ kẹt vĩnh viễn ở
+    // trạng thái rỗng cho đơn đó, phải tải lại cả trang mới hết.
+    setLoadingItems(id)
+    const { data, error } = await supabase
+      .from('order_items')
+      .select('id, product_id, product_name, product_image, price, quantity, origin_url, variant_id, variant_label, purchase_status, ordered_at, arrived_at, taobao_tracking_code')
+      .eq('order_id', id)
+    if (error) { console.error('Lỗi tải sản phẩm đơn hàng:', error); showToast('Lỗi tải sản phẩm, vui lòng thử lại') }
+    const rows = (data as unknown as OrderItem[]) || []
 
-      setItems(prev => ({ ...prev, [id]: rows }))
-      setLoadingItems(null)
+    // Tra sống link Taobao theo sản phẩm bằng query riêng (không join) — đơn
+    // giản, tránh mọi rủi ro Postgrest không resolve được quan hệ embedded.
+    const productIds = Array.from(new Set(rows.map(r => r.product_id).filter((v): v is string => !!v)))
+    if (productIds.length > 0) {
+      const { data: prods, error: prodErr } = await supabase.from('products').select('id, origin_url').in('id', productIds)
+      if (prodErr) console.error('Lỗi tra link Taobao:', prodErr)
+      const originMap = new Map((prods || []).map(p => [p.id, p.origin_url as string | null]))
+      rows.forEach(r => { if (r.product_id) r.product = { origin_url: originMap.get(r.product_id) ?? null } })
     }
+
+    setItems(prev => ({ ...prev, [id]: rows }))
+    setLoadingItems(null)
   }
 
   // Cộng lại đúng số lượng đã trừ — cho cả biến thể lẫn sản phẩm không biến
