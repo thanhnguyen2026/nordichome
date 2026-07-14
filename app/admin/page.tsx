@@ -57,7 +57,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-stone-100">
+      <div className="bg-white rounded-2xl px-2 py-4 md:p-6 shadow-sm border border-stone-100">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-sm">Đơn hàng gần đây</h2>
           <a href="/admin/orders" className="text-xs text-amber-700 font-semibold hover:underline">Xem tất cả →</a>
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
         ) : recentOrders.length === 0 ? (
           <div className="text-center py-8 text-stone-400 text-sm">Chưa có đơn hàng nào</div>
         ) : (
-          <div className="bg-stone-100 md:bg-transparent rounded-xl px-1.5 py-2 md:p-0">
+          <div className="bg-stone-100 md:bg-transparent rounded-xl px-1 py-2 md:p-0">
           <table className="w-full text-sm block md:table">
             <thead className="hidden md:table-header-group">
               <tr className="border-b border-stone-100">
@@ -79,29 +79,29 @@ export default function AdminDashboard() {
             <tbody className="block md:table-row-group">
               {recentOrders.map(o => (
                 <tr key={o.id} className="block md:table-row mb-3 last:mb-0 md:mb-0 rounded-xl md:rounded-none bg-white md:bg-transparent shadow-sm md:shadow-none border md:border-0 border-stone-200 md:border-b md:border-b-stone-50">
-                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 font-mono text-xs">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2 font-mono text-xs">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Mã đơn</span>
                     {o.order_code}
                   </td>
-                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 font-semibold">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2 font-semibold">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Khách hàng</span>
                     {o.customer_name}
                   </td>
-                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 text-stone-500">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2 text-stone-500">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">SĐT</span>
                     {o.customer_phone}
                   </td>
-                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 font-bold text-amber-700">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2 font-bold text-amber-700">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Tổng tiền</span>
                     {fmt(Number(o.total))}
                   </td>
-                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100">
                       {ORDER_STATUS_LABEL[o.status as keyof typeof ORDER_STATUS_LABEL]}
                     </span>
                   </td>
-                  <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 text-stone-400 text-xs">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2 text-stone-400 text-xs">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Ngày</span>
                     {new Date(o.created_at).toLocaleDateString('vi-VN')}
                   </td>
