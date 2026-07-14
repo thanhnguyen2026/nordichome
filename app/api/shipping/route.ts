@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getClientIp, rateLimit } from '@/lib/rateLimit'
 
 // Địa chỉ kho gửi hàng — đổi theo thực tế
 const PICK_PROVINCE = process.env.GHTK_PICK_PROVINCE || 'Hồ Chí Minh'
 const PICK_DISTRICT = process.env.GHTK_PICK_DISTRICT || 'Quận Phú Nhuận'
 
 export async function POST(req: NextRequest) {
+  // Mỗi lần gọi đều proxy sang API tính phí GHTK (dịch vụ trả phí) — giới hạn
+  // rộng rãi vì checkout gọi lại mỗi khi khách đổi tỉnh/quận/phường.
+  const ip = getClientIp(req.headers)
+  if (!rateLimit(`shipping-fee:${ip}`, 30, 5 * 60_000)) {
+    return NextResponse.json({ error: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút' }, { status: 429 })
+  }
+
   const token = process.env.GHTK_TOKEN
   if (!token) {
     return NextResponse.json({ error: 'Chưa cấu hình GHTK_TOKEN' }, { status: 500 })

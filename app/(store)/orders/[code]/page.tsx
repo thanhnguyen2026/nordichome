@@ -1,8 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 const supabase = supabaseAdmin
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CheckCircle2, Circle, XCircle, Package, MapPin, Phone, CreditCard, ExternalLink } from 'lucide-react'
+import { getClientIp, rateLimit } from '@/lib/rateLimit'
 import type { Order } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +31,20 @@ export default async function OrderDetailPage({
 }) {
   const { code }  = await params
   const { phone } = await searchParams
+
+  // Mã đơn + SĐT là 2 yếu tố xác thực duy nhất cho trang này — giới hạn tần
+  // suất để chặn dò brute-force cặp (mã đơn ngẫu nhiên, SĐT) hàng loạt.
+  const ip = getClientIp(await headers())
+  if (!rateLimit(`order-lookup:${ip}`, 20, 60_000)) {
+    return (
+      <main className="min-h-screen bg-stone-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-stone-500 mb-4">Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút.</p>
+          <Link href="/orders/track" className="text-sm font-bold underline">← Tra cứu lại</Link>
+        </div>
+      </main>
+    )
+  }
 
   if (!phone) {
     return (

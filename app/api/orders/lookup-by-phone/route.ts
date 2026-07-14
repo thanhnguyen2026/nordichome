@@ -6,7 +6,7 @@ import { getClientIp, rateLimit } from '@/lib/rateLimit'
 // thông tin tối thiểu (không có địa chỉ) vì đây là endpoint public không yêu cầu
 // mã đơn để xác thực; muốn xem chi tiết đầy đủ vẫn phải vào đúng mã đơn.
 export async function POST(req: NextRequest) {
-  const ip = getClientIp(req)
+  const ip = getClientIp(req.headers)
   if (!rateLimit(`lookup-phone:${ip}`, 10, 60_000)) {
     return NextResponse.json({ error: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút' }, { status: 429 })
   }

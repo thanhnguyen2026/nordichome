@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   // thử xác thực thật trước, để mật khẩu đúng luôn vào được ngay kể cả đang
   // trong lúc bị tạm khoá do trước đó gõ sai. Chỉ chặn khi xác thực THẤT BẠI
   // và đang bị khoá.
-  const ip = getClientIp(req)
+  const ip = getClientIp(req.headers)
   const wasLocked = isLoginLocked(ip)
 
   const cookiesToSet: { name: string; value: string; options: CookieOptions }[] = []

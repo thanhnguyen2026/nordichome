@@ -1,5 +1,13 @@
 import type { Coupon } from '@/types'
 
+// .ilike() coi %, _ là ký tự đại diện — nếu không escape, khách gửi code
+// dạng "%" hoặc "SALE%" có thể khớp bừa vào 1 mã bất kỳ thay vì đúng y hệt
+// mã đó, lộ ra mã giảm giá không định cho public dùng. Escape \ trước tiên
+// (kẻo bị hiểu là ký tự escape), rồi mới escape % và _.
+export function escapeLikePattern(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+}
+
 export type CouponCheckResult =
   | { ok: true; discount_amount: number }
   | { ok: false; error: string }

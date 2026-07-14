@@ -3,12 +3,21 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendMessengerNotification } from '@/lib/messenger'
 import { sendTelegramNotification, sendLowStockAlert } from '@/lib/telegram'
 import { generateOrderCode } from '@/lib/orderCode'
-import { checkCoupon } from '@/lib/coupon'
+import { checkCoupon, escapeLikePattern } from '@/lib/coupon'
 import { hasCampaignFor } from '@/lib/campaignPrice'
 import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
+import { getClientIp, rateLimit } from '@/lib/rateLimit'
 import { CreateOrderPayload, Coupon, Campaign } from '@/types'
 
 export async function POST(req: NextRequest) {
+  // Endpoint public nhạy cảm nhất (ghi PII, trừ kho/coupon thật, bắn thông
+  // báo ra ngoài) nhưng trước đây không hề giới hạn tần suất — chặn spam đơn
+  // hàng loạt (vd COD phá đơn, rút cạn tồn kho) theo IP.
+  const ip = getClientIp(req.headers)
+  if (!rateLimit(`create-order:${ip}`, 10, 10 * 60_000)) {
+    return NextResponse.json({ error: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút' }, { status: 429 })
+  }
+
   const body: CreateOrderPayload = await req.json()
   const {
     customer_name, customer_phone, customer_address,
@@ -141,7 +150,7 @@ export async function POST(req: NextRequest) {
     const { data: coupon } = await supabaseAdmin
       .from('coupons')
       .select('*')
-      .ilike('code', coupon_code.trim())
+      .ilike('code', escapeLikePattern(coupon_code.trim()))
       .maybeSingle<Coupon>()
 
     if (!coupon) return NextResponse.json({ error: 'Mã giảm giá không tồn tại' }, { status: 400 })

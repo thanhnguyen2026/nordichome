@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { checkCoupon } from './coupon'
+import { checkCoupon, escapeLikePattern } from './coupon'
 import type { Coupon } from '@/types'
 
 const baseCoupon: Coupon = {
@@ -73,5 +73,22 @@ describe('checkCoupon', () => {
   it('cho phép khi đạt đúng đơn tối thiểu', () => {
     const result = checkCoupon({ ...baseCoupon, min_order_amount: 500_000 }, 500_000)
     expect(result.ok).toBe(true)
+  })
+})
+
+describe('escapeLikePattern', () => {
+  it('escape % và _ để không bị hiểu là ký tự đại diện ILIKE', () => {
+    expect(escapeLikePattern('SALE%')).toBe('SALE\\%')
+    expect(escapeLikePattern('SALE_10')).toBe('SALE\\_10')
+    expect(escapeLikePattern('%')).toBe('\\%')
+  })
+
+  it('escape dấu \\ trước, tránh bị hiểu nhầm là ký tự escape', () => {
+    expect(escapeLikePattern('A\\B')).toBe('A\\\\B')
+    expect(escapeLikePattern('A\\%B')).toBe('A\\\\\\%B')
+  })
+
+  it('không đổi chuỗi bình thường không có ký tự đặc biệt', () => {
+    expect(escapeLikePattern('SALE10')).toBe('SALE10')
   })
 })

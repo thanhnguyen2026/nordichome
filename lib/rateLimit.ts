@@ -1,13 +1,14 @@
-import type { NextRequest } from 'next/server'
-
 // Giới hạn tần suất gọi cho các API public không yêu cầu đăng nhập (tra cứu
-// đơn theo SĐT, kiểm tra mã giảm giá) — chặn dò quét/brute-force hàng loạt.
-// Lưu đếm trong bộ nhớ tiến trình (reset khi restart, không chia sẻ giữa
-// nhiều instance) — đủ dùng ở quy mô 1 server hiện tại của shop.
+// đơn theo SĐT, kiểm tra mã giảm giá, tạo đơn...) — chặn dò quét/brute-force
+// hàng loạt. Lưu đếm trong bộ nhớ tiến trình (reset khi restart, không chia
+// sẻ giữa nhiều instance) — đủ dùng ở quy mô 1 server hiện tại của shop.
 const buckets = new Map<string, { count: number; resetAt: number }>()
 
-export function getClientIp(req: NextRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for')
+// Nhận thẳng Headers thay vì NextRequest — dùng được cả trong Route Handler
+// (req.headers) lẫn Server Component (await headers() từ next/headers), vì
+// trang tra cứu đơn hàng theo mã+SĐT là Server Component, không có NextRequest.
+export function getClientIp(headers: Headers): string {
+  const forwarded = headers.get('x-forwarded-for')
   return forwarded?.split(',')[0].trim() || 'unknown'
 }
 
