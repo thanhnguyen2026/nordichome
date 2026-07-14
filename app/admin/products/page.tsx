@@ -343,7 +343,14 @@ export default function AdminProducts() {
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 text-stone-400 text-sm">Không tìm thấy sản phẩm nào khớp bộ lọc.</div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* "Chọn tất cả" chỉ hiện trên mobile — thead (chứa checkbox chọn tất
+                  cả của bảng desktop) bị ẩn hoàn toàn ở layout thẻ xếp dọc */}
+              <label className="md:hidden flex items-center gap-2 px-4 py-3 border-b border-stone-100 text-xs font-semibold text-stone-500 cursor-pointer">
+                <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} className="cursor-pointer" />
+                Chọn tất cả ({filtered.length})
+              </label>
+              <div className="overflow-x-auto bg-stone-100 md:bg-transparent p-3 md:p-0">
                 <table className="w-full text-sm block md:table md:min-w-[760px]">
                   <thead className="hidden md:table-header-group">
                     <tr className="bg-stone-50">
@@ -359,7 +366,7 @@ export default function AdminProducts() {
                     {filtered.map(p => {
                       const status = stockStatus(p)
                       return (
-                        <tr key={p.id} className={`block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 border-stone-100 md:border-t md:border-t-stone-50 ${selected.has(p.id) ? 'bg-amber-50/40' : ''}`}>
+                        <tr key={p.id} className={`block md:table-row mb-3 last:mb-0 md:mb-0 rounded-xl md:rounded-none bg-white md:bg-transparent shadow-sm md:shadow-none border md:border-0 border-stone-200 md:border-t md:border-t-stone-50 ${selected.has(p.id) ? 'bg-amber-50/40' : ''}`}>
                           <td className="hidden md:table-cell py-2 px-4">
                             <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelectOne(p.id)} className="cursor-pointer" />
                           </td>
@@ -434,6 +441,7 @@ export default function AdminProducts() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         </>

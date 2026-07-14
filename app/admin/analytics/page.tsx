@@ -360,7 +360,7 @@ export default function AdminAnalytics() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-stone-400 text-sm">Không có đơn nào trong khoảng thời gian này</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto bg-stone-100 md:bg-transparent p-3 md:p-0">
             <table className="w-full text-sm block md:table md:min-w-[700px]">
               <thead className="hidden md:table-header-group">
                 <tr className="bg-stone-50">
@@ -381,7 +381,7 @@ export default function AdminAnalytics() {
                   }
                   const st = STATUS_MAP[o.status] ?? { label: o.status, cls: 'bg-stone-100 text-stone-600' }
                   return (
-                    <tr key={o.id} className="block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 border-stone-100 md:border-t md:border-t-stone-50 hover:bg-stone-50/50 transition">
+                    <tr key={o.id} className="block md:table-row mb-3 last:mb-0 md:mb-0 rounded-xl md:rounded-none bg-white md:bg-transparent shadow-sm md:shadow-none border md:border-0 border-stone-200 md:border-t md:border-t-stone-50 md:hover:bg-stone-50/50 transition">
                       <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 font-mono text-xs font-bold">
                         <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Mã đơn</span>
                         {o.order_code}
@@ -423,7 +423,7 @@ export default function AdminAnalytics() {
                 })}
               </tbody>
               <tfoot className="block md:table-footer-group">
-                <tr className="flex items-center justify-between md:table-row border-t-2 border-stone-100 bg-stone-50 rounded-xl md:rounded-none px-4 md:px-0">
+                <tr className="flex items-center justify-between md:table-row border-t-2 md:border-stone-100 border-stone-200 bg-white md:bg-stone-50 shadow-sm md:shadow-none rounded-xl md:rounded-none px-4 md:px-0">
                   <td className="hidden md:table-cell" colSpan={3} />
                   <td className="py-3 px-0 md:px-4 text-xs font-bold text-stone-500 uppercase md:hidden">Tổng cộng</td>
                   <td className="hidden md:table-cell py-3 px-4 font-black text-blue-700 whitespace-nowrap">{fmt(stats.revenue)}</td>

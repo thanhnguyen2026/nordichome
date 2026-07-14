@@ -520,7 +520,16 @@ export default function AdminOrders() {
             {orders.length === 0 ? 'Không có đơn nào.' : 'Không tìm thấy đơn nào khớp bộ lọc.'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* "Chọn tất cả" chỉ hiện trên mobile — thead (chứa checkbox chọn tất cả
+              của bảng desktop) bị ẩn hoàn toàn ở layout thẻ xếp dọc */}
+          <label className="md:hidden flex items-center gap-2 px-4 py-3 border-b border-stone-100 text-xs font-semibold text-stone-500 cursor-pointer">
+            <input type="checkbox"
+              checked={selectedIds.size > 0 && selectedIds.size === displayed.length}
+              onChange={toggleSelectAll} />
+            Chọn tất cả ({displayed.length})
+          </label>
+          <div className="overflow-x-auto bg-stone-100 md:bg-transparent p-3 md:p-0">
             <table className="w-full text-sm block md:table md:min-w-[900px]">
               <thead className="hidden md:table-header-group">
                 <tr className="bg-stone-50 border-b border-stone-100">
@@ -542,7 +551,7 @@ export default function AdminOrders() {
 
                   return (
                     <Fragment key={o.id}>
-                      <tr className={`block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 md:border-t border-stone-100 md:border-t-stone-50 transition ${expanded === o.id ? 'bg-stone-50' : 'hover:bg-stone-50/50'} ${isBankUnpaid ? 'border-l-2 border-l-amber-400' : ''}`}>
+                      <tr className={`block md:table-row mb-3 last:mb-0 md:mb-0 rounded-xl md:rounded-none bg-white md:bg-transparent shadow-sm md:shadow-none border md:border-0 md:border-t border-stone-200 md:border-t-stone-50 transition ${expanded === o.id ? 'bg-stone-50' : 'md:hover:bg-stone-50/50'} ${isBankUnpaid ? 'border-l-2 border-l-amber-400' : ''}`}>
                         <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 md:w-8">
                           <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Chọn</span>
                           <input type="checkbox" checked={selectedIds.has(o.id)} onChange={() => toggleSelect(o.id)} />
@@ -657,8 +666,8 @@ export default function AdminOrders() {
                       </tr>
 
                       {expanded === o.id && (
-                        <tr className="block md:table-row -mt-3 md:mt-0 mb-3 md:mb-0 border-t border-stone-100">
-                          <td colSpan={9} className="block md:table-cell px-4 py-5 bg-stone-50/80">
+                        <tr className="block md:table-row -mt-3 md:mt-0 mb-3 md:mb-0 rounded-b-xl md:rounded-none border md:border-0 md:border-t border-x border-b border-stone-200 md:border-t-stone-100 border-t-0 shadow-sm md:shadow-none">
+                          <td colSpan={9} className="block md:table-cell px-4 py-5 bg-stone-50 md:bg-stone-50/80 rounded-b-xl md:rounded-none">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <div>
                                 <div className="font-semibold text-xs uppercase tracking-wide text-stone-400 mb-2">📍 Giao hàng</div>
@@ -849,6 +858,7 @@ export default function AdminOrders() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </AdminLayout>

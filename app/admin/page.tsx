@@ -67,6 +67,7 @@ export default function AdminDashboard() {
         ) : recentOrders.length === 0 ? (
           <div className="text-center py-8 text-stone-400 text-sm">Chưa có đơn hàng nào</div>
         ) : (
+          <div className="bg-stone-100 md:bg-transparent rounded-xl p-3 md:p-0 -mx-1 md:mx-0">
           <table className="w-full text-sm block md:table">
             <thead className="hidden md:table-header-group">
               <tr className="border-b border-stone-100">
@@ -77,7 +78,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody className="block md:table-row-group">
               {recentOrders.map(o => (
-                <tr key={o.id} className="block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 border-stone-100 md:border-b md:border-b-stone-50">
+                <tr key={o.id} className="block md:table-row mb-3 last:mb-0 md:mb-0 rounded-xl md:rounded-none bg-white md:bg-transparent shadow-sm md:shadow-none border md:border-0 border-stone-200 md:border-b md:border-b-stone-50">
                   <td className="flex items-center justify-between md:table-cell py-2 px-3 md:py-2.5 md:px-2 font-mono text-xs">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Mã đơn</span>
                     {o.order_code}
@@ -108,6 +109,7 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </AdminLayout>
