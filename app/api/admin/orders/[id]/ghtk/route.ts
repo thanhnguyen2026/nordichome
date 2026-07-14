@@ -14,6 +14,8 @@ const PICK_TEL         = process.env.GHTK_PICK_TEL
 // đơn cũ vẫn phải nhập mã tay như trước).
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const body = await req.json().catch(() => ({}))
+  const pickOption = body.pickOption === 'post' ? 'post' : 'cod'
   const token = process.env.GHTK_TOKEN
   if (!token) {
     return NextResponse.json({ error: 'Chưa cấu hình GHTK_TOKEN' }, { status: 500 })
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       note: order.customer_note || '',
       value: Math.round(order.total),
       transport: 'road',
-      pick_option: 'cod',
+      pick_option: pickOption,
     },
   }
 

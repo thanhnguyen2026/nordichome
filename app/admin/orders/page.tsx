@@ -80,6 +80,8 @@ export default function AdminOrders() {
   const [copiedId, setCopiedId]     = useState<string | null>(null)
   const [showManualForm, setShowManualForm] = useState(false)
   const [creatingGhtkId, setCreatingGhtkId] = useState<string | null>(null)
+  // Đơn nào được tick "tự mang ra bưu cục" — mặc định không tick = GHTK cử người đến lấy tại kho.
+  const [dropOffIds, setDropOffIds] = useState<Set<string>>(new Set())
   const [syncingGhtkId, setSyncingGhtkId] = useState<string | null>(null)
 
   const load = async () => {
@@ -237,7 +239,12 @@ export default function AdminOrders() {
   const createGhtkOrder = async (o: Order) => {
     setCreatingGhtkId(o.id)
     try {
-      const res = await fetch(`/api/admin/orders/${o.id}/ghtk`, { method: 'POST' })
+      const pickOption = dropOffIds.has(o.id) ? 'post' : 'cod'
+      const res = await fetch(`/api/admin/orders/${o.id}/ghtk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pickOption }),
+      })
       const data = await res.json()
       if (!res.ok) {
         alert(data.error || 'Không tạo được đơn GHTK')
@@ -585,6 +592,20 @@ export default function AdminOrders() {
                                       </a>
                                     )}
                                   </div>
+                                  {!o.tracking_code && (
+                                    <label className="flex items-center gap-1.5 mt-2 text-xs text-stone-500 cursor-pointer select-none">
+                                      <input
+                                        type="checkbox"
+                                        checked={dropOffIds.has(o.id)}
+                                        onChange={e => setDropOffIds(prev => {
+                                          const next = new Set(prev)
+                                          if (e.target.checked) next.add(o.id); else next.delete(o.id)
+                                          return next
+                                        })}
+                                      />
+                                      Tự mang ra bưu cục GHTK (bỏ trống = GHTK đến lấy tại kho)
+                                    </label>
+                                  )}
                                   <div className="flex gap-2 mt-2">
                                     {!o.tracking_code && (
                                       <button onClick={() => createGhtkOrder(o)}
