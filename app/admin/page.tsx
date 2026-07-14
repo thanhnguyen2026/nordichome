@@ -67,7 +67,7 @@ export default function AdminDashboard() {
         ) : recentOrders.length === 0 ? (
           <div className="text-center py-8 text-stone-400 text-sm">Chưa có đơn hàng nào</div>
         ) : (
-          <div className="bg-stone-100 md:bg-transparent rounded-xl p-3 md:p-0 -mx-1 md:mx-0">
+          <div className="bg-stone-100 md:bg-transparent rounded-xl px-1.5 py-2 md:p-0">
           <table className="w-full text-sm block md:table">
             <thead className="hidden md:table-header-group">
               <tr className="border-b border-stone-100">

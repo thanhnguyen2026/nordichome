@@ -360,7 +360,7 @@ export default function AdminAnalytics() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-stone-400 text-sm">Không có đơn nào trong khoảng thời gian này</div>
         ) : (
-          <div className="overflow-x-auto bg-stone-100 md:bg-transparent p-3 md:p-0">
+          <div className="overflow-x-auto bg-stone-100 md:bg-transparent px-1.5 py-2 md:p-0">
             <table className="w-full text-sm block md:table md:min-w-[700px]">
               <thead className="hidden md:table-header-group">
                 <tr className="bg-stone-50">

@@ -350,7 +350,7 @@ export default function AdminProducts() {
                 <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} className="cursor-pointer" />
                 Chọn tất cả ({filtered.length})
               </label>
-              <div className="overflow-x-auto bg-stone-100 md:bg-transparent p-3 md:p-0">
+              <div className="overflow-x-auto bg-stone-100 md:bg-transparent px-1.5 py-2 md:p-0">
                 <table className="w-full text-sm block md:table md:min-w-[760px]">
                   <thead className="hidden md:table-header-group">
                     <tr className="bg-stone-50">
