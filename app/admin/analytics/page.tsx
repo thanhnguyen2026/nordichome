@@ -2,7 +2,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { TrendingUp, ShoppingBag, Package, BarChart2, ArrowUp, ArrowDown } from 'lucide-react'
+import { TrendingUp, ShoppingBag, Package, BarChart2, ArrowUp, ArrowDown, Trophy } from 'lucide-react'
+import { SALES_CHANNEL_LABEL, SalesChannel } from '@/types'
 
 const fmt  = (n: number) => n.toLocaleString('vi-VN') + '₫'
 const fmtK = (n: number) => n >= 1_000_000
@@ -14,7 +15,14 @@ type Range = 'today' | '7d' | '30d' | 'all'
 interface OrderRow {
   id: string; order_code: string; customer_name: string
   created_at: string; revenue: number; cost: number
-  profit: number; shipping_fee: number; status: string
+  profit: number; shipping_fee: number; status: string; channel: string
+}
+
+interface OrderItemRow {
+  product_name: string
+  quantity: number
+  price: number
+  order: { created_at: string; status: string } | null
 }
 
 function getRangeStart(r: Range): Date | null {
@@ -90,6 +98,7 @@ function BarChart({ data }: { data: { label: string; value: number }[] }) {
 
 export default function AdminAnalytics() {
   const [allOrders, setAllOrders] = useState<OrderRow[]>([])
+  const [orderItems, setOrderItems] = useState<OrderItemRow[]>([])
   const [loading,   setLoading]   = useState(true)
   const [range,     setRange]     = useState<Range>('30d')
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'with_cancelled'>('all')
@@ -97,9 +106,13 @@ export default function AdminAnalytics() {
   useEffect(() => {
     supabase
       .from('orders')
-      .select('id,order_code,customer_name,created_at,revenue,cost,profit,shipping_fee,status')
+      .select('id,order_code,customer_name,created_at,revenue,cost,profit,shipping_fee,status,channel')
       .order('created_at', { ascending: false })
       .then(({ data }) => { setAllOrders(data ?? []); setLoading(false) })
+    supabase
+      .from('order_items')
+      .select('product_name, quantity, price, order:orders(created_at, status)')
+      .then(({ data }) => setOrderItems((data as unknown as OrderItemRow[]) || []))
   }, [])
 
   // Filter by date range
@@ -124,6 +137,40 @@ export default function AdminAnalytics() {
   }), [filtered])
 
   const margin = stats.revenue > 0 ? ((stats.profit / stats.revenue) * 100).toFixed(1) : '0'
+
+  // Doanh thu/số đơn theo kênh bán — cùng bộ lọc thời gian/trạng thái với bảng chính
+  const channelStats = useMemo(() => {
+    const map: Record<string, { orders: number; revenue: number }> = {}
+    filtered.forEach(o => {
+      const key = o.channel || 'website'
+      if (!map[key]) map[key] = { orders: 0, revenue: 0 }
+      map[key].orders += 1
+      map[key].revenue += o.revenue || 0
+    })
+    return Object.entries(map)
+      .map(([channel, v]) => ({ channel, ...v }))
+      .sort((a, b) => b.revenue - a.revenue)
+  }, [filtered])
+
+  // Top sản phẩm bán chạy theo số lượng — lọc theo cùng khoảng thời gian/trạng
+  // thái với bảng đơn hàng chính, dựa trên order_items (product_name lưu sẵn
+  // trên từng dòng, không cần join products).
+  const topProducts = useMemo(() => {
+    const rows = orderItems.filter(i => {
+      if (!i.order) return false
+      if (rangeStart && new Date(i.order.created_at) < rangeStart) return false
+      if (statusFilter === 'completed') return i.order.status === 'completed'
+      if (statusFilter === 'all') return i.order.status !== 'cancelled'
+      return true
+    })
+    const map: Record<string, { name: string; qty: number; revenue: number }> = {}
+    rows.forEach(i => {
+      if (!map[i.product_name]) map[i.product_name] = { name: i.product_name, qty: 0, revenue: 0 }
+      map[i.product_name].qty += i.quantity
+      map[i.product_name].revenue += i.price * i.quantity
+    })
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 10)
+  }, [orderItems, rangeStart, statusFilter])
 
   // Biểu đồ luôn loại bỏ đơn huỷ
   const chartOrders = (rangeStart
@@ -255,6 +302,54 @@ export default function AdminAnalytics() {
         </div>
       )}
 
+      {/* Top sản phẩm bán chạy + theo kênh bán */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold mb-4 flex items-center gap-1.5"><Trophy size={15} className="text-amber-500" /> Sản phẩm bán chạy</h2>
+          {loading ? (
+            <div className="text-center py-6 text-stone-400 text-sm">Đang tải...</div>
+          ) : topProducts.length === 0 ? (
+            <div className="text-center py-6 text-stone-400 text-sm">Chưa có dữ liệu trong khoảng thời gian này</div>
+          ) : (
+            <div className="space-y-2">
+              {topProducts.map((p, i) => (
+                <div key={p.name} className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-black text-stone-300 w-4 flex-shrink-0">{i + 1}</span>
+                    <span className="truncate">{p.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0 text-xs">
+                    <span className="text-stone-400">{p.qty} sp</span>
+                    <span className="font-bold text-blue-700 whitespace-nowrap">{fmt(p.revenue)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold mb-4">📡 Doanh thu theo kênh</h2>
+          {loading ? (
+            <div className="text-center py-6 text-stone-400 text-sm">Đang tải...</div>
+          ) : channelStats.length === 0 ? (
+            <div className="text-center py-6 text-stone-400 text-sm">Chưa có dữ liệu trong khoảng thời gian này</div>
+          ) : (
+            <div className="space-y-2">
+              {channelStats.map(c => (
+                <div key={c.channel} className="flex items-center justify-between gap-3 text-sm">
+                  <span>{SALES_CHANNEL_LABEL[c.channel as SalesChannel] || c.channel}</span>
+                  <div className="flex items-center gap-3 flex-shrink-0 text-xs">
+                    <span className="text-stone-400">{c.orders} đơn</span>
+                    <span className="font-bold text-blue-700 whitespace-nowrap">{fmt(c.revenue)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Bảng đơn hàng */}
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-50 flex items-center justify-between">
@@ -266,15 +361,15 @@ export default function AdminAnalytics() {
           <div className="text-center py-12 text-stone-400 text-sm">Không có đơn nào trong khoảng thời gian này</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>
+            <table className="w-full text-sm block md:table md:min-w-[700px]">
+              <thead className="hidden md:table-header-group">
                 <tr className="bg-stone-50">
                   {['Mã đơn', 'Khách hàng', 'Ngày', 'Doanh thu', 'Giá vốn', 'Ship', 'Lợi nhuận', 'Trạng thái'].map(h => (
                     <th key={h} className="text-left py-3 px-4 text-[11px] uppercase text-stone-400 font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block md:table-row-group">
                 {filtered.map(o => {
                   const isProfit = o.profit >= 0
                   const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -286,23 +381,39 @@ export default function AdminAnalytics() {
                   }
                   const st = STATUS_MAP[o.status] ?? { label: o.status, cls: 'bg-stone-100 text-stone-600' }
                   return (
-                    <tr key={o.id} className="border-t border-stone-50 hover:bg-stone-50/50 transition">
-                      <td className="py-2.5 px-4 font-mono text-xs font-bold">{o.order_code}</td>
-                      <td className="py-2.5 px-4 font-medium max-w-[120px] truncate">{o.customer_name}</td>
-                      <td className="py-2.5 px-4 text-stone-400 text-xs whitespace-nowrap">
+                    <tr key={o.id} className="block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 border-stone-100 md:border-t md:border-t-stone-50 hover:bg-stone-50/50 transition">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 font-mono text-xs font-bold">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Mã đơn</span>
+                        {o.order_code}
+                      </td>
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 font-medium md:max-w-[120px] md:truncate">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Khách hàng</span>
+                        {o.customer_name}
+                      </td>
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 text-stone-400 text-xs md:whitespace-nowrap">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Ngày</span>
                         {new Date(o.created_at).toLocaleDateString('vi-VN')}
                       </td>
-                      <td className="py-2.5 px-4 font-semibold text-blue-700 whitespace-nowrap">{fmt(o.revenue || 0)}</td>
-                      <td className="py-2.5 px-4 text-amber-700 whitespace-nowrap">{fmt(o.cost || 0)}</td>
-                      <td className="py-2.5 px-4 text-stone-500 text-xs whitespace-nowrap">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 font-semibold text-blue-700 md:whitespace-nowrap">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Doanh thu</span>
+                        {fmt(o.revenue || 0)}
+                      </td>
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 text-amber-700 md:whitespace-nowrap">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Giá vốn</span>
+                        {fmt(o.cost || 0)}
+                      </td>
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 text-stone-500 text-xs md:whitespace-nowrap">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Ship</span>
                         {o.shipping_fee > 0 ? fmt(o.shipping_fee) : '—'}
                       </td>
-                      <td className="py-2.5 px-4 whitespace-nowrap">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 md:whitespace-nowrap">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Lợi nhuận</span>
                         <span className={`font-black text-sm ${isProfit ? 'text-green-600' : 'text-red-500'}`}>
                           {isProfit ? '+' : ''}{fmt(o.profit || 0)}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
                         <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap ${st.cls}`}>
                           {st.label}
                         </span>
@@ -311,20 +422,19 @@ export default function AdminAnalytics() {
                   )
                 })}
               </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-stone-100 bg-stone-50">
-                  <td colSpan={3} className="py-3 px-4 text-xs font-bold text-stone-500 uppercase">
-                    Tổng cộng
-                  </td>
-                  <td className="py-3 px-4 font-black text-blue-700 whitespace-nowrap">{fmt(stats.revenue)}</td>
-                  <td className="py-3 px-4 font-black text-amber-700 whitespace-nowrap">{fmt(stats.cost)}</td>
-                  <td />
-                  <td className="py-3 px-4 whitespace-nowrap">
+              <tfoot className="block md:table-footer-group">
+                <tr className="flex items-center justify-between md:table-row border-t-2 border-stone-100 bg-stone-50 rounded-xl md:rounded-none px-4 md:px-0">
+                  <td className="hidden md:table-cell" colSpan={3} />
+                  <td className="py-3 px-0 md:px-4 text-xs font-bold text-stone-500 uppercase md:hidden">Tổng cộng</td>
+                  <td className="hidden md:table-cell py-3 px-4 font-black text-blue-700 whitespace-nowrap">{fmt(stats.revenue)}</td>
+                  <td className="hidden md:table-cell py-3 px-4 font-black text-amber-700 whitespace-nowrap">{fmt(stats.cost)}</td>
+                  <td className="hidden md:table-cell" />
+                  <td className="py-3 px-0 md:px-4 md:whitespace-nowrap">
                     <span className={`font-black text-base ${stats.profit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                       {stats.profit >= 0 ? '+' : ''}{fmt(stats.profit)}
                     </span>
                   </td>
-                  <td />
+                  <td className="hidden md:table-cell" />
                 </tr>
               </tfoot>
             </table>

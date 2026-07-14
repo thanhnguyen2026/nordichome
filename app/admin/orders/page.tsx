@@ -83,6 +83,8 @@ export default function AdminOrders() {
   // Đơn nào được tick "tự mang ra bưu cục" — mặc định không tick = GHTK cử người đến lấy tại kho.
   const [dropOffIds, setDropOffIds] = useState<Set<string>>(new Set())
   const [syncingGhtkId, setSyncingGhtkId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const load = async () => {
     const [{ data: ordersData }, { data: settingsData }] = await Promise.all([
@@ -181,6 +183,42 @@ export default function AdminOrders() {
   const markPaid = async (o: Order) => {
     await supabase.from('orders').update({ payment_status: 'paid', updated_at: new Date().toISOString() }).eq('id', o.id)
     setOrders(prev => prev.map(x => x.id === o.id ? { ...x, payment_status: 'paid' as const } : x))
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev =>
+      prev.size === displayed.length ? new Set() : new Set(displayed.map(o => o.id))
+    )
+  }
+
+  // Đổi trạng thái hàng loạt — không nhận 'cancelled' ở đây vì hủy đơn cần
+  // nhập lý do + số tiền hoàn riêng cho từng đơn (xem updateStatus phía trên).
+  const bulkUpdateStatus = async (status: Exclude<OrderStatus, 'cancelled'>) => {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    setBulkBusy(true)
+    await supabase.from('orders').update({ status, updated_at: new Date().toISOString() }).in('id', ids)
+    setOrders(prev => prev.map(x => ids.includes(x.id) ? { ...x, status } : x))
+    setSelectedIds(new Set())
+    setBulkBusy(false)
+  }
+
+  const bulkMarkPaid = async () => {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    setBulkBusy(true)
+    await supabase.from('orders').update({ payment_status: 'paid', updated_at: new Date().toISOString() }).in('id', ids)
+    setOrders(prev => prev.map(x => ids.includes(x.id) ? { ...x, payment_status: 'paid' as const } : x))
+    setSelectedIds(new Set())
+    setBulkBusy(false)
   }
 
   // Đổi trạng thái tự ghi luôn ngày tương ứng (đỡ phải tự gõ tay mỗi lần),
@@ -447,6 +485,27 @@ export default function AdminOrders() {
         ))}
       </div>
 
+      {/* Toolbar bulk actions — chỉ hiện khi có đơn được chọn */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4 bg-stone-900 text-white rounded-xl px-4 py-2.5">
+          <span className="text-xs font-semibold mr-1">Đã chọn {selectedIds.size} đơn</span>
+          {(['confirmed', 'shipping', 'completed'] as const).map(s => (
+            <button key={s} onClick={() => bulkUpdateStatus(s)} disabled={bulkBusy}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-40">
+              → {ORDER_STATUS_LABEL[s]}
+            </button>
+          ))}
+          <button onClick={bulkMarkPaid} disabled={bulkBusy}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 transition disabled:opacity-40">
+            ✅ Đã nhận tiền
+          </button>
+          <button onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/10 transition ml-auto">
+            Bỏ chọn
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
         {loading ? (
           <div className="text-center py-16 text-stone-400 text-sm">Đang tải...</div>
@@ -456,15 +515,20 @@ export default function AdminOrders() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[900px]">
-              <thead>
+            <table className="w-full text-sm block md:table md:min-w-[900px]">
+              <thead className="hidden md:table-header-group">
                 <tr className="bg-stone-50 border-b border-stone-100">
+                  <th className="text-left py-3 px-4 w-8">
+                    <input type="checkbox" aria-label="Chọn tất cả"
+                      checked={selectedIds.size > 0 && selectedIds.size === displayed.length}
+                      onChange={toggleSelectAll} />
+                  </th>
                   {['Mã đơn', 'Khách hàng', 'SĐT', 'Tổng tiền', 'Thanh toán', 'Trạng thái', 'Ngày', ''].map(h => (
                     <th key={h} className="text-left py-3 px-4 text-[11px] uppercase text-stone-400 font-semibold whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block md:table-row-group">
                 {displayed.map(o => {
                   const payStatus = o.payment_status
                   const isBankUnpaid = o.payment_method === 'bank' && payStatus !== 'paid'
@@ -472,33 +536,50 @@ export default function AdminOrders() {
 
                   return (
                     <Fragment key={o.id}>
-                      <tr className={`border-t border-stone-50 transition ${expanded === o.id ? 'bg-stone-50' : 'hover:bg-stone-50/50'} ${isBankUnpaid ? 'border-l-2 border-l-amber-400' : ''}`}>
-                        <td className="py-3 px-4">
-                          <div className="font-mono text-xs font-bold text-stone-700">{o.order_code}</div>
-                          {o.channel !== 'website' && (
-                            <div className="flex items-center gap-1 text-[10px] bg-stone-100 text-stone-600 border border-stone-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
-                              <ChannelIcon channel={o.channel} size={11} />
-                              {SALES_CHANNEL_LABEL[o.channel] || o.channel}
-                            </div>
-                          )}
-                          {o.coupon_code && (
-                            <div className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
-                              🏷️ {o.coupon_code}
-                            </div>
-                          )}
+                      <tr className={`block md:table-row mb-3 md:mb-0 rounded-xl md:rounded-none border md:border-0 md:border-t border-stone-100 md:border-t-stone-50 transition ${expanded === o.id ? 'bg-stone-50' : 'hover:bg-stone-50/50'} ${isBankUnpaid ? 'border-l-2 border-l-amber-400' : ''}`}>
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 md:w-8">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Chọn</span>
+                          <input type="checkbox" checked={selectedIds.has(o.id)} onChange={() => toggleSelect(o.id)} />
                         </td>
-                        <td className="py-3 px-4 font-semibold">{o.customer_name}</td>
-                        <td className="py-3 px-4 text-stone-500">{o.customer_phone}</td>
-                        <td className="py-3 px-4 font-bold text-amber-700 whitespace-nowrap">
-                          {fmt(o.total)}
-                          {!!o.discount_amount && o.discount_amount > 0 && (
-                            <div className="text-[10px] text-green-600 font-normal">-{fmt(o.discount_amount)}</div>
-                          )}
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Mã đơn</span>
+                          <div className="text-right md:text-left">
+                            <div className="font-mono text-xs font-bold text-stone-700">{o.order_code}</div>
+                            {o.channel !== 'website' && (
+                              <div className="flex items-center gap-1 text-[10px] bg-stone-100 text-stone-600 border border-stone-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1 ml-auto md:ml-0">
+                                <ChannelIcon channel={o.channel} size={11} />
+                                {SALES_CHANNEL_LABEL[o.channel] || o.channel}
+                              </div>
+                            )}
+                            {o.coupon_code && (
+                              <div className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1 ml-auto md:ml-0">
+                                🏷️ {o.coupon_code}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 font-semibold">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Khách hàng</span>
+                          {o.customer_name}
+                        </td>
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 text-stone-500">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">SĐT</span>
+                          {o.customer_phone}
+                        </td>
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 font-bold text-amber-700 md:whitespace-nowrap">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Tổng tiền</span>
+                          <div className="text-right md:text-left">
+                            {fmt(o.total)}
+                            {!!o.discount_amount && o.discount_amount > 0 && (
+                              <div className="text-[10px] text-green-600 font-normal">-{fmt(o.discount_amount)}</div>
+                            )}
+                          </div>
                         </td>
 
                         {/* Thanh toán */}
-                        <td className="py-3 px-4">
-                          <div className="flex flex-col gap-1.5">
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Thanh toán</span>
+                          <div className="flex flex-col items-end md:items-start gap-1.5">
                             {/* Badge phương thức */}
                             <span className="text-xs text-stone-500">
                               {o.payment_method === 'cod' ? '💵 COD' : '🏦 CK'}
@@ -522,7 +603,8 @@ export default function AdminOrders() {
                           </div>
                         </td>
 
-                        <td className="py-3 px-4">
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
                           <select
                             value={o.status}
                             onChange={e => updateStatus(o, e.target.value as OrderStatus)}
@@ -534,11 +616,12 @@ export default function AdminOrders() {
                           </select>
                         </td>
 
-                        <td className="py-3 px-4 text-stone-400 text-xs whitespace-nowrap">
+                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 text-stone-400 text-xs md:whitespace-nowrap">
+                          <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Ngày</span>
                           {new Date(o.created_at).toLocaleDateString('vi-VN')}
                         </td>
 
-                        <td className="py-3 px-4">
+                        <td className="md:table-cell py-2.5 px-4 md:py-3">
                           <div className="flex items-center gap-1.5 justify-end flex-wrap">
                             {/* Nút nhắc khách */}
                             {isBankUnpaid && (
@@ -568,8 +651,8 @@ export default function AdminOrders() {
                       </tr>
 
                       {expanded === o.id && (
-                        <tr className="border-t border-stone-100">
-                          <td colSpan={8} className="px-4 py-5 bg-stone-50/80">
+                        <tr className="block md:table-row -mt-3 md:mt-0 mb-3 md:mb-0 border-t border-stone-100">
+                          <td colSpan={9} className="block md:table-cell px-4 py-5 bg-stone-50/80">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <div>
                                 <div className="font-semibold text-xs uppercase tracking-wide text-stone-400 mb-2">📍 Giao hàng</div>

@@ -8,11 +8,9 @@ import ProductForm from '@/components/admin/ProductForm'
 import { Product, Category, Campaign } from '@/types'
 import { hasCampaignFor } from '@/lib/campaignPrice'
 import type { Variant } from '@/components/admin/VariantsManager'
+import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
-
-// Tổng tồn kho biến thể <= ngưỡng này (nhưng còn hàng) thì cảnh báo "sắp hết"
-const LOW_STOCK_THRESHOLD = 5
 
 type VisibilityFilter = 'all' | 'visible' | 'hidden'
 type StockFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock'
@@ -187,6 +185,49 @@ export default function AdminProducts() {
     load()
   }
 
+  // Đổi giá hàng loạt theo %, áp cho cả giá bán và giá khuyến mãi (nếu có) —
+  // dùng khi tăng/giảm giá đồng loạt 1 đợt (VD: sale toàn shop -10%).
+  const bulkAdjustPrice = async () => {
+    if (selected.size === 0) return
+    const input = prompt('Điều chỉnh giá bao nhiêu %? (VD: 10 = tăng 10%, -10 = giảm 10%)')
+    if (input === null) return
+    const pct = Number(input)
+    if (!pct || Number.isNaN(pct)) return alert('Số % không hợp lệ')
+
+    const targets = products.filter(p => selected.has(p.id))
+    await Promise.all(targets.map(p => {
+      const newPrice = Math.max(0, Math.round(p.price * (1 + pct / 100)))
+      const patch: Partial<Product> = { price: newPrice }
+      if (p.sale_price != null) patch.sale_price = Math.max(0, Math.round(p.sale_price * (1 + pct / 100)))
+      return supabase.from('products').update(patch).eq('id', p.id)
+    }))
+    setSelected(new Set())
+    load()
+  }
+
+  // Cộng/trừ tồn kho hàng loạt — chỉ áp cho sản phẩm KHÔNG biến thể có theo
+  // dõi số lượng (products.stock khác null); sản phẩm có biến thể phải sửa
+  // riêng từng mẫu trong form vì mỗi mẫu tồn kho khác nhau.
+  const bulkAdjustStock = async () => {
+    if (selected.size === 0) return
+    const input = prompt('Cộng/trừ bao nhiêu vào tồn kho? (VD: 10 = cộng thêm 10, -5 = trừ 5)\nChỉ áp dụng cho sản phẩm không biến thể, có theo dõi số lượng.')
+    if (input === null) return
+    const delta = Number(input)
+    if (!delta || Number.isNaN(delta)) return alert('Số lượng không hợp lệ')
+
+    const targets = products.filter(p => selected.has(p.id) && p.stock != null && !variantStockMap[p.id])
+    if (targets.length === 0) {
+      alert('Không có sản phẩm nào trong lựa chọn có theo dõi tồn kho cấp sản phẩm (không biến thể).')
+      return
+    }
+    await Promise.all(targets.map(p => {
+      const newStock = Math.max(0, (p.stock || 0) + delta)
+      return supabase.from('products').update({ stock: newStock, in_stock: newStock > 0 }).eq('id', p.id)
+    }))
+    setSelected(new Set())
+    load()
+  }
+
   return (
     <AdminLayout>
       {showForm ? (
@@ -278,6 +319,8 @@ export default function AdminProducts() {
                 <button onClick={bulkApplyCategory} disabled={!bulkCategory}
                   className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed">Áp dụng</button>
               </div>
+              <button onClick={bulkAdjustPrice} className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">💰 Đổi giá %</button>
+              <button onClick={bulkAdjustStock} className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">📦 Cộng/trừ kho</button>
               <button onClick={bulkDelete} className="text-xs bg-red-500/90 hover:bg-red-500 rounded-lg px-3 py-1.5 transition ml-auto">🗑️ Xoá</button>
               <button onClick={() => setSelected(new Set())} className="text-xs text-white/60 hover:text-white px-2">Bỏ chọn</button>
             </div>
