@@ -67,7 +67,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
           chiều rộng nội dung của thanh trượt ảnh bên trong (ProductGallery dùng
           width tính theo %) thay vì co lại theo khung grid, gây tràn ngang trên mobile */}
       <div className="space-y-4 min-w-0" ref={galleryRef}>
-        <ProductGallery images={displayImages} />
+        <ProductGallery images={displayImages} productName={product.name} />
         {product.video_url && (
           <div>
             <div className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">

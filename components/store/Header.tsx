@@ -2,13 +2,13 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useCartStore } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { soonestEndingCampaign } from '@/lib/campaignPrice'
 import type { Campaign, Category } from '@/types'
-import { Menu, X, ChevronDown, ShoppingCart } from 'lucide-react'
+import { Menu, X, ChevronDown, ShoppingCart, Search } from 'lucide-react'
 
 // Chỉ hiện khi bấm icon giỏ hàng — tải JS khi cần thay vì cộng vào bundle
 // ban đầu của mọi trang (Header nằm ở mọi trang storefront).
@@ -35,7 +35,10 @@ interface Props {
 
 export default function Header({ settings, categories: categoriesProp, campaigns: campaignsProp }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const [showCart, setShowCart] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>(categoriesProp ?? [])
@@ -92,6 +95,14 @@ export default function Header({ settings, categories: categoriesProp, campaigns
       if (data) setCampaigns(data as unknown as Campaign[])
     })
   }, [campaignsProp])
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    if (!q) return
+    router.push(`/products?q=${encodeURIComponent(q)}`)
+    setShowSearch(false)
+  }
 
   return (
     <>
@@ -166,8 +177,16 @@ export default function Header({ settings, categories: categoriesProp, campaigns
             ))}
           </nav>
 
-          {/* Right: cart + hamburger */}
+          {/* Right: search + cart + hamburger */}
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setShowSearch(v => !v)}
+              className="bg-stone-100 hover:bg-stone-200 transition rounded-full w-10 h-10 flex items-center justify-center"
+              aria-label="Tìm kiếm"
+            >
+              <Search size={18} className="text-stone-700" />
+            </button>
+
             <button
               onClick={() => setShowCart(true)}
               className={`relative bg-stone-100 hover:bg-stone-200 transition rounded-full w-10 h-10 flex items-center justify-center ${
@@ -193,6 +212,22 @@ export default function Header({ settings, categories: categoriesProp, campaigns
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
+        </div>
+
+        {/* Thanh tìm kiếm — bung ra khi bấm icon kính lúp, dùng chung cho desktop/mobile */}
+        <div className={`overflow-hidden transition-all duration-200 ease-in-out border-t border-stone-100 ${showSearch ? 'max-h-20' : 'max-h-0 border-t-0'}`}>
+          <form onSubmit={submitSearch} className="max-w-6xl mx-auto px-4 py-3 flex gap-2">
+            <input
+              autoFocus={showSearch}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Tìm sản phẩm... (VD: ghe sofa)"
+              className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400"
+            />
+            <button type="submit" className="bg-stone-900 text-amber-100 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-stone-800 transition">
+              Tìm
+            </button>
+          </form>
         </div>
 
         {/* Mobile menu — accordion */}

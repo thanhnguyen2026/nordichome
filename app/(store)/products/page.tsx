@@ -10,6 +10,7 @@ import type { Product, Campaign } from '@/types'
 import Link from 'next/link'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
 import { getCategoryTree } from '@/lib/categories'
+import { stripDiacritics } from '@/lib/text'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -17,9 +18,10 @@ export const revalidate = 0
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; featured?: string; new?: string; sort?: string }>
+  searchParams: Promise<{ category?: string; featured?: string; new?: string; sort?: string; q?: string }>
 }) {
   const sp = await searchParams
+  const searchQuery = sp.q?.trim() || ''
 
   const [{ data: settings }, { data: categories }, { data: allProds }, { data: variantCounts }, { data: campaignsRaw }, categoryTree] = await Promise.all([
     supabase.from('settings').select('key,value'),
@@ -66,7 +68,10 @@ export default async function ProductsPage({
     .select(`${PUBLIC_PRODUCT_COLUMNS},category:categories(name,slug)`)
     .eq('is_visible', true)
 
-  if (categoryIds.length > 0) {
+  // Tìm kiếm xuyên suốt toàn bộ catalog, bỏ qua bộ lọc danh mục/nổi bật/mới
+  if (searchQuery) {
+    // no-op — không áp thêm điều kiện, lọc theo tên ở JS bên dưới (bỏ dấu)
+  } else if (categoryIds.length > 0) {
     query = query.in('category_id', categoryIds)
   } else if (sp.featured === 'true') {
     query = query.eq('is_featured', true)
@@ -83,15 +88,22 @@ export default async function ProductsPage({
   const { data: productsRaw } = await query
   const productsTyped = productsRaw as unknown as Product[] | null
   // Khuyến mãi đang chạy — trừ sản phẩm đã tự set giá khuyến mãi riêng.
-  const products = productsTyped ? applyCampaignsToProducts(productsTyped, campaigns, new Date()) : null
+  const productsWithCampaigns = productsTyped ? applyCampaignsToProducts(productsTyped, campaigns, new Date()) : null
+  // Tìm không phân biệt dấu tiếng Việt — khách gõ trên điện thoại thường bỏ
+  // dấu, không nên bắt gõ đúng dấu mới ra kết quả (xem lib/text.ts).
+  const products = searchQuery
+    ? (productsWithCampaigns?.filter(p => stripDiacritics(p.name).includes(stripDiacritics(searchQuery))) ?? null)
+    : productsWithCampaigns
 
   // Breadcrumbs
   const parentCat = activeCategory?.parent_id
     ? categories?.find(c => c.id === activeCategory.parent_id)
     : null
 
-  const pageTitle = activeCategory?.name ||
-    (sp.featured ? 'Sản phẩm nổi bật' : sp.new ? 'Hàng mới về' : 'Tất cả sản phẩm')
+  const pageTitle = searchQuery
+    ? `Kết quả tìm kiếm: "${searchQuery}"`
+    : activeCategory?.name ||
+      (sp.featured ? 'Sản phẩm nổi bật' : sp.new ? 'Hàng mới về' : 'Tất cả sản phẩm')
 
   return (
     <>
@@ -159,8 +171,12 @@ export default async function ProductsPage({
           {!products?.length ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <PackageOpen className="w-20 h-20 text-slate-300 mb-4" strokeWidth={1} />
-              <p className="text-stone-600 font-semibold text-base mb-1">Chưa có sản phẩm nào trong danh mục này</p>
-              <p className="text-stone-400 text-sm mb-6">Hãy thử xem các danh mục khác nhé!</p>
+              <p className="text-stone-600 font-semibold text-base mb-1">
+                {searchQuery ? `Không tìm thấy sản phẩm nào khớp với "${searchQuery}"` : 'Chưa có sản phẩm nào trong danh mục này'}
+              </p>
+              <p className="text-stone-400 text-sm mb-6">
+                {searchQuery ? 'Hãy thử từ khoá khác hoặc xem tất cả sản phẩm nhé!' : 'Hãy thử xem các danh mục khác nhé!'}
+              </p>
               <div className="flex gap-3 flex-wrap justify-center">
                 <Link href="/products" className="bg-stone-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-stone-700 transition">
                   Xem tất cả sản phẩm

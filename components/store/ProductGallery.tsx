@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-export default function ProductGallery({ images }: { images: string[] }) {
+export default function ProductGallery({ images, productName }: { images: string[]; productName: string }) {
   const [active, setActive] = useState(0)
 
   // Vuốt tay để chuyển ảnh trên mobile
@@ -149,7 +149,7 @@ export default function ProductGallery({ images }: { images: string[] }) {
                 }
               `}
             >
-              <Image src={img} alt="" fill draggable={false} sizes="68px" className="object-cover" />
+              <Image src={img} alt={`${productName} — ảnh ${i + 1}`} fill draggable={false} sizes="68px" className="object-cover" />
             </button>
           ))}
         </div>
@@ -177,7 +177,7 @@ export default function ProductGallery({ images }: { images: string[] }) {
             <div key={i} className="relative" style={{ width: `${100 / images.length}%`, flexShrink: 0, height: '100%' }}>
               <Image
                 src={img}
-                alt=""
+                alt={images.length > 1 ? `${productName} — ảnh ${i + 1}` : productName}
                 fill
                 draggable={false}
                 sizes="(max-width: 768px) 100vw, 50vw"
