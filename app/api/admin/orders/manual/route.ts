@@ -22,11 +22,15 @@ interface ManualOrderPayload {
   customer_name: string
   customer_phone: string
   customer_address: string
+  customer_district?: string
+  customer_ward?: string
   customer_note: string
   channel: SalesChannel
   payment_method: 'cod' | 'bank'
   payment_status: 'pending' | 'paid'
   shipping_fee?: number
+  shipping_zone?: string
+  total_weight?: number
   items: ManualOrderItem[]
 }
 
@@ -36,8 +40,8 @@ export async function POST(req: NextRequest) {
 
   const body: ManualOrderPayload = await req.json()
   const {
-    customer_name, customer_phone, customer_address, customer_note,
-    channel, payment_method, payment_status, items, shipping_fee = 0,
+    customer_name, customer_phone, customer_address, customer_district, customer_ward, customer_note,
+    channel, payment_method, payment_status, items, shipping_fee = 0, shipping_zone = '', total_weight = 0,
   } = body
 
   if (!customer_name || !customer_phone || !customer_address || !items?.length) {
@@ -164,10 +168,11 @@ export async function POST(req: NextRequest) {
     .from('orders')
     .insert({
       order_code, customer_name, customer_phone,
-      customer_address, customer_note: customer_note || '',
+      customer_address, customer_district: customer_district || null, customer_ward: customer_ward || null,
+      customer_note: customer_note || '',
       payment_method, payment_status,
       subtotal, total, status: 'pending',
-      shipping_fee, channel,
+      shipping_fee, shipping_zone, total_weight, channel,
       revenue, cost, profit,
     })
     .select().single()

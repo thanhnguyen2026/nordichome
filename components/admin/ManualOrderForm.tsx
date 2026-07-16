@@ -1,8 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Product, SalesChannel, SALES_CHANNEL_LABEL } from '@/types'
+import { calcTotalWeight } from '@/lib/shipping'
+import SearchableSelect from '@/components/store/SearchableSelect'
 import ChannelIcon from './ChannelIcon'
+
+interface AddrItem { code: number; name: string }
 
 interface VariantRow {
   id: string
@@ -38,7 +42,7 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
   const [channelMenuOpen, setChannelMenuOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [customerAddress, setCustomerAddress] = useState('')
+  const [streetAddress, setStreetAddress] = useState('')
   const [customerNote, setCustomerNote] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank'>('cod')
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('paid')
@@ -46,6 +50,18 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
   const [rows, setRows] = useState<ItemRow[]>([{ ...emptyItem }])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // Tỉnh/quận/phường — bắt buộc để tạo được vận đơn GHTK tự động (route
+  // /api/admin/orders/[id]/ghtk yêu cầu customer_district/customer_ward),
+  // khác với trước đây chỉ có 1 ô địa chỉ tự do không đủ để gọi GHTK.
+  const [province, setProvince] = useState('')
+  const [district, setDistrict] = useState('')
+  const [ward, setWard] = useState('')
+  const [provinces, setProvinces] = useState<AddrItem[]>([])
+  const [districts, setDistricts] = useState<AddrItem[]>([])
+  const [wards, setWards] = useState<AddrItem[]>([])
+  const [addrLoading, setAddrLoading] = useState<'districts' | 'wards' | null>(null)
+  const [loadingFee, setLoadingFee] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -56,7 +72,80 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
       setVariants((v.data as unknown as VariantRow[]) || [])
       setLoadingProducts(false)
     })
+    fetch('https://provinces.open-api.vn/api/?depth=1')
+      .then(r => r.json())
+      .then(setProvinces)
+      .catch(() => {})
   }, [])
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!province) { setDistricts([]); setWards([]); return }
+    const prov = provinces.find(p => p.name === province)
+    if (!prov) return
+    setAddrLoading('districts')
+    setDistricts([]); setWards([])
+    setDistrict(''); setWard('')
+    fetch(`https://provinces.open-api.vn/api/p/${prov.code}?depth=2`)
+      .then(r => r.json())
+      .then(d => setDistricts(d.districts ?? []))
+      .finally(() => setAddrLoading(null))
+  }, [province, provinces])
+
+  useEffect(() => {
+    if (!district) { setWards([]); return }
+    const dist = districts.find(d => d.name === district)
+    if (!dist) return
+    setAddrLoading('wards')
+    setWards([])
+    setWard('')
+    fetch(`https://provinces.open-api.vn/api/d/${dist.code}?depth=2`)
+      .then(r => r.json())
+      .then(d => setWards(d.wards ?? []))
+      .finally(() => setAddrLoading(null))
+  }, [district, districts])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Gợi ý phí ship thật từ GHTK theo địa chỉ + cân nặng — tránh admin báo giá
+  // ship cho khách thấp hơn phí GHTK thực tế rồi tự bù lỗ phần chênh lệch mà
+  // không biết. Vẫn là input thường nên admin sửa tay được (VD: freeship,
+  // hoặc đã chốt giá khác với khách qua chat).
+  const fetchShippingFee = useCallback(async (prov: string, dist: string, wardName: string) => {
+    const validRows = rows.filter(r => r.product_id)
+    if (validRows.length === 0) return
+    const rowProducts = validRows.map(r => products.find(p => p.id === r.product_id))
+    if (rowProducts.some(p => p?.is_bulky)) return
+
+    const { totalWeight } = calcTotalWeight(validRows.map(r => {
+      const product = products.find(p => p.id === r.product_id)!
+      return {
+        product: { weight: product.weight, is_bulky: product.is_bulky, free_shipping: product.free_shipping },
+        quantity: Math.max(1, Math.round(Number(r.quantity) || 1)),
+      }
+    }))
+    const value = validRows.reduce((s, r) => s + (Number(r.price) || 0) * (Number(r.quantity) || 0), 0)
+
+    setLoadingFee(true)
+    try {
+      const res = await fetch('/api/shipping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ province: prov, district: dist, ward: wardName, weight: totalWeight, value }),
+      })
+      const data = await res.json()
+      if (data.fee !== undefined) setShippingFee(String(data.fee))
+    } catch {
+      // GHTK lỗi/không tính được — im lặng bỏ qua, admin vẫn tự nhập tay được
+    } finally {
+      setLoadingFee(false)
+    }
+  }, [rows, products])
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (ward) fetchShippingFee(province, district, ward)
+  }, [ward, province, district, fetchShippingFee])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const variantsOf = (productId: string) => variants.filter(v => v.product_id === productId)
 
@@ -85,8 +174,12 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
     e.preventDefault()
     setError('')
 
-    if (!customerName || !customerPhone || !customerAddress) {
+    if (!customerName || !customerPhone || !streetAddress) {
       setError('Vui lòng nhập đầy đủ tên, SĐT, địa chỉ khách hàng')
+      return
+    }
+    if (!province || !district || !ward) {
+      setError('Vui lòng chọn đầy đủ tỉnh/thành, quận/huyện, phường/xã')
       return
     }
     const validRows = rows.filter(r => r.product_id)
@@ -113,6 +206,15 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
       }
     })
 
+    const { totalWeight } = calcTotalWeight(validRows.map(r => {
+      const product = products.find(p => p.id === r.product_id)!
+      return {
+        product: { weight: product.weight, is_bulky: product.is_bulky, free_shipping: product.free_shipping },
+        quantity: Math.max(1, Math.round(Number(r.quantity) || 1)),
+      }
+    }))
+    const customerAddress = `${streetAddress}, ${ward}, ${district}, ${province}`
+
     const res = await fetch('/api/admin/orders/manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -120,9 +222,13 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
         customer_name: customerName,
         customer_phone: customerPhone,
         customer_address: customerAddress,
+        customer_district: district,
+        customer_ward: ward,
         customer_note: customerNote,
         channel, payment_method: paymentMethod, payment_status: paymentStatus,
         shipping_fee: Number(shippingFee) || 0,
+        shipping_zone: province,
+        total_weight: totalWeight,
         items,
       }),
     })
@@ -179,9 +285,43 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
               <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" required />
             </div>
-            <div className="col-span-2">
-              <label className="text-xs font-semibold text-stone-500 block mb-1">Địa chỉ *</label>
-              <input value={customerAddress} onChange={e => setCustomerAddress(e.target.value)}
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Tỉnh/Thành *</label>
+              <SearchableSelect
+                value={province}
+                onChange={name => { setProvince(name); setDistrict(''); setWard('') }}
+                options={provinces}
+                placeholder="-- Chọn tỉnh/TP --"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Quận/Huyện *</label>
+              <SearchableSelect
+                value={district}
+                onChange={name => { setDistrict(name); setWard('') }}
+                options={districts}
+                placeholder="-- Chọn quận/huyện --"
+                disabled={!province}
+                loading={addrLoading === 'districts'}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Phường/Xã *</label>
+              <SearchableSelect
+                value={ward}
+                onChange={setWard}
+                options={wards}
+                placeholder="-- Chọn phường/xã --"
+                disabled={!district}
+                loading={addrLoading === 'wards'}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Số nhà, tên đường *</label>
+              <input value={streetAddress} onChange={e => setStreetAddress(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" required />
             </div>
             <div className="col-span-2">
@@ -253,7 +393,9 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-stone-500 block mb-1">Phí ship</label>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">
+                Phí ship{loadingFee && <span className="text-stone-400 font-normal"> — đang tính...</span>}
+              </label>
               <input type="text" inputMode="numeric" value={shippingFee}
                 onChange={e => setShippingFee(e.target.value.replace(/\D/g, ''))}
                 className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
