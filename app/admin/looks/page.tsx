@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, X, ArrowLeft, Eye, EyeOff, Pencil } from 'lucide-react'
+import { Plus, Trash2, X, ArrowLeft, Eye, EyeOff, Pencil, MapPin, Check, MousePointerClick, Save, Upload, Images } from 'lucide-react'
 import { useConfirm } from '@/components/admin/useConfirm'
 import { useToast } from '@/components/admin/useToast'
 
@@ -147,7 +147,7 @@ export default function AdminLooks() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => { setEditing(null); setHotspots([]); setPending(null) }}
-            className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-lg transition"
+            className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-lg transition cursor-pointer"
           >
             <ArrowLeft size={14} /> Quay lại
           </button>
@@ -195,8 +195,9 @@ export default function AdminLooks() {
             </div>
 
             {!pending && (
-              <p className="text-xs text-stone-400 mt-2 text-center">
-                👆 Bấm vào ảnh để đặt điểm — bấm lại vào chỗ trống để huỷ
+              <p className="flex items-center justify-center gap-1.5 text-xs text-stone-400 mt-2 text-center">
+                <MousePointerClick size={12} />
+                Bấm vào ảnh để đặt điểm — bấm lại vào chỗ trống để huỷ
               </p>
             )}
           </div>
@@ -206,7 +207,7 @@ export default function AdminLooks() {
             {/* Pending selector */}
             {pending && (
               <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4">
-                <p className="text-sm font-bold mb-3">📍 Chọn sản phẩm cho điểm này</p>
+                <p className="flex items-center gap-1.5 text-sm font-bold mb-3"><MapPin size={14} /> Chọn sản phẩm cho điểm này</p>
                 <select
                   value={pendingProductId}
                   onChange={e => setPendingProductId(e.target.value)}
@@ -239,13 +240,13 @@ export default function AdminLooks() {
                   <button
                     onClick={handleAddHotspot}
                     disabled={!pendingProductId || saving}
-                    className="flex-1 bg-stone-900 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-stone-800 disabled:opacity-40 transition"
+                    className="flex items-center justify-center gap-1.5 flex-1 bg-stone-900 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-stone-800 disabled:opacity-40 transition cursor-pointer disabled:cursor-not-allowed"
                   >
-                    {saving ? 'Đang lưu...' : '✓ Thêm điểm'}
+                    {saving ? 'Đang lưu...' : <><Check size={14} /> Thêm điểm</>}
                   </button>
                   <button
                     onClick={() => setPending(null)}
-                    className="px-3 bg-stone-100 hover:bg-stone-200 rounded-xl transition"
+                    className="px-3 bg-stone-100 hover:bg-stone-200 rounded-xl transition cursor-pointer"
                   >
                     <X size={16} />
                   </button>
@@ -262,7 +263,7 @@ export default function AdminLooks() {
 
               {hotspots.length === 0 ? (
                 <div className="p-6 text-center">
-                  <p className="text-2xl mb-2">👆</p>
+                  <MousePointerClick size={28} className="mx-auto mb-2 text-stone-300" />
                   <p className="text-xs text-stone-400">Bấm vào ảnh để thêm điểm đầu tiên</p>
                 </div>
               ) : (
@@ -284,7 +285,7 @@ export default function AdminLooks() {
                       </div>
                       <button
                         onClick={() => handleDeleteHotspot(h.id)}
-                        className="text-stone-300 hover:text-red-500 transition flex-shrink-0"
+                        className="text-stone-300 hover:text-red-500 transition flex-shrink-0 cursor-pointer"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -305,13 +306,18 @@ export default function AdminLooks() {
       {ConfirmDialog}
       {Toast}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black mb-1">🖼️ Shop the Look</h1>
-          <p className="text-stone-400 text-sm">Ảnh không gian với điểm sản phẩm tương tác — hiển thị trên trang chủ</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+            <Images size={18} className="text-amber-100" aria-hidden="true" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black leading-tight">Shop the Look</h1>
+            <p className="text-stone-400 text-sm">Ảnh không gian với điểm sản phẩm tương tác — hiển thị trên trang chủ</p>
+          </div>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-stone-900 text-amber-100 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-stone-800 transition"
+          className="flex items-center gap-2 bg-stone-900 text-amber-100 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-stone-800 transition cursor-pointer"
         >
           <Plus size={16} /> Thêm Look
         </button>
@@ -323,7 +329,7 @@ export default function AdminLooks() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-black text-lg">Chỉnh sửa Look</h2>
-              <button onClick={() => setEditingInfo(null)} className="text-stone-400 hover:text-stone-600"><X size={18} /></button>
+              <button onClick={() => setEditingInfo(null)} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
@@ -346,10 +352,10 @@ export default function AdminLooks() {
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={handleSaveInfo} disabled={saving || !editForm.title}
-                className="flex-1 bg-stone-900 text-amber-100 py-3 rounded-xl text-sm font-bold hover:bg-stone-800 disabled:opacity-50 transition">
-                {saving ? 'Đang lưu...' : '💾 Lưu'}
+                className="flex items-center justify-center gap-1.5 flex-1 bg-stone-900 text-amber-100 py-3 rounded-xl text-sm font-bold hover:bg-stone-800 disabled:opacity-50 transition cursor-pointer disabled:cursor-not-allowed">
+                {saving ? 'Đang lưu...' : <><Save size={14} /> Lưu</>}
               </button>
-              <button onClick={() => setEditingInfo(null)} className="px-4 bg-stone-100 hover:bg-stone-200 rounded-xl text-sm font-semibold transition">
+              <button onClick={() => setEditingInfo(null)} className="px-4 bg-stone-100 hover:bg-stone-200 rounded-xl text-sm font-semibold transition cursor-pointer">
                 Huỷ
               </button>
             </div>
@@ -363,7 +369,7 @@ export default function AdminLooks() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-black text-lg">Tạo Look mới</h2>
-              <button onClick={() => setShowCreate(false)} className="text-stone-400 hover:text-stone-600">
+              <button onClick={() => setShowCreate(false)} className="text-stone-400 hover:text-stone-600 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
@@ -390,8 +396,8 @@ export default function AdminLooks() {
               <div>
                 <label className="text-xs font-semibold text-stone-500 block mb-1">Ảnh Look *</label>
                 <div className="flex items-center gap-2 mb-2">
-                  <label className="flex-1 cursor-pointer bg-stone-100 hover:bg-stone-200 text-stone-600 text-sm font-semibold px-3 py-2.5 rounded-xl text-center transition">
-                    {uploading ? 'Đang upload...' : '📁 Chọn ảnh từ máy'}
+                  <label className="flex items-center justify-center gap-1.5 flex-1 cursor-pointer bg-stone-100 hover:bg-stone-200 text-stone-600 text-sm font-semibold px-3 py-2.5 rounded-xl text-center transition">
+                    {uploading ? 'Đang upload...' : <><Upload size={14} /> Chọn ảnh từ máy</>}
                     <input type="file" accept="image/*" className="hidden" onChange={async e => {
                       const file = e.target.files?.[0]
                       if (!file) return
@@ -419,11 +425,11 @@ export default function AdminLooks() {
               <button
                 onClick={handleCreateLook}
                 disabled={saving || uploading}
-                className="flex-1 bg-stone-900 text-amber-100 py-3 rounded-xl text-sm font-bold hover:bg-stone-800 disabled:opacity-50 transition"
+                className="flex-1 bg-stone-900 text-amber-100 py-3 rounded-xl text-sm font-bold hover:bg-stone-800 disabled:opacity-50 transition cursor-pointer disabled:cursor-not-allowed"
               >
                 {saving ? 'Đang tạo...' : 'Tạo Look & Chỉnh sửa điểm →'}
               </button>
-              <button onClick={() => setShowCreate(false)} className="px-4 bg-stone-100 hover:bg-stone-200 rounded-xl text-sm font-semibold transition">
+              <button onClick={() => setShowCreate(false)} className="px-4 bg-stone-100 hover:bg-stone-200 rounded-xl text-sm font-semibold transition cursor-pointer">
                 Huỷ
               </button>
             </div>
@@ -434,7 +440,7 @@ export default function AdminLooks() {
       {/* Grid looks */}
       {looks.length === 0 ? (
         <div className="text-center py-24 text-stone-400">
-          <div className="text-6xl mb-4">🖼️</div>
+          <Images size={48} className="mx-auto mb-4 text-stone-300" />
           <p className="font-semibold mb-1">Chưa có look nào</p>
           <p className="text-sm">Bấm &quot;Thêm Look&quot; để bắt đầu</p>
         </div>
@@ -462,27 +468,27 @@ export default function AdminLooks() {
                 <div className="flex gap-1.5">
                   <button
                     onClick={() => { setEditing(look); loadHotspots(look.id) }}
-                    className="flex-1 bg-stone-900 text-amber-100 text-xs font-bold py-2 rounded-xl hover:bg-stone-800 transition"
+                    className="flex items-center justify-center gap-1.5 flex-1 bg-stone-900 text-amber-100 text-xs font-bold py-2 rounded-xl hover:bg-stone-800 transition cursor-pointer"
                   >
-                    ✏️ Chỉnh sửa điểm
+                    <Pencil size={12} /> Chỉnh sửa điểm
                   </button>
                   <button
                     onClick={() => { setEditingInfo(look); setEditForm({ title: look.title, description: look.description }) }}
-                    className="px-2.5 bg-stone-100 hover:bg-stone-200 rounded-xl transition text-stone-500"
+                    className="px-2.5 bg-stone-100 hover:bg-stone-200 rounded-xl transition text-stone-500 cursor-pointer"
                     title="Sửa tiêu đề & mô tả"
                   >
                     <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => handleToggleActive(look)}
-                    className="px-2.5 bg-stone-100 hover:bg-stone-200 rounded-xl transition text-stone-500"
+                    className="px-2.5 bg-stone-100 hover:bg-stone-200 rounded-xl transition text-stone-500 cursor-pointer"
                     title={look.is_active ? 'Ẩn look' : 'Hiện look'}
                   >
                     {look.is_active ? <Eye size={14} /> : <EyeOff size={14} />}
                   </button>
                   <button
                     onClick={() => handleDeleteLook(look.id)}
-                    className="px-2.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-xl transition"
+                    className="px-2.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-xl transition cursor-pointer"
                   >
                     <Trash2 size={14} />
                   </button>

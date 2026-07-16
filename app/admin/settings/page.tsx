@@ -4,6 +4,10 @@ import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { useRef } from 'react'
 import Image from 'next/image'
+import {
+  Settings, Images, Home, Award, PanelBottom, Phone, Truck, Landmark, Bell,
+  AlertTriangle, MessageCircle, Calculator, Search, Upload, Save, CheckCircle2,
+} from 'lucide-react'
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -62,13 +66,18 @@ export default function AdminSettings() {
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl font-black mb-1">⚙️ Cài đặt website</h1>
-      <p className="text-stone-400 text-sm mb-6">Logo, banner, nội dung trang chủ, thông tin liên hệ và SEO</p>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+          <Settings size={18} className="text-amber-100" aria-hidden="true" />
+        </div>
+        <h1 className="text-2xl font-black leading-tight">Cài đặt website</h1>
+      </div>
+      <p className="text-stone-400 text-sm mb-6 ml-[52px]">Logo, banner, nội dung trang chủ, thông tin liên hệ và SEO</p>
 
       <div className="space-y-6 max-w-2xl">
         {/* Logo & Banner */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-4">🖼️ Hình ảnh</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-4"><Images size={16} className="text-stone-400" /> Hình ảnh</h2>
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-2">Logo cửa hàng</label>
@@ -76,7 +85,7 @@ export default function AdminSettings() {
                 {settings.logo_url ? <Image src={settings.logo_url} alt="Logo" fill sizes="200px" className="object-contain" /> : <span className="text-stone-400 text-xs">Chưa có logo</span>}
               </div>
               <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-              <button onClick={() => logoRef.current?.click()} className="text-xs bg-stone-100 rounded-lg px-3 py-1.5 font-semibold hover:bg-stone-200">📁 Chọn ảnh</button>
+              <button onClick={() => logoRef.current?.click()} className="flex items-center gap-1.5 text-xs bg-stone-100 rounded-lg px-3 py-1.5 font-semibold hover:bg-stone-200 cursor-pointer"><Upload size={12} /> Chọn ảnh</button>
             </div>
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-2">Banner trang chủ</label>
@@ -84,14 +93,14 @@ export default function AdminSettings() {
                 {settings.banner_url ? <Image src={settings.banner_url} alt="Banner" fill sizes="300px" className="object-cover" /> : <div className="flex items-center justify-center h-full text-stone-400 text-xs">Chưa có banner</div>}
               </div>
               <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
-              <button onClick={() => bannerRef.current?.click()} className="text-xs bg-stone-100 rounded-lg px-3 py-1.5 font-semibold hover:bg-stone-200">📁 Chọn ảnh</button>
+              <button onClick={() => bannerRef.current?.click()} className="flex items-center gap-1.5 text-xs bg-stone-100 rounded-lg px-3 py-1.5 font-semibold hover:bg-stone-200 cursor-pointer"><Upload size={12} /> Chọn ảnh</button>
             </div>
           </div>
         </div>
 
         {/* Homepage content */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-4">🏠 Nội dung trang chủ</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-4"><Home size={16} className="text-stone-400" /> Nội dung trang chủ</h2>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-1">Thanh thông báo trên cùng</label>
@@ -147,7 +156,7 @@ export default function AdminSettings() {
 
         {/* About / Brand section */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-4">🏷️ Giới thiệu thương hiệu (cuối trang chủ)</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-4"><Award size={16} className="text-stone-400" /> Giới thiệu thương hiệu (cuối trang chủ)</h2>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-1">Tiêu đề</label>
@@ -187,7 +196,7 @@ export default function AdminSettings() {
 
         {/* Footer */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-4">🦶 Footer</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-4"><PanelBottom size={16} className="text-stone-400" /> Footer</h2>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-1">Mô tả ngắn (dưới logo footer)</label>
@@ -206,7 +215,7 @@ export default function AdminSettings() {
 
         {/* Contact info */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-4">📞 Thông tin liên hệ</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-4"><Phone size={16} className="text-stone-400" /> Thông tin liên hệ</h2>
           <div className="space-y-3">
             {[
               ['site_name', 'Tên cửa hàng'],
@@ -228,11 +237,11 @@ export default function AdminSettings() {
         {/* Freeship */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="font-bold text-sm">🚚 Miễn phí vận chuyển (Freeship)</h2>
+            <h2 className="flex items-center gap-2 font-bold text-sm"><Truck size={16} className="text-stone-400" /> Miễn phí vận chuyển (Freeship)</h2>
             <button
               type="button"
               onClick={() => set('freeship_enabled', settings.freeship_enabled === '1' ? '0' : '1')}
-              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
                 settings.freeship_enabled === '1' ? 'bg-green-500' : 'bg-stone-200'
               }`}
             >
@@ -272,7 +281,7 @@ export default function AdminSettings() {
 
         {/* Bank account */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-1">🏦 Tài khoản ngân hàng (QR thanh toán)</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-1"><Landmark size={16} className="text-stone-400" /> Tài khoản ngân hàng (QR thanh toán)</h2>
           <p className="text-xs text-stone-400 mb-5">Khách chọn chuyển khoản sẽ thấy QR VietQR tự động sau khi đặt hàng.</p>
           <div className="space-y-3">
             <div>
@@ -342,7 +351,7 @@ export default function AdminSettings() {
 
         {/* Order notifications */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-1">🔔 Thông báo đơn hàng mới</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-1"><Bell size={16} className="text-stone-400" /> Thông báo đơn hàng mới</h2>
           <p className="text-xs text-stone-400 mb-5">Bật kênh nào thì khi có đơn hàng mới sẽ báo qua kênh đó.</p>
           <div className="space-y-4">
             {([
@@ -354,7 +363,7 @@ export default function AdminSettings() {
                 <button
                   type="button"
                   onClick={() => set(`notify_${key}_on`, settings[`notify_${key}_on`] === '1' ? '0' : '1')}
-                  className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
                     settings[`notify_${key}_on`] === '1' ? 'bg-green-500' : 'bg-stone-200'
                   }`}
                 >
@@ -369,14 +378,14 @@ export default function AdminSettings() {
 
         {/* Low stock notifications */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-1">⚠️ Cảnh báo tồn kho thấp</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-1"><AlertTriangle size={16} className="text-stone-400" /> Cảnh báo tồn kho thấp</h2>
           <p className="text-xs text-stone-400 mb-5">Báo qua Telegram ngay khi có đơn làm tồn kho sản phẩm/biến thể tụt xuống mức sắp hết.</p>
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-stone-700">Telegram</span>
             <button
               type="button"
               onClick={() => set('notify_low_stock_on', settings.notify_low_stock_on === '1' ? '0' : '1')}
-              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
                 settings.notify_low_stock_on === '1' ? 'bg-green-500' : 'bg-stone-200'
               }`}
             >
@@ -389,7 +398,7 @@ export default function AdminSettings() {
 
         {/* Chat channels */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-1">💬 Kênh tư vấn chat (dưới nút mua)</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-1"><MessageCircle size={16} className="text-stone-400" /> Kênh tư vấn chat (dưới nút mua)</h2>
           <p className="text-xs text-stone-400 mb-5">Bật kênh nào thì nút đó hiện trên trang sản phẩm. Tắt hết thì ẩn cả khối.</p>
           <div className="space-y-5">
             {([
@@ -402,7 +411,7 @@ export default function AdminSettings() {
                 <button
                   type="button"
                   onClick={() => set(`chat_${key}_on`, settings[`chat_${key}_on`] === '1' ? '0' : '1')}
-                  className={`mt-6 relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  className={`mt-6 relative w-10 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
                     settings[`chat_${key}_on`] === '1' ? 'bg-green-500' : 'bg-stone-200'
                   }`}
                 >
@@ -426,7 +435,7 @@ export default function AdminSettings() {
 
         {/* Công thức giá vốn Taobao */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-1">🧮 Công thức tính giá vốn Taobao</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-1"><Calculator size={16} className="text-stone-400" /> Công thức tính giá vốn Taobao</h2>
           <p className="text-xs text-stone-400 mb-5">
             Dùng chung cho mọi sản phẩm để tự tính giá vốn từ giá gốc Taobao (¥): <br />
             Giá vốn = Giá Taobao (¥) × Tỷ giá × (1 + Hệ số phí%) + Giá ship/kg × Cân nặng
@@ -458,7 +467,7 @@ export default function AdminSettings() {
 
         {/* SEO */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-          <h2 className="font-bold text-sm mb-4">🔍 SEO</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm mb-4"><Search size={16} className="text-stone-400" /> SEO</h2>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-semibold text-stone-500 block mb-1">Meta Title</label>
@@ -474,8 +483,8 @@ export default function AdminSettings() {
         </div>
 
         <button onClick={handleSave} disabled={saving}
-          className="bg-stone-900 text-amber-100 rounded-lg px-6 py-3 text-sm font-bold hover:bg-stone-800 transition disabled:opacity-50">
-          {saving ? 'Đang lưu...' : saved ? '✅ Đã lưu!' : '💾 Lưu cài đặt'}
+          className="flex items-center gap-1.5 bg-stone-900 text-amber-100 rounded-lg px-6 py-3 text-sm font-bold hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
+          {saving ? 'Đang lưu...' : saved ? <><CheckCircle2 size={15} /> Đã lưu!</> : <><Save size={15} /> Lưu cài đặt</>}
         </button>
       </div>
     </AdminLayout>

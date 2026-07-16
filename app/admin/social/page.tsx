@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Plus, Trash2, GripVertical, Upload, Link, Save } from 'lucide-react'
+import { Plus, Trash2, GripVertical, Upload, Link, Save, Megaphone, CheckCircle2, Pin, ShoppingBag, ExternalLink, Lightbulb } from 'lucide-react'
 import { useConfirm } from '@/components/admin/useConfirm'
 
 const FLOAT_CHANNELS = [
@@ -160,19 +160,24 @@ export default function AdminSocialChannels() {
     <AdminLayout>
       {ConfirmDialog}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black">📣 Kênh bán hàng</h1>
-          <p className="text-stone-400 text-sm mt-1">
-            Quản lý các kênh mạng xã hội & sàn thương mại điện tử
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+            <Megaphone size={18} className="text-amber-100" aria-hidden="true" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black leading-tight">Kênh bán hàng</h1>
+            <p className="text-stone-400 text-sm">
+              Quản lý các kênh mạng xã hội & sàn thương mại điện tử
+            </p>
+          </div>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 bg-stone-900 text-amber-100 rounded-xl px-5 py-2.5 text-sm font-bold hover:bg-stone-800 transition disabled:opacity-50"
+          className="flex items-center gap-2 bg-stone-900 text-amber-100 rounded-xl px-5 py-2.5 text-sm font-bold hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
-          <Save size={15} />
-          {saving ? 'Đang lưu...' : saved ? '✅ Đã lưu!' : 'Lưu cấu hình'}
+          {saved ? <CheckCircle2 size={15} /> : <Save size={15} />}
+          {saving ? 'Đang lưu...' : saved ? 'Đã lưu!' : 'Lưu cấu hình'}
         </button>
       </div>
 
@@ -180,7 +185,7 @@ export default function AdminSocialChannels() {
       <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 mb-8">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <h2 className="font-bold text-sm">📌 Nút liên hệ nổi (Floating Bar)</h2>
+            <h2 className="flex items-center gap-2 font-bold text-sm"><Pin size={15} className="text-stone-400" /> Nút liên hệ nổi (Floating Bar)</h2>
             <p className="text-xs text-stone-400 mt-0.5">
               Hiển thị bên phải trang web — bật kênh nào thì nút đó xuất hiện
             </p>
@@ -188,10 +193,10 @@ export default function AdminSocialChannels() {
           <button
             onClick={saveFloat}
             disabled={savingFloat}
-            className="flex items-center gap-2 bg-stone-900 text-amber-100 rounded-xl px-4 py-2 text-xs font-bold hover:bg-stone-800 transition disabled:opacity-50"
+            className="flex items-center gap-2 bg-stone-900 text-amber-100 rounded-xl px-4 py-2 text-xs font-bold hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
-            <Save size={13} />
-            {savingFloat ? 'Đang lưu...' : savedFloat ? '✅ Đã lưu!' : 'Lưu'}
+            {savedFloat ? <CheckCircle2 size={13} /> : <Save size={13} />}
+            {savingFloat ? 'Đang lưu...' : savedFloat ? 'Đã lưu!' : 'Lưu'}
           </button>
         </div>
 
@@ -202,7 +207,7 @@ export default function AdminSocialChannels() {
               <button
                 type="button"
                 onClick={() => setFloat(`float_${ch.key}_on`, floatSettings[`float_${ch.key}_on`] === '1' ? '0' : '1')}
-                className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
                   floatSettings[`float_${ch.key}_on`] === '1' ? 'bg-green-500' : 'bg-stone-200'
                 }`}
               >
@@ -247,7 +252,7 @@ export default function AdminSocialChannels() {
       {/* ── Kênh bán hàng (footer/listing) ──────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="font-bold text-sm">🛍️ Kênh bán hàng (hiển thị ở Footer)</h2>
+          <h2 className="flex items-center gap-2 font-bold text-sm"><ShoppingBag size={15} className="text-stone-400" /> Kênh bán hàng (hiển thị ở Footer)</h2>
           <p className="text-xs text-stone-400 mt-0.5">Các kênh TMĐT và mạng xã hội hiển thị ở cuối trang</p>
         </div>
       </div>
@@ -287,7 +292,7 @@ export default function AdminSocialChannels() {
                 {/* Upload button overlay */}
                 <button
                   onClick={() => fileRefs.current[ch.id]?.click()}
-                  className="absolute -bottom-1 -right-1 w-5 h-5 bg-stone-800 text-white rounded-full flex items-center justify-center hover:bg-stone-600 transition"
+                  className="absolute -bottom-1 -right-1 w-5 h-5 bg-stone-800 text-white rounded-full flex items-center justify-center hover:bg-stone-600 transition cursor-pointer"
                   title="Đổi icon"
                 >
                   <Upload size={10} />
@@ -342,17 +347,17 @@ export default function AdminSocialChannels() {
                   href={ch.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-stone-400 hover:text-stone-700 transition flex-shrink-0"
+                  className="text-stone-400 hover:text-stone-700 transition flex-shrink-0"
                   title="Mở link"
                 >
-                  🔗
+                  <ExternalLink size={14} />
                 </a>
               )}
 
               {/* Xoá */}
               <button
                 onClick={() => removeChannel(ch.id, ch.isNew)}
-                className="flex-shrink-0 text-stone-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100"
+                className="flex-shrink-0 text-stone-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100 cursor-pointer"
               >
                 <Trash2 size={16} />
               </button>
@@ -364,7 +369,7 @@ export default function AdminSocialChannels() {
       {/* Thêm kênh mới */}
       <button
         onClick={addChannel}
-        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-stone-200 rounded-2xl py-4 text-sm text-stone-400 hover:border-stone-400 hover:text-stone-600 transition"
+        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-stone-200 rounded-2xl py-4 text-sm text-stone-400 hover:border-stone-400 hover:text-stone-600 transition cursor-pointer"
       >
         <Plus size={16} />
         Thêm kênh bán hàng mới
@@ -372,10 +377,10 @@ export default function AdminSocialChannels() {
 
       {/* Hướng dẫn */}
       <div className="mt-6 bg-stone-50 rounded-2xl p-4 text-sm text-stone-500 space-y-1.5">
-        <div className="font-semibold text-stone-700 mb-2">💡 Hướng dẫn</div>
+        <div className="flex items-center gap-1.5 font-semibold text-stone-700 mb-2"><Lightbulb size={14} /> Hướng dẫn</div>
         <div>• Nhấn nút <b>Upload</b> (góc dưới phải icon) để đổi icon cho từng kênh</div>
         <div>• Nếu tên kênh khớp (Facebook, Instagram, Shopee...) icon sẽ tự điền</div>
-        <div>• Nhấn 🔗 để kiểm tra link trước khi lưu</div>
+        <div>• Nhấn icon <ExternalLink size={11} className="inline" /> để kiểm tra link trước khi lưu</div>
         <div>• Nhớ nhấn <b>Lưu cấu hình</b> sau khi chỉnh xong</div>
       </div>
     </AdminLayout>

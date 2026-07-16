@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Folder, FolderOpen, Edit2, Trash2, Plus, X, Eye, EyeOff, ChevronUp, ChevronDown, Upload } from 'lucide-react'
+import { Folder, FolderOpen, FolderTree, Edit2, Trash2, Plus, X, Eye, EyeOff, ChevronUp, ChevronDown, Upload, Save, CheckCircle2 } from 'lucide-react'
 import { useConfirm } from '@/components/admin/useConfirm'
 
 interface Category {
@@ -133,18 +133,23 @@ export default function AdminCategories() {
   return (
     <AdminLayout>
       {ConfirmDialog}
-      <h1 className="text-2xl font-black mb-1">🗂️ Danh mục sản phẩm</h1>
-      <p className="text-stone-400 text-sm mb-6">Tạo danh mục cha và danh mục con để khách hàng dễ lọc sản phẩm</p>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+          <FolderTree size={18} className="text-amber-100" aria-hidden="true" />
+        </div>
+        <h1 className="text-2xl font-black leading-tight">Danh mục sản phẩm</h1>
+      </div>
+      <p className="text-stone-400 text-sm mb-6 ml-[52px]">Tạo danh mục cha và danh mục con để khách hàng dễ lọc sản phẩm</p>
 
       {/* FORM */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-sm flex items-center gap-2">
-            <Plus size={16} className="text-stone-500" />
-            {editingId ? '✏️ Sửa danh mục' : 'Thêm danh mục mới'}
+            {editingId ? <Edit2 size={16} className="text-stone-500" /> : <Plus size={16} className="text-stone-500" />}
+            {editingId ? 'Sửa danh mục' : 'Thêm danh mục mới'}
           </h2>
           {editingId && (
-            <button onClick={resetForm} className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 transition">
+            <button onClick={resetForm} className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 transition cursor-pointer">
               <X size={14} /> Huỷ sửa
             </button>
           )}
@@ -170,9 +175,9 @@ export default function AdminCategories() {
           </select>
           <button
             onClick={handleSave}
-            className="bg-stone-900 text-amber-100 rounded-lg px-5 py-2 text-sm font-bold hover:bg-stone-800 transition"
+            className="flex items-center gap-1.5 bg-stone-900 text-amber-100 rounded-lg px-5 py-2 text-sm font-bold hover:bg-stone-800 transition cursor-pointer"
           >
-            {editingId ? '💾 Lưu' : '+ Thêm'}
+            {editingId ? <><Save size={14} /> Lưu</> : <><Plus size={14} /> Thêm</>}
           </button>
         </div>
 
@@ -183,10 +188,10 @@ export default function AdminCategories() {
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition disabled:opacity-50 flex-shrink-0"
+            className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition disabled:opacity-50 flex-shrink-0 cursor-pointer disabled:cursor-not-allowed"
           >
             <Upload size={13} />
-            {uploading ? 'Đang tải...' : '📁 Chọn ảnh'}
+            {uploading ? 'Đang tải...' : 'Chọn ảnh'}
           </button>
           <input
             value={imageUrl}
@@ -206,14 +211,15 @@ export default function AdminCategories() {
               />
               <button
                 onClick={() => setImageUrl('')}
-                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
-              >✕</button>
+                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer"
+              ><X size={10} /></button>
             </div>
           )}
         </div>
         {imageUrl && (
-          <p className="text-xs text-stone-400 mt-1.5 ml-0.5">
-            ✅ Ảnh xem trước — nếu không hiện, hãy kiểm tra lại link
+          <p className="flex items-center gap-1 text-xs text-stone-400 mt-1.5 ml-0.5">
+            <CheckCircle2 size={11} />
+            Ảnh xem trước — nếu không hiện, hãy kiểm tra lại link
           </p>
         )}
       </div>
@@ -259,16 +265,16 @@ export default function AdminCategories() {
                     <div className="flex items-center gap-1 flex-shrink-0 justify-end sm:justify-start">
                       <div className="flex flex-col">
                         <button onClick={() => moveCategory(parent, 'up')} disabled={parents[0]?.id === parent.id}
-                          className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa lên trên">
+                          className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none cursor-pointer disabled:cursor-not-allowed" title="Đưa lên trên">
                           <ChevronUp size={14} />
                         </button>
                         <button onClick={() => moveCategory(parent, 'down')} disabled={parents[parents.length - 1]?.id === parent.id}
-                          className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa xuống dưới">
+                          className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none cursor-pointer disabled:cursor-not-allowed" title="Đưa xuống dưới">
                           <ChevronDown size={14} />
                         </button>
                       </div>
                       <button onClick={() => handleToggleVisible(parent)}
-                        className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition ${
+                        className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
                           parent.is_visible
                             ? 'text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200'
                             : 'text-green-600 bg-green-50 hover:bg-green-100'
@@ -279,11 +285,11 @@ export default function AdminCategories() {
                         {parent.is_visible ? 'Ẩn' : 'Hiện'}
                       </button>
                       <button onClick={() => handleEdit(parent)}
-                        className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-lg transition">
+                        className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-lg transition cursor-pointer">
                         <Edit2 size={12} /> Sửa
                       </button>
                       <button onClick={() => handleDelete(parent.id)}
-                        className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition">
+                        className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition cursor-pointer">
                         <Trash2 size={12} /> Xoá
                       </button>
                     </div>
@@ -315,16 +321,16 @@ export default function AdminCategories() {
                             <div className="flex items-center gap-1 flex-shrink-0 justify-end sm:justify-start">
                               <div className="flex flex-col">
                                 <button onClick={() => moveCategory(child, 'up')} disabled={children[0]?.id === child.id}
-                                  className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa lên trên">
+                                  className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none cursor-pointer disabled:cursor-not-allowed" title="Đưa lên trên">
                                   <ChevronUp size={12} />
                                 </button>
                                 <button onClick={() => moveCategory(child, 'down')} disabled={children[children.length - 1]?.id === child.id}
-                                  className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none" title="Đưa xuống dưới">
+                                  className="text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:pointer-events-none cursor-pointer disabled:cursor-not-allowed" title="Đưa xuống dưới">
                                   <ChevronDown size={12} />
                                 </button>
                               </div>
                               <button onClick={() => handleToggleVisible(child)}
-                                className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition ${
+                                className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
                                   child.is_visible
                                     ? 'text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200'
                                     : 'text-green-600 bg-green-50 hover:bg-green-100'
@@ -334,11 +340,11 @@ export default function AdminCategories() {
                                 {child.is_visible ? 'Ẩn' : 'Hiện'}
                               </button>
                               <button onClick={() => handleEdit(child)}
-                                className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-lg transition">
+                                className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-lg transition cursor-pointer">
                                 <Edit2 size={12} /> Sửa
                               </button>
                               <button onClick={() => handleDelete(child.id)}
-                                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition">
+                                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition cursor-pointer">
                                 <Trash2 size={12} /> Xoá
                               </button>
                             </div>

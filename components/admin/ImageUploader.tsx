@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import Image from 'next/image'
+import { ImageOff, Upload, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 interface Props {
   coverImage: string
@@ -63,17 +64,18 @@ export default function ImageUploader({ coverImage, images, onCoverChange, onIma
         <label className="text-xs font-semibold text-stone-500 block mb-2">Ảnh đại diện (ảnh chính)</label>
         <div className="flex gap-3 items-center">
           <div className="relative w-24 h-24 bg-stone-100 rounded-xl border-2 border-dashed border-stone-200 flex items-center justify-center overflow-hidden">
-            {coverImage ? <Image src={coverImage} alt="Ảnh đại diện" fill sizes="96px" className="object-cover" /> : <span className="text-3xl">🛋️</span>}
+            {coverImage ? <Image src={coverImage} alt="Ảnh đại diện" fill sizes="96px" className="object-cover" /> : <ImageOff size={28} className="text-stone-300" />}
           </div>
           <div>
             <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
             <button type="button" onClick={() => coverRef.current?.click()} disabled={uploading}
-              className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition disabled:opacity-50">
-              📁 Chọn ảnh đại diện
+              className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
+              <Upload size={12} />
+              Chọn ảnh đại diện
             </button>
             {coverImage && (
               <button type="button" onClick={() => onCoverChange('')}
-                className="ml-2 text-red-500 text-xs hover:underline">Xoá</button>
+                className="ml-2 text-red-500 text-xs hover:underline cursor-pointer">Xoá</button>
             )}
           </div>
         </div>
@@ -87,17 +89,17 @@ export default function ImageUploader({ coverImage, images, onCoverChange, onIma
             <div key={i} className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden">
               <Image src={img} alt={`Ảnh chi tiết ${i + 1}`} fill sizes="80px" className="object-cover" />
               <button type="button" onClick={() => removeImage(i)}
-                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow-sm">
-                ✕
+                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm cursor-pointer">
+                <X size={11} />
               </button>
               <div className="absolute bottom-1 left-1 right-1 flex justify-between gap-1">
                 <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0}
-                  className="bg-black/60 text-white rounded w-5 h-5 text-xs flex items-center justify-center disabled:opacity-30">
-                  ‹
+                  className="bg-black/60 text-white rounded w-5 h-5 flex items-center justify-center disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed">
+                  <ChevronLeft size={12} />
                 </button>
                 <button type="button" onClick={() => moveImage(i, 1)} disabled={i === images.length - 1}
-                  className="bg-black/60 text-white rounded w-5 h-5 text-xs flex items-center justify-center disabled:opacity-30">
-                  ›
+                  className="bg-black/60 text-white rounded w-5 h-5 flex items-center justify-center disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed">
+                  <ChevronRight size={12} />
                 </button>
               </div>
             </div>
@@ -105,8 +107,9 @@ export default function ImageUploader({ coverImage, images, onCoverChange, onIma
         </div>
         <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} />
         <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
-          className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition disabled:opacity-50">
-          {uploading ? '⏳ Đang upload...' : '📁 Thêm ảnh chi tiết'}
+          className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
+          {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+          {uploading ? 'Đang upload...' : 'Thêm ảnh chi tiết'}
         </button>
       </div>
     </div>

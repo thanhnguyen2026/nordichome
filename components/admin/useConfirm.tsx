@@ -32,11 +32,11 @@ export function useConfirm() {
         <p className="text-sm text-stone-700 mb-5 whitespace-pre-line">{state.message}</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => handle(false)}
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 transition">
+            className="text-sm font-semibold px-4 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 transition cursor-pointer">
             Huỷ
           </button>
           <button onClick={() => handle(true)}
-            className={`text-sm font-semibold px-4 py-2 rounded-lg text-white transition ${
+            className={`text-sm font-semibold px-4 py-2 rounded-lg text-white transition cursor-pointer ${
               state.danger ? 'bg-red-500 hover:bg-red-600' : 'bg-stone-900 hover:bg-stone-800'
             }`}>
             {state.confirmLabel || (state.danger ? 'Xoá' : 'Đồng ý')}

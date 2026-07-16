@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import { Store } from 'lucide-react'
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
@@ -43,7 +44,9 @@ export default function AdminLogin() {
             <Image src={settings.logo_url} alt="Logo" width={56} height={56}
               className="mx-auto mb-3 h-14 w-14 object-contain rounded-lg" />
           ) : (
-            <div className="text-3xl mb-2">🪵</div>
+            <div className="w-14 h-14 mx-auto mb-3 rounded-lg bg-stone-100 flex items-center justify-center">
+              <Store size={26} className="text-stone-400" />
+            </div>
           )}
           <h1 className="text-xl font-black">{settings.site_name || 'Nordic Home'} Admin</h1>
           <p className="text-stone-400 text-sm mt-1">Đăng nhập để quản lý cửa hàng</p>
@@ -63,7 +66,7 @@ export default function AdminLogin() {
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <button type="submit" disabled={loading}
-            className="w-full bg-stone-800 text-white font-bold py-3 rounded-lg hover:bg-stone-700 transition disabled:opacity-50">
+            className="w-full bg-stone-800 text-white font-bold py-3 rounded-lg hover:bg-stone-700 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>

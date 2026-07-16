@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Coupon } from '@/types'
-import { Edit2, Trash2, Plus, X } from 'lucide-react'
+import { Edit2, Trash2, Plus, X, Tag, Save } from 'lucide-react'
 import { useConfirm } from '@/components/admin/useConfirm'
 import { useToast } from '@/components/admin/useToast'
 
@@ -118,18 +118,23 @@ export default function AdminCoupons() {
     <AdminLayout>
       {ConfirmDialog}
       {Toast}
-      <h1 className="text-2xl font-black mb-1">🏷️ Mã giảm giá</h1>
-      <p className="text-stone-400 text-sm mb-6">Tạo mã giảm % hoặc số tiền cố định, khách nhập ở bước thanh toán</p>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+          <Tag size={18} className="text-amber-100" aria-hidden="true" />
+        </div>
+        <h1 className="text-2xl font-black leading-tight">Mã giảm giá</h1>
+      </div>
+      <p className="text-stone-400 text-sm mb-6 ml-[52px]">Tạo mã giảm % hoặc số tiền cố định, khách nhập ở bước thanh toán</p>
 
       {/* FORM */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-sm flex items-center gap-2">
-            <Plus size={16} className="text-stone-500" />
-            {editingId ? '✏️ Sửa mã giảm giá' : 'Thêm mã giảm giá mới'}
+            {editingId ? <Edit2 size={16} className="text-stone-500" /> : <Plus size={16} className="text-stone-500" />}
+            {editingId ? 'Sửa mã giảm giá' : 'Thêm mã giảm giá mới'}
           </h2>
           {editingId && (
-            <button onClick={resetForm} className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 transition">
+            <button onClick={resetForm} className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 transition cursor-pointer">
               <X size={14} /> Huỷ sửa
             </button>
           )}
@@ -198,8 +203,8 @@ export default function AdminCoupons() {
             Kích hoạt ngay
           </label>
           <button onClick={handleSave} disabled={saving || !form.code.trim() || !form.discount_value}
-            className="bg-stone-900 text-amber-100 rounded-lg px-5 py-2 text-sm font-bold hover:bg-stone-800 transition disabled:opacity-40 disabled:cursor-not-allowed">
-            {saving ? 'Đang lưu...' : editingId ? '💾 Lưu' : '+ Thêm'}
+            className="flex items-center gap-1.5 bg-stone-900 text-amber-100 rounded-lg px-5 py-2 text-sm font-bold hover:bg-stone-800 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+            {saving ? 'Đang lưu...' : editingId ? <><Save size={14} /> Lưu</> : <><Plus size={14} /> Thêm</>}
           </button>
         </div>
       </div>
@@ -214,9 +219,9 @@ export default function AdminCoupons() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[720px]">
               <thead>
-                <tr className="bg-stone-50">
+                <tr className="bg-stone-50 border-b-2 border-stone-200">
                   {['Mã', 'Giảm giá', 'Điều kiện', 'Lượt dùng', 'Trạng thái', ''].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-[11px] uppercase text-stone-400 font-semibold whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left py-3 px-4 text-[11px] uppercase tracking-wide text-stone-400 font-semibold whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -226,28 +231,28 @@ export default function AdminCoupons() {
                   return (
                     <tr key={c.id} className="border-t border-stone-50">
                       <td className="py-2.5 px-4 font-mono font-bold text-stone-800 whitespace-nowrap">{c.code}</td>
-                      <td className="py-2.5 px-4 whitespace-nowrap">
+                      <td className="py-2.5 px-4 whitespace-nowrap tabular-nums">
                         {c.discount_type === 'percent' ? `${c.discount_value}%` : fmt(c.discount_value)}
                         {c.discount_type === 'percent' && c.max_discount_amount != null && (
                           <div className="text-[11px] text-stone-400">tối đa {fmt(c.max_discount_amount)}</div>
                         )}
                       </td>
-                      <td className="py-2.5 px-4 text-stone-500 text-xs whitespace-nowrap">
+                      <td className="py-2.5 px-4 text-stone-500 text-xs whitespace-nowrap tabular-nums">
                         {c.min_order_amount > 0 ? `Đơn ≥ ${fmt(c.min_order_amount)}` : 'Không điều kiện'}
                       </td>
-                      <td className="py-2.5 px-4 text-stone-500 text-xs whitespace-nowrap">
+                      <td className="py-2.5 px-4 text-stone-500 text-xs whitespace-nowrap tabular-nums">
                         {c.used_count}{c.usage_limit != null ? ` / ${c.usage_limit}` : ''}
                       </td>
                       <td className="py-2.5 px-4">
-                        <button onClick={() => toggleActive(c)} className={`text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${status.cls}`}>
+                        <button onClick={() => toggleActive(c)} className={`text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap cursor-pointer ${status.cls}`}>
                           {status.label}
                         </button>
                       </td>
                       <td className="py-2.5 px-4 text-right whitespace-nowrap">
-                        <button onClick={() => handleEdit(c)} className="text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 mr-1 hover:bg-stone-200">
+                        <button onClick={() => handleEdit(c)} className="text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 mr-1 hover:bg-stone-200 cursor-pointer">
                           <Edit2 size={12} className="inline mr-1" />Sửa
                         </button>
-                        <button onClick={() => handleDelete(c.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100">
+                        <button onClick={() => handleDelete(c.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100 cursor-pointer">
                           <Trash2 size={12} />
                         </button>
                       </td>

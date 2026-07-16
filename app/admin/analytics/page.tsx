@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { TrendingUp, ShoppingBag, Package, BarChart2, ArrowUp, ArrowDown, Trophy } from 'lucide-react'
+import { TrendingUp, ShoppingBag, Package, BarChart2, BarChart3, ArrowUp, ArrowDown, Trophy, Radio, ClipboardList } from 'lucide-react'
 import { SALES_CHANNEL_LABEL, SalesChannel } from '@/types'
 
 const fmt  = (n: number) => n.toLocaleString('vi-VN') + '₫'
@@ -221,14 +221,19 @@ export default function AdminAnalytics() {
     <AdminLayout>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-black">📊 Thống kê</h1>
-          <p className="text-stone-400 text-sm mt-0.5">Doanh thu, lợi nhuận và hiệu suất kinh doanh</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+            <BarChart3 size={18} className="text-amber-100" aria-hidden="true" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black leading-tight">Thống kê</h1>
+            <p className="text-stone-400 text-sm">Doanh thu, lợi nhuận và hiệu suất kinh doanh</p>
+          </div>
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {RANGE_TABS.map(t => (
             <button key={t.key} onClick={() => setRange(t.key)}
-              className={`text-xs px-3 py-2 rounded-lg font-semibold transition ${
+              className={`text-xs px-3 py-2 rounded-lg font-semibold transition cursor-pointer ${
                 range === t.key ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
               }`}>
               {t.label}
@@ -240,7 +245,7 @@ export default function AdminAnalytics() {
             { key: 'completed', label: 'Hoàn thành' },
           ] as { key: 'all' | 'completed'; label: string }[]).map(f => (
             <button key={f.key} onClick={() => setStatusFilter(f.key)}
-              className={`text-xs px-3 py-2 rounded-lg font-semibold transition ${
+              className={`text-xs px-3 py-2 rounded-lg font-semibold transition cursor-pointer ${
                 statusFilter === f.key ? 'bg-amber-600 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
               }`}>
               {f.label}
@@ -278,7 +283,7 @@ export default function AdminAnalytics() {
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">{card.label}</span>
               <card.icon size={16} className={card.color} />
             </div>
-            <div className={`text-xl font-black ${card.color} mb-0.5`}>
+            <div className={`text-xl font-black ${card.color} mb-0.5 tabular-nums`}>
               {loading ? '—' : card.value}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-stone-400">
@@ -297,7 +302,7 @@ export default function AdminAnalytics() {
       {/* Revenue chart */}
       {chartData.length > 1 && (
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 mb-6">
-          <h2 className="text-sm font-bold mb-4">📈 Doanh thu theo ngày</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-bold mb-4"><TrendingUp size={15} className="text-stone-400" /> Doanh thu theo ngày</h2>
           <BarChart data={chartData} />
         </div>
       )}
@@ -318,7 +323,7 @@ export default function AdminAnalytics() {
                     <span className="text-xs font-black text-stone-300 w-4 flex-shrink-0">{i + 1}</span>
                     <span className="truncate">{p.name}</span>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 text-xs">
+                  <div className="flex items-center gap-3 flex-shrink-0 text-xs tabular-nums">
                     <span className="text-stone-400">{p.qty} sp</span>
                     <span className="font-bold text-blue-700 whitespace-nowrap">{fmt(p.revenue)}</span>
                   </div>
@@ -329,7 +334,7 @@ export default function AdminAnalytics() {
         </div>
 
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-          <h2 className="text-sm font-bold mb-4">📡 Doanh thu theo kênh</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-bold mb-4"><Radio size={15} className="text-stone-400" /> Doanh thu theo kênh</h2>
           {loading ? (
             <div className="text-center py-6 text-stone-400 text-sm">Đang tải...</div>
           ) : channelStats.length === 0 ? (
@@ -339,7 +344,7 @@ export default function AdminAnalytics() {
               {channelStats.map(c => (
                 <div key={c.channel} className="flex items-center justify-between gap-3 text-sm">
                   <span>{SALES_CHANNEL_LABEL[c.channel as SalesChannel] || c.channel}</span>
-                  <div className="flex items-center gap-3 flex-shrink-0 text-xs">
+                  <div className="flex items-center gap-3 flex-shrink-0 text-xs tabular-nums">
                     <span className="text-stone-400">{c.orders} đơn</span>
                     <span className="font-bold text-blue-700 whitespace-nowrap">{fmt(c.revenue)}</span>
                   </div>
@@ -353,7 +358,7 @@ export default function AdminAnalytics() {
       {/* Bảng đơn hàng */}
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-50 flex items-center justify-between">
-          <h2 className="font-bold text-sm">📋 Nhật ký tài chính ({filtered.length} đơn)</h2>
+          <h2 className="flex items-center gap-1.5 font-bold text-sm"><ClipboardList size={15} className="text-stone-400" /> Nhật ký tài chính ({filtered.length} đơn)</h2>
         </div>
         {loading ? (
           <div className="text-center py-12 text-stone-400 text-sm">Đang tải...</div>
@@ -363,9 +368,9 @@ export default function AdminAnalytics() {
           <div className="overflow-x-auto bg-stone-100 md:bg-transparent px-1.5 py-2 md:p-0">
             <table className="w-full text-sm block md:table md:min-w-[700px]">
               <thead className="hidden md:table-header-group">
-                <tr className="bg-stone-50">
+                <tr className="bg-stone-50 border-b-2 border-stone-200">
                   {['Mã đơn', 'Khách hàng', 'Ngày', 'Doanh thu', 'Giá vốn', 'Ship', 'Lợi nhuận', 'Trạng thái'].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-[11px] uppercase text-stone-400 font-semibold">{h}</th>
+                    <th key={h} className="text-left py-3 px-4 text-[11px] uppercase tracking-wide text-stone-400 font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -394,19 +399,19 @@ export default function AdminAnalytics() {
                         <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Ngày</span>
                         {new Date(o.created_at).toLocaleDateString('vi-VN')}
                       </td>
-                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 font-semibold text-blue-700 md:whitespace-nowrap">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 font-semibold text-blue-700 md:whitespace-nowrap tabular-nums">
                         <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Doanh thu</span>
                         {fmt(o.revenue || 0)}
                       </td>
-                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 text-amber-700 md:whitespace-nowrap">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 text-amber-700 md:whitespace-nowrap tabular-nums">
                         <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Giá vốn</span>
                         {fmt(o.cost || 0)}
                       </td>
-                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 text-stone-500 text-xs md:whitespace-nowrap">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 text-stone-500 text-xs md:whitespace-nowrap tabular-nums">
                         <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Ship</span>
                         {o.shipping_fee > 0 ? fmt(o.shipping_fee) : '—'}
                       </td>
-                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 md:whitespace-nowrap">
+                      <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-2.5 md:whitespace-nowrap tabular-nums">
                         <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Lợi nhuận</span>
                         <span className={`font-black text-sm ${isProfit ? 'text-green-600' : 'text-red-500'}`}>
                           {isProfit ? '+' : ''}{fmt(o.profit || 0)}
@@ -426,10 +431,10 @@ export default function AdminAnalytics() {
                 <tr className="flex items-center justify-between md:table-row border-t-2 md:border-stone-100 border-stone-200 bg-white md:bg-stone-50 shadow-sm md:shadow-none rounded-xl md:rounded-none px-4 md:px-0">
                   <td className="hidden md:table-cell" colSpan={3} />
                   <td className="py-3 px-0 md:px-4 text-xs font-bold text-stone-500 uppercase md:hidden">Tổng cộng</td>
-                  <td className="hidden md:table-cell py-3 px-4 font-black text-blue-700 whitespace-nowrap">{fmt(stats.revenue)}</td>
-                  <td className="hidden md:table-cell py-3 px-4 font-black text-amber-700 whitespace-nowrap">{fmt(stats.cost)}</td>
+                  <td className="hidden md:table-cell py-3 px-4 font-black text-blue-700 whitespace-nowrap tabular-nums">{fmt(stats.revenue)}</td>
+                  <td className="hidden md:table-cell py-3 px-4 font-black text-amber-700 whitespace-nowrap tabular-nums">{fmt(stats.cost)}</td>
                   <td className="hidden md:table-cell" />
-                  <td className="py-3 px-0 md:px-4 md:whitespace-nowrap">
+                  <td className="py-3 px-0 md:px-4 md:whitespace-nowrap tabular-nums">
                     <span className={`font-black text-base ${stats.profit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                       {stats.profit >= 0 ? '+' : ''}{fmt(stats.profit)}
                     </span>

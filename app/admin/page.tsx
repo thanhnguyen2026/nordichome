@@ -2,8 +2,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { ORDER_STATUS_LABEL, Order } from '@/types'
+import { ORDER_STATUS_LABEL, Order, OrderStatus } from '@/types'
+import { LayoutDashboard, Wallet, Receipt, Package, Clock } from 'lucide-react'
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
+
+const STATUS_COLOR: Record<OrderStatus, string> = {
+  pending:   'bg-amber-50 text-amber-700',
+  confirmed: 'bg-blue-50 text-blue-700',
+  shipping:  'bg-purple-50 text-purple-700',
+  completed: 'bg-green-50 text-green-700',
+  cancelled: 'bg-red-50 text-red-700',
+}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ products: 0, orders: 0, pending: 0, revenue: 0 })
@@ -37,20 +46,27 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl font-black mb-1">📊 Tổng quan</h1>
-      <p className="text-stone-400 text-sm mb-6">Xin chào! Đây là tình hình cửa hàng của bạn.</p>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+          <LayoutDashboard size={18} className="text-amber-100" aria-hidden="true" />
+        </div>
+        <h1 className="text-2xl font-black leading-tight">Tổng quan</h1>
+      </div>
+      <p className="text-stone-400 text-sm mb-6 ml-[52px]">Xin chào! Đây là tình hình cửa hàng của bạn.</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Doanh thu', value: fmt(stats.revenue), icon: '💰', color: '#7ab89a', bg: '#f0fdf4', sub: 'Tất cả đơn chưa huỷ (trừ ship)' },
-          { label: 'Tổng đơn hàng', value: stats.orders, icon: '📦', color: '#7aaac8', bg: '#eff6ff', sub: 'Tất cả trạng thái' },
-          { label: 'Sản phẩm', value: stats.products, icon: '🛋️', color: '#a07abb', bg: '#f5f3ff', sub: 'Đang kinh doanh' },
-          { label: 'Chờ xác nhận', value: stats.pending, icon: '⏳', color: '#d4a96a', bg: '#fffbeb', sub: 'Cần xử lý ngay' },
+          { label: 'Doanh thu', value: fmt(stats.revenue), icon: Wallet, color: '#7ab89a', bg: '#f0fdf4', sub: 'Tất cả đơn chưa huỷ (trừ ship)', tabular: false },
+          { label: 'Tổng đơn hàng', value: stats.orders, icon: Receipt, color: '#7aaac8', bg: '#eff6ff', sub: 'Tất cả trạng thái', tabular: true },
+          { label: 'Sản phẩm', value: stats.products, icon: Package, color: '#a07abb', bg: '#f5f3ff', sub: 'Đang kinh doanh', tabular: true },
+          { label: 'Chờ xác nhận', value: stats.pending, icon: Clock, color: '#d4a96a', bg: '#fffbeb', sub: 'Cần xử lý ngay', tabular: true },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl p-3 md:p-5 shadow-sm border border-stone-100 relative overflow-hidden">
-            <div className="absolute -top-2 -right-2 text-5xl opacity-10">{s.icon}</div>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3" style={{ background: s.bg }}>{s.icon}</div>
-            <div className="text-xl font-black text-stone-800">{loading ? '...' : s.value}</div>
+            <s.icon size={64} className="absolute -top-2 -right-2 opacity-10" style={{ color: s.color }} aria-hidden="true" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: s.bg }}>
+              <s.icon size={18} style={{ color: s.color }} />
+            </div>
+            <div className={`text-xl font-black text-stone-800 ${s.tabular ? 'tabular-nums' : ''}`}>{loading ? '...' : s.value}</div>
             <div className="text-xs font-semibold text-stone-600 mt-1">{s.label}</div>
             <div className="text-[10px] text-stone-400 mt-0.5">{s.sub}</div>
           </div>
@@ -91,13 +107,13 @@ export default function AdminDashboard() {
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">SĐT</span>
                     {o.customer_phone}
                   </td>
-                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2 font-bold text-amber-700">
+                  <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2 font-bold text-amber-700 tabular-nums">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Tổng tiền</span>
                     {fmt(Number(o.total))}
                   </td>
                   <td className="flex items-center justify-between md:table-cell py-2 px-2 md:py-2.5 md:px-2">
                     <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_COLOR[o.status]}`}>
                       {ORDER_STATUS_LABEL[o.status as keyof typeof ORDER_STATUS_LABEL]}
                     </span>
                   </td>

@@ -49,11 +49,11 @@ export function usePrompt() {
         />
         <div className="flex gap-2 justify-end">
           <button onClick={handleCancel}
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 transition">
+            className="text-sm font-semibold px-4 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 transition cursor-pointer">
             Huỷ
           </button>
           <button onClick={handleConfirm}
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-stone-900 text-white hover:bg-stone-800 transition">
+            className="text-sm font-semibold px-4 py-2 rounded-lg bg-stone-900 text-white hover:bg-stone-800 transition cursor-pointer">
             OK
           </button>
         </div>
