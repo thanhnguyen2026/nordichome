@@ -41,9 +41,23 @@ export default function Header({ settings, categories: categoriesProp, campaigns
   const [searchQuery, setSearchQuery] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [openDesktopId, setOpenDesktopId] = useState<string | null>(null)
+  const desktopNavRef = useRef<HTMLElement>(null)
   const [categories, setCategories] = useState<Category[]>(categoriesProp ?? [])
   const [campaigns, setCampaigns] = useState<Campaign[]>(campaignsProp ?? [])
   const [nowRef] = useState(() => new Date())
+
+  // Đóng dropdown danh mục desktop khi bấm ra ngoài — cần cho việc mở dropdown
+  // bằng click (tablet không có hover thật), giữ nguyên hiệu ứng hover cho chuột.
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (desktopNavRef.current && !desktopNavRef.current.contains(e.target as Node)) {
+        setOpenDesktopId(null)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
 
   const activeCampaign = soonestEndingCampaign(campaigns, nowRef)
   const campaignDaysLeft = activeCampaign?.ends_at
@@ -141,47 +155,62 @@ export default function Header({ settings, categories: categoriesProp, campaigns
           </Link>
 
           {/* Desktop nav — categories */}
-          <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
-            {categories.map(cat => (
-              <div key={cat.id} className="relative group">
-                <a
-                  href={`/products?category=${cat.slug}`}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900 rounded-lg hover:bg-stone-50 transition-colors"
-                >
-                  {cat.name}
-                  {!!cat.children?.length && (
-                    <ChevronDown
-                      size={13}
-                      className="text-stone-400 transition-transform duration-200 group-hover:rotate-180"
-                    />
-                  )}
-                </a>
+          <nav ref={desktopNavRef} className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
+            {categories.map(cat => {
+              const hasChildren = !!cat.children?.length
+              const isOpen = openDesktopId === cat.id
+              return (
+                <div key={cat.id} className="relative group">
+                  <Link
+                    href={`/products?category=${cat.slug}`}
+                    onClick={e => {
+                      if (hasChildren) {
+                        e.preventDefault()
+                        setOpenDesktopId(id => id === cat.id ? null : cat.id)
+                      }
+                    }}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900 rounded-lg hover:bg-stone-50 transition-colors"
+                  >
+                    {cat.name}
+                    {hasChildren && (
+                      <ChevronDown
+                        size={13}
+                        className={`text-stone-400 transition-transform duration-200 group-hover:rotate-180 ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    )}
+                  </Link>
 
-                {/* Dropdown */}
-                {!!cat.children?.length && (
-                  <div className="absolute top-full left-0 pt-2 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 ease-out">
-                    <div className="bg-white rounded-xl shadow-lg border border-stone-100 py-2 min-w-[168px]">
-                      {cat.children?.map(child => (
-                        <a
-                          key={child.id}
-                          href={`/products?category=${child.slug}`}
-                          className="flex items-center px-4 py-2.5 text-sm text-stone-600 hover:text-stone-900 hover:bg-stone-50 transition-colors"
-                        >
-                          {child.name}
-                        </a>
-                      ))}
+                  {/* Dropdown — mở bằng hover (chuột) HOẶC click/tap (touch, không có hover thật) */}
+                  {hasChildren && (
+                    <div className={`absolute top-full left-0 pt-2 transition-all duration-200 ease-out ${
+                      isOpen
+                        ? 'opacity-100 visible translate-y-0'
+                        : 'opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0'
+                    }`}>
+                      <div className="bg-white rounded-xl shadow-lg border border-stone-100 py-2 min-w-[168px]">
+                        {cat.children?.map(child => (
+                          <Link
+                            key={child.id}
+                            href={`/products?category=${child.slug}`}
+                            onClick={() => setOpenDesktopId(null)}
+                            className="flex items-center px-4 py-2.5 text-sm text-stone-600 hover:text-stone-900 hover:bg-stone-50 transition-colors"
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              )
+            })}
           </nav>
 
           {/* Right: search + cart + hamburger */}
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => setShowSearch(v => !v)}
-              className="bg-stone-100 hover:bg-stone-200 transition rounded-full w-10 h-10 flex items-center justify-center"
+              className="bg-stone-100 hover:bg-stone-200 transition rounded-full w-11 h-11 flex items-center justify-center"
               aria-label="Tìm kiếm"
             >
               <Search size={18} className="text-stone-700" />
@@ -189,7 +218,7 @@ export default function Header({ settings, categories: categoriesProp, campaigns
 
             <button
               onClick={() => setShowCart(true)}
-              className={`relative bg-stone-100 hover:bg-stone-200 transition rounded-full w-10 h-10 flex items-center justify-center ${
+              className={`relative bg-stone-100 hover:bg-stone-200 transition rounded-full w-11 h-11 flex items-center justify-center ${
                 bounce ? 'animate-cart-bounce' : ''
               }`}
               aria-label="Giỏ hàng"
@@ -206,7 +235,7 @@ export default function Header({ settings, categories: categoriesProp, campaigns
 
             <button
               onClick={() => { setMobileOpen(v => !v); setExpandedId(null) }}
-              className="md:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 transition"
+              className="md:hidden w-11 h-11 flex items-center justify-center rounded-full hover:bg-stone-100 transition"
               aria-label="Menu"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -249,34 +278,34 @@ export default function Header({ settings, categories: categoriesProp, campaigns
                     </button>
                     <div className={`overflow-hidden transition-all duration-200 ${expandedId === cat.id ? 'max-h-96' : 'max-h-0'}`}>
                       <div className="ml-3 pl-3 border-l-2 border-stone-100 pb-1 space-y-0.5">
-                        <a
+                        <Link
                           href={`/products?category=${cat.slug}`}
                           onClick={() => setMobileOpen(false)}
                           className="block px-2 py-2 text-sm text-stone-500 hover:text-stone-900 transition"
                         >
                           Tất cả {cat.name}
-                        </a>
+                        </Link>
                         {cat.children?.map(child => (
-                          <a
+                          <Link
                             key={child.id}
                             href={`/products?category=${child.slug}`}
                             onClick={() => setMobileOpen(false)}
                             className="block px-2 py-2 text-sm text-stone-600 hover:text-stone-900 transition"
                           >
                             {child.name}
-                          </a>
+                          </Link>
                         ))}
                       </div>
                     </div>
                   </>
                 ) : (
-                  <a
+                  <Link
                     href={`/products?category=${cat.slug}`}
                     onClick={() => setMobileOpen(false)}
                     className="block px-3 py-3 text-sm font-semibold text-stone-700 rounded-lg hover:bg-stone-50 transition"
                   >
                     {cat.name}
-                  </a>
+                  </Link>
                 )}
               </div>
             ))}

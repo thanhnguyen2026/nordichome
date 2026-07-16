@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
+import Link from 'next/link'
 import { X } from 'lucide-react'
 import type { Product } from '@/types'
 
@@ -114,20 +115,20 @@ function HotspotDot({ hotspot, open, onToggle, onClose }: { hotspot: Hotspot; op
               <div className="flex-1 min-w-0 flex flex-col">
                 <p className="text-sm font-bold text-stone-900 leading-snug mb-1 line-clamp-2">{p.name}</p>
                 {p.variant_label && (
-                  <p className="text-xs text-stone-400 mb-1">{p.variant_label}</p>
+                  <p className="text-xs text-stone-500 mb-1">{p.variant_label}</p>
                 )}
                 <div className="flex items-baseline gap-1.5 mb-auto">
                   <span className="text-base font-black text-amber-700">{fmt(p.sale_price ?? p.price)}</span>
                   {p.sale_price && (
-                    <span className="text-xs text-stone-400 line-through">{fmt(p.price)}</span>
+                    <span className="text-xs text-stone-500 line-through">{fmt(p.price)}</span>
                   )}
                 </div>
-                <a
+                <Link
                   href={`/products/${p.slug}`}
                   className="block w-full bg-stone-900 text-white text-center text-xs font-bold py-2.5 rounded-xl hover:bg-stone-700 transition mt-2"
                 >
                   Xem sản phẩm →
-                </a>
+                </Link>
               </div>
             </div>
             <div className="pb-[env(safe-area-inset-bottom)]" />
@@ -156,22 +157,22 @@ function HotspotCardContent({ product: p }: { product: HotspotProduct }) {
       <div className="p-2.5">
         <p className="text-xs font-bold text-stone-900 leading-snug mb-1 line-clamp-2">{p.name}</p>
         {p.variant_label && (
-          <p className="text-[10px] text-stone-400 mb-1">{p.variant_label}</p>
+          <p className="text-[10px] text-stone-600 mb-1">{p.variant_label}</p>
         )}
         <div className="flex items-baseline gap-1.5 mb-2">
           <span className="text-xs font-black text-amber-700">
             {fmt(p.sale_price ?? p.price)}
           </span>
           {p.sale_price && (
-            <span className="text-[10px] text-stone-400 line-through">{fmt(p.price)}</span>
+            <span className="text-[10px] text-stone-600 line-through">{fmt(p.price)}</span>
           )}
         </div>
-        <a
+        <Link
           href={`/products/${p.slug}`}
           className="block w-full bg-stone-900 text-white text-center text-[11px] font-bold py-2 rounded-lg hover:bg-stone-700 transition"
         >
           Xem sản phẩm →
-        </a>
+        </Link>
       </div>
     </>
   )

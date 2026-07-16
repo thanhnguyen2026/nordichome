@@ -13,7 +13,7 @@ export default function SortSelect({ defaultValue = 'newest' }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-stone-400 whitespace-nowrap">Sắp xếp:</span>
+      <span className="text-xs text-stone-500 whitespace-nowrap">Sắp xếp:</span>
       <select
         defaultValue={defaultValue}
         onChange={handleChange}

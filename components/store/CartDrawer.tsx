@@ -21,7 +21,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
 
         <div className="flex-1 overflow-y-auto p-3">
           {items.length === 0 ? (
-            <div className="text-center py-10 text-stone-400">Giỏ hàng trống 🛒</div>
+            <div className="text-center py-10 text-stone-500">Giỏ hàng trống 🛒</div>
           ) : (
             items.map(item => {
               const key = itemKey(item)
@@ -43,7 +43,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                       <div className="font-semibold text-xs leading-tight hover:underline">{item.product.name}</div>
                       {/* Hiển thị biến thể đã chọn */}
                       {variantLabel && (
-                        <div className="text-[10px] text-stone-400 mt-0.5">{variantLabel}</div>
+                        <div className="text-[10px] text-stone-600 mt-0.5">{variantLabel}</div>
                       )}
                       <div className="text-amber-700 font-bold text-xs mt-0.5">
                         {fmt(item.product.sale_price ?? item.product.price)}
@@ -71,10 +71,10 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
               <span className="font-semibold">Tổng:</span>
               <span className="font-black text-lg text-amber-700">{fmt(total())}</span>
             </div>
-            <a href="/checkout"
+            <Link href="/checkout"
               className="block w-full bg-stone-900 text-amber-100 text-center font-bold py-3 rounded-lg text-sm">
               Đặt hàng →
-            </a>
+            </Link>
           </div>
         )}
       </div>

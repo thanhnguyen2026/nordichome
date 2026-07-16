@@ -6,7 +6,7 @@ import { useCartStore, itemKey } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { calcTotalWeight } from '@/lib/shipping'
-import { Truck, AlertTriangle, Loader2 } from 'lucide-react'
+import { Truck, AlertTriangle, Loader2, ClipboardList, User, CreditCard, Receipt, Tag, Smartphone } from 'lucide-react'
 import { trackPurchase, generateEventId, getCookie } from '@/lib/analytics'
 import { copyToClipboard } from '@/lib/clipboard'
 import { hasCampaignFor } from '@/lib/campaignPrice'
@@ -393,22 +393,24 @@ export default function CheckoutPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-black mb-6">📋 Thông tin đặt hàng</h1>
+        <h1 className="text-2xl font-black mb-6 flex items-center gap-2"><ClipboardList size={22} /> Thông tin đặt hàng</h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
           {/* Thông tin khách hàng */}
           <div className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
-            <h2 className="font-bold text-sm text-stone-700">👤 Thông tin nhận hàng</h2>
+            <h2 className="font-bold text-sm text-stone-700 flex items-center gap-1.5"><User size={16} /> Thông tin nhận hàng</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-semibold text-stone-500 block mb-1">Họ tên *</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  autoComplete="name"
                   className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-stone-400" required />
               </div>
               <div>
                 <label className="text-xs font-semibold text-stone-500 block mb-1">Số điện thoại *</label>
                 <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                  type="tel" inputMode="tel" autoComplete="tel"
                   className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-stone-400" required />
               </div>
             </div>
@@ -462,6 +464,7 @@ export default function CheckoutPage() {
               <input value={form.streetAddress}
                 onChange={e => setForm(f => ({ ...f, streetAddress: e.target.value }))}
                 placeholder="VD: 123 Nguyễn Văn A"
+                autoComplete="address-line1"
                 className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-stone-400" required />
             </div>
 
@@ -520,7 +523,7 @@ export default function CheckoutPage() {
 
           {/* Phương thức thanh toán */}
           <div className="bg-white rounded-2xl border border-stone-100 p-6">
-            <h2 className="font-bold text-sm text-stone-700 mb-3">💳 Phương thức thanh toán</h2>
+            <h2 className="font-bold text-sm text-stone-700 mb-3 flex items-center gap-1.5"><CreditCard size={16} /> Phương thức thanh toán</h2>
             <div className="space-y-2">
               {[
                 ['cod',  '💵 Thanh toán khi nhận hàng (COD)'],
@@ -538,7 +541,7 @@ export default function CheckoutPage() {
 
             {form.payment === 'bank' && settings.bank_id && settings.bank_account && (
               <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm space-y-1.5">
-                <p className="font-bold text-amber-800 mb-2">📱 Thông tin chuyển khoản</p>
+                <p className="font-bold text-amber-800 mb-2 flex items-center gap-1.5"><Smartphone size={16} /> Thông tin chuyển khoản</p>
                 <div className="flex justify-between">
                   <span className="text-stone-500">Ngân hàng</span>
                   <span className="font-semibold">{settings.bank_id}</span>
@@ -562,7 +565,7 @@ export default function CheckoutPage() {
 
           {/* Tóm tắt đơn hàng */}
           <div className="bg-white rounded-2xl border border-stone-100 p-6">
-            <h2 className="font-bold text-sm text-stone-700 mb-3">🧾 Tóm tắt đơn hàng</h2>
+            <h2 className="font-bold text-sm text-stone-700 mb-3 flex items-center gap-1.5"><Receipt size={16} /> Tóm tắt đơn hàng</h2>
             {items.map(item => {
               const variantLabel = item.product.variant_label
               return (
@@ -587,7 +590,7 @@ export default function CheckoutPage() {
             <div className="border-t border-stone-100 mt-3 pt-3">
               {appliedCoupon ? (
                 <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
-                  <span className="text-green-700 font-semibold">🏷️ {appliedCoupon.code} đã áp dụng</span>
+                  <span className="text-green-700 font-semibold flex items-center gap-1.5"><Tag size={14} /> {appliedCoupon.code} đã áp dụng</span>
                   <button type="button" onClick={removeCoupon} className="text-green-700 hover:text-green-900 text-xs underline">Gỡ mã</button>
                 </div>
               ) : (

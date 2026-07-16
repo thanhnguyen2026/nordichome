@@ -60,7 +60,7 @@ export default function SearchableSelect({
       {open && !isDisabled && (
         <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-stone-200 rounded-lg shadow-lg">
           {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-stone-400">Không tìm thấy</div>
+            <div className="px-3 py-2 text-sm text-stone-500">Không tìm thấy</div>
           ) : (
             filtered.map(o => (
               <button

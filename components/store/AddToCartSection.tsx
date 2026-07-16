@@ -98,7 +98,7 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
 
   if (!product.in_stock && !product.is_preorder) {
     return (
-      <div className="inline-flex items-center px-5 py-3 rounded-xl bg-stone-100 text-stone-400 font-semibold text-sm">
+      <div className="inline-flex items-center px-5 py-3 rounded-xl bg-stone-100 text-stone-600 font-semibold text-sm">
         Sản phẩm tạm hết hàng
       </div>
     )
@@ -152,7 +152,7 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
       >
         <div className="flex items-center gap-3">
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-stone-400 truncate">{product.name}</span>
+            <span className="text-[10px] text-stone-600 truncate">{product.name}</span>
             <span className="font-black text-stone-900 text-base">{fmt(effectivePrice)}</span>
           </div>
           <button onClick={handleBuyNow}

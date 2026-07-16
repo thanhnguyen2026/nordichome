@@ -91,7 +91,7 @@ export default function ChatConsultBlock({ settings, product }: Props) {
 
   return (
     <div className="mt-4 rounded-xl border border-stone-100 bg-stone-50 p-4">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-500">
         Tư vấn trực tiếp
       </p>
 

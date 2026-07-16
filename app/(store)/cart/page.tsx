@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { ShoppingCart, ImageOff } from 'lucide-react'
 import { useCartStore, itemKey } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { trackBeginCheckout } from '@/lib/analytics'
@@ -40,12 +41,12 @@ export default function CartPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-black mb-6">🛒 Giỏ hàng của bạn</h1>
+        <h1 className="text-2xl font-black mb-6 flex items-center gap-2"><ShoppingCart size={22} /> Giỏ hàng của bạn</h1>
 
         {items.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-5xl mb-4">🛒</div>
-            <p className="text-stone-400 mb-6">Giỏ hàng của bạn đang trống</p>
+            <ShoppingCart size={48} className="mx-auto mb-4 text-stone-300" />
+            <p className="text-stone-500 mb-6">Giỏ hàng của bạn đang trống</p>
             <Link href="/products" className="bg-stone-900 text-amber-100 px-6 py-3 rounded-lg text-sm font-bold inline-block">
               Khám phá sản phẩm →
             </Link>
@@ -63,7 +64,7 @@ export default function CartPage() {
                     <div className="relative w-20 h-20 bg-stone-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
                       {displayImage
                         ? <Image src={displayImage} alt={item.product.name} fill sizes="80px" className="object-cover" />
-                        : <span className="text-3xl">🛋️</span>}
+                        : <ImageOff size={28} className="text-stone-300" />}
                     </div>
                     <div className="flex-1">
                       <Link href={`/products/${item.product.slug}`} className="font-bold text-sm hover:text-amber-700">
@@ -71,16 +72,16 @@ export default function CartPage() {
                       </Link>
                       {/* Hiển thị biến thể đã chọn */}
                       {variantLabel && (
-                        <div className="text-[11px] text-stone-400 mt-0.5">{variantLabel}</div>
+                        <div className="text-[11px] text-stone-600 mt-0.5">{variantLabel}</div>
                       )}
                       <div className="text-amber-700 font-bold text-sm mt-1">
                         {fmt(item.product.sale_price ?? item.product.price)}
                       </div>
                       <div className="flex items-center gap-3 mt-2">
                         <div className="flex items-center border border-stone-200 rounded-lg">
-                          <button onClick={() => updateQty(key, item.quantity - 1)} className="w-7 h-7 text-sm">−</button>
+                          <button onClick={() => updateQty(key, item.quantity - 1)} aria-label="Giảm số lượng" className="w-9 h-9 text-sm">−</button>
                           <span className="w-8 text-center text-sm">{item.quantity}</span>
-                          <button onClick={() => updateQty(key, item.quantity + 1)} className="w-7 h-7 text-sm">+</button>
+                          <button onClick={() => updateQty(key, item.quantity + 1)} aria-label="Tăng số lượng" className="w-9 h-9 text-sm">+</button>
                         </div>
                         <button onClick={() => removeItem(key)} className="text-red-500 text-xs hover:underline">Xoá</button>
                       </div>

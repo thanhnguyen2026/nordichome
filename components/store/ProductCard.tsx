@@ -1,6 +1,9 @@
 'use client'
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { ImageOff } from 'lucide-react'
 import { Product } from '@/types'
 import { useCartStore } from '@/store/cartStore'
 
@@ -18,13 +21,14 @@ interface Props {
 
 export default function ProductCard({ product: p, hasVariants = false, minVariantPrice, priority = false }: Props) {
   const addItem = useCartStore(s => s.addItem)
+  const router = useRouter()
   const [hovered, setHovered] = useState(false)
 
   const secondImage = p.images?.[0]
 
   const handleAddToCart = () => {
     if (hasVariants) {
-      window.location.href = `/products/${p.slug}`
+      router.push(`/products/${p.slug}`)
       return
     }
     addItem({ product: p, quantity: 1 })
@@ -61,8 +65,8 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <a href={`/products/${p.slug}`} className="block">
-        <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden">
+      <Link href={`/products/${p.slug}`} className="block">
+        <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden flex items-center justify-center">
           {p.cover_image ? (
             <>
               {/* Ảnh chính */}
@@ -91,7 +95,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
               )}
             </>
           ) : (
-            <span className="text-5xl">🛋️</span>
+            <ImageOff size={36} className="text-stone-300" />
           )}
 
           {primaryBadge && (
@@ -109,7 +113,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
         </div>
 
         <div className="p-3">
-          <div className="text-[10px] text-stone-400 mb-1">{p.category?.name}</div>
+          <div className="text-[10px] text-stone-600 mb-1">{p.category?.name}</div>
           <div className="font-bold text-sm text-stone-800 leading-tight mb-2 line-clamp-2">{p.name}</div>
           <div className="flex items-baseline gap-2 mb-3">
             <span className="font-black text-stone-900">
@@ -118,20 +122,20 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
                 : fmt(p.sale_price ?? p.price)}
             </span>
             {!hasVariants && p.sale_price && (
-              <span className="text-xs text-stone-400 line-through">{fmt(p.price)}</span>
+              <span className="text-xs text-stone-500 line-through">{fmt(p.price)}</span>
             )}
           </div>
           {p.free_shipping && (
             <div className="text-[11px] text-green-600 font-semibold -mt-2 mb-2">🚚 Freeship</div>
           )}
         </div>
-      </a>
+      </Link>
 
       <div className="px-3 pb-3">
         <button
           disabled={isDisabled}
           onClick={handleAddToCart}
-          className={`w-full text-xs font-bold py-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
+          className={`w-full text-xs font-bold py-2.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
         >
           {btnLabel}
         </button>

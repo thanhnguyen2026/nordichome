@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
 import type { CartProduct } from '@/types'
 import type { HotspotProduct } from './ShopTheLook'
@@ -50,16 +51,16 @@ export default function LookBundle({ title, products }: { title: string; product
             <span className="flex-shrink-0 w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center text-xs font-semibold text-stone-500">
               {i + 1}
             </span>
-            <a href={`/products/${p.slug}`} className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-stone-50">
+            <Link href={`/products/${p.slug}`} className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-stone-50">
               <Image src={p.cover_image} alt={p.name} width={64} height={64} loading="eager" className="w-full h-full object-cover" />
-            </a>
-            <a href={`/products/${p.slug}`} className="flex-1 min-w-0">
+            </Link>
+            <Link href={`/products/${p.slug}`} className="flex-1 min-w-0">
               <p className="text-sm font-bold text-stone-900 hover:underline leading-snug">{p.name}</p>
               <p className="text-sm text-stone-500 mt-0.5">{fmt(p.sale_price ?? p.price)}</p>
               {p.variant_label && (
-                <p className="text-xs text-stone-400 underline decoration-stone-200 mt-0.5">{p.variant_label}</p>
+                <p className="text-xs text-stone-500 underline decoration-stone-200 mt-0.5">{p.variant_label}</p>
               )}
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
