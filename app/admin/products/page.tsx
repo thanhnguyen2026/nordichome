@@ -12,6 +12,10 @@ import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
 import { useConfirm } from '@/components/admin/useConfirm'
 import { usePrompt } from '@/components/admin/usePrompt'
 import { useToast } from '@/components/admin/useToast'
+import {
+  Package, Plus, Pencil, Trash2, Eye, EyeOff, Flame, Clock, AlertTriangle,
+  Percent, Boxes, ImageOff, ArrowLeft,
+} from 'lucide-react'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
 
@@ -241,73 +245,112 @@ export default function AdminProducts() {
       {Toast}
       {showForm ? (
         <div>
-          <button onClick={() => setShowForm(false)} className="text-sm text-stone-500 hover:text-stone-800 mb-4">← Quay lại danh sách</button>
-          <h1 className="text-2xl font-black mb-6">{editing ? '✏️ Sửa sản phẩm' : '➕ Thêm sản phẩm mới'}</h1>
+          <button onClick={() => setShowForm(false)}
+            className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-800 mb-4 cursor-pointer">
+            <ArrowLeft size={14} />
+            Quay lại danh sách
+          </button>
+          <h1 className="flex items-center gap-2 text-2xl font-black mb-6">
+            {editing ? <Pencil size={20} /> : <Plus size={20} />}
+            {editing ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}
+          </h1>
           <ProductForm product={editing || undefined} categories={categories} onSave={handleSave} onCancel={() => setShowForm(false)} />
         </div>
       ) : (
         <>
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-black">📦 Sản phẩm</h1>
-              <p className="text-stone-400 text-sm mt-1">{filtered.length}/{products.length} sản phẩm</p>
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+                <Package size={18} className="text-amber-100" aria-hidden="true" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black leading-tight">Sản phẩm</h1>
+                <p className="text-stone-400 text-sm">{filtered.length}/{products.length} sản phẩm</p>
+              </div>
             </div>
-            <button onClick={openAdd} className="bg-stone-900 text-amber-100 rounded-lg px-5 py-2.5 text-sm font-bold hover:bg-stone-800 transition">
-              + Thêm sản phẩm
+            <button onClick={openAdd}
+              className="flex items-center gap-1.5 bg-stone-900 text-amber-100 rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-stone-800 transition cursor-pointer">
+              <Plus size={15} />
+              Thêm sản phẩm
             </button>
           </div>
 
+          {/* Thẻ KPI tồn kho/hiển thị — dạng dòng gọn trên mobile (label + số
+              cùng hàng), chuyển sang thẻ xếp dọc như dashboard thật từ sm trở lên. */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5 mb-5">
+            {([
+              { label: 'Tổng',       value: products.length, border: 'border-l-stone-300' },
+              { label: 'Đang hiện',  value: products.filter(p => p.is_visible).length, border: 'border-l-blue-400' },
+              { label: 'Đang ẩn',    value: products.filter(p => !p.is_visible).length, border: 'border-l-stone-400' },
+              { label: 'Sắp hết',    value: products.filter(p => stockStatus(p) === 'low_stock').length, border: 'border-l-amber-400' },
+              { label: 'Hết hàng',   value: products.filter(p => stockStatus(p) === 'out_of_stock').length, border: 'border-l-red-400' },
+            ]).map(kpi => (
+              <div key={kpi.label} className={`flex items-center justify-between sm:block bg-white border border-stone-100 border-l-4 rounded-lg sm:rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 ${kpi.border}`}>
+                <div className="text-[10px] sm:text-[11px] font-semibold text-stone-400 uppercase tracking-wide truncate">{kpi.label}</div>
+                <div className="text-base sm:text-xl font-black text-stone-800 tabular-nums sm:mt-0.5">{kpi.value}</div>
+              </div>
+            ))}
+          </div>
+
           {/* Tìm kiếm + lọc */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Tìm theo tên hoặc SKU..."
-              className="flex-1 min-w-[220px] text-sm border border-stone-200 rounded-xl px-3.5 py-2 outline-none focus:border-stone-400"
-            />
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
-              className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white">
-              <option value="all">Mọi danh mục</option>
-              {(() => {
-                const parents  = categories.filter(c => !c.parent_id)
-                const children = (pid: string) => categories.filter(c => c.parent_id === pid)
-                return parents.map(p => {
-                  const kids = children(p.id)
-                  return kids.length > 0 ? (
-                    <optgroup key={p.id} label={p.name}>
-                      <option value={p.id}>📁 {p.name} (tất cả)</option>
-                      {kids.map(k => <option key={k.id} value={k.id}>└─ {k.name}</option>)}
-                    </optgroup>
-                  ) : (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  )
-                })
-              })()}
-            </select>
-            <select value={visibilityFilter} onChange={e => setVisibilityFilter(e.target.value as VisibilityFilter)}
-              className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white">
-              <option value="all">Hiện + Ẩn</option>
-              <option value="visible">👁️ Đang hiện</option>
-              <option value="hidden">🚫 Đang ẩn</option>
-            </select>
-            <select value={stockFilter} onChange={e => setStockFilter(e.target.value as StockFilter)}
-              className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white">
-              <option value="all">Mọi tồn kho</option>
-              <option value="in_stock">Còn hàng</option>
-              <option value="low_stock">⚠️ Sắp hết (≤{LOW_STOCK_THRESHOLD})</option>
-              <option value="out_of_stock">Hết hàng</option>
-            </select>
+          <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3 mb-5">
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Tìm theo tên hoặc SKU..."
+                className="flex-1 min-w-[220px] text-sm border border-stone-200 rounded-xl px-3.5 py-2 outline-none focus:border-stone-400 bg-white"
+              />
+              <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
+                className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white cursor-pointer">
+                <option value="all">Mọi danh mục</option>
+                {(() => {
+                  const parents  = categories.filter(c => !c.parent_id)
+                  const children = (pid: string) => categories.filter(c => c.parent_id === pid)
+                  return parents.map(p => {
+                    const kids = children(p.id)
+                    return kids.length > 0 ? (
+                      <optgroup key={p.id} label={p.name}>
+                        <option value={p.id}>{p.name} (tất cả)</option>
+                        {kids.map(k => <option key={k.id} value={k.id}>└─ {k.name}</option>)}
+                      </optgroup>
+                    ) : (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    )
+                  })
+                })()}
+              </select>
+              <select value={visibilityFilter} onChange={e => setVisibilityFilter(e.target.value as VisibilityFilter)}
+                className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white cursor-pointer">
+                <option value="all">Hiện + Ẩn</option>
+                <option value="visible">Đang hiện</option>
+                <option value="hidden">Đang ẩn</option>
+              </select>
+              <select value={stockFilter} onChange={e => setStockFilter(e.target.value as StockFilter)}
+                className="text-sm border border-stone-200 rounded-xl px-3 py-2 outline-none focus:border-stone-400 bg-white cursor-pointer">
+                <option value="all">Mọi tồn kho</option>
+                <option value="in_stock">Còn hàng</option>
+                <option value="low_stock">Sắp hết (≤{LOW_STOCK_THRESHOLD})</option>
+                <option value="out_of_stock">Hết hàng</option>
+              </select>
+            </div>
           </div>
 
           {/* Thanh thao tác hàng loạt — chỉ hiện khi có dòng được chọn */}
           {selected.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-4 bg-stone-900 text-white rounded-xl px-4 py-2.5">
               <span className="text-sm font-semibold mr-2">{selected.size} đã chọn</span>
-              <button onClick={() => bulkSetVisible(true)} className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">👁️ Hiện</button>
-              <button onClick={() => bulkSetVisible(false)} className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">🚫 Ẩn</button>
+              <button onClick={() => bulkSetVisible(true)}
+                className="flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition cursor-pointer">
+                <Eye size={12} /> Hiện
+              </button>
+              <button onClick={() => bulkSetVisible(false)}
+                className="flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition cursor-pointer">
+                <EyeOff size={12} /> Ẩn
+              </button>
               <div className="flex items-center gap-1.5">
                 <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}
-                  className="text-xs bg-white/10 rounded-lg px-2.5 py-1.5 outline-none text-white [&_option]:text-stone-900 [&_optgroup]:text-stone-900">
+                  className="text-xs bg-white/10 rounded-lg px-2.5 py-1.5 outline-none text-white cursor-pointer [&_option]:text-stone-900 [&_optgroup]:text-stone-900">
                   <option value="">Chuyển danh mục...</option>
                   {(() => {
                     const parents  = categories.filter(c => !c.parent_id)
@@ -316,7 +359,7 @@ export default function AdminProducts() {
                       const kids = children(p.id)
                       return kids.length > 0 ? (
                         <optgroup key={p.id} label={p.name}>
-                          <option value={p.id}>📁 {p.name} (tất cả)</option>
+                          <option value={p.id}>{p.name} (tất cả)</option>
                           {kids.map(k => <option key={k.id} value={k.id}>└─ {k.name}</option>)}
                         </optgroup>
                       ) : (
@@ -326,12 +369,21 @@ export default function AdminProducts() {
                   })()}
                 </select>
                 <button onClick={bulkApplyCategory} disabled={!bulkCategory}
-                  className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed">Áp dụng</button>
+                  className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">Áp dụng</button>
               </div>
-              <button onClick={bulkAdjustPrice} className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">💰 Đổi giá %</button>
-              <button onClick={bulkAdjustStock} className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">📦 Cộng/trừ kho</button>
-              <button onClick={bulkDelete} className="text-xs bg-red-500/90 hover:bg-red-500 rounded-lg px-3 py-1.5 transition ml-auto">🗑️ Xoá</button>
-              <button onClick={() => setSelected(new Set())} className="text-xs text-white/60 hover:text-white px-2">Bỏ chọn</button>
+              <button onClick={bulkAdjustPrice}
+                className="flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition cursor-pointer">
+                <Percent size={12} /> Đổi giá %
+              </button>
+              <button onClick={bulkAdjustStock}
+                className="flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition cursor-pointer">
+                <Boxes size={12} /> Cộng/trừ kho
+              </button>
+              <button onClick={bulkDelete}
+                className="flex items-center gap-1 text-xs bg-red-500/90 hover:bg-red-500 rounded-lg px-3 py-1.5 transition ml-auto cursor-pointer">
+                <Trash2 size={12} /> Xoá
+              </button>
+              <button onClick={() => setSelected(new Set())} className="text-xs text-white/60 hover:text-white px-2 cursor-pointer">Bỏ chọn</button>
             </div>
           )}
 
@@ -353,12 +405,12 @@ export default function AdminProducts() {
               <div className="overflow-x-auto bg-stone-100 md:bg-transparent px-1.5 py-2 md:p-0">
                 <table className="w-full text-sm block md:table md:min-w-[760px]">
                   <thead className="hidden md:table-header-group">
-                    <tr className="bg-stone-50">
+                    <tr className="bg-stone-50 border-b-2 border-stone-200">
                       <th className="py-3 px-4 w-8">
                         <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} className="cursor-pointer" />
                       </th>
                       {['Ảnh', 'Tên sản phẩm', 'SKU', 'Danh mục', 'Giá bán', 'Tồn kho', 'Trạng thái', ''].map(h => (
-                        <th key={h} className="text-left py-3 px-4 text-[11px] uppercase text-stone-400 font-semibold whitespace-nowrap">{h}</th>
+                        <th key={h} className="text-left py-3 px-4 text-[11px] uppercase tracking-wide text-stone-400 font-semibold whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -373,7 +425,7 @@ export default function AdminProducts() {
                           <td className="flex items-center gap-3 md:table-cell py-2.5 px-4">
                             <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelectOne(p.id)} className="cursor-pointer md:hidden flex-shrink-0" />
                             <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                              {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="48px" className="object-cover" /> : <span className="text-xl">🛋️</span>}
+                              {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="48px" className="object-cover" /> : <ImageOff size={18} className="text-stone-300" />}
                             </div>
                             <div className="min-w-0 md:hidden">
                               <div className="font-semibold truncate">{p.name}</div>
@@ -383,8 +435,9 @@ export default function AdminProducts() {
                           <td className="hidden md:table-cell py-2 px-4 font-semibold whitespace-nowrap">
                             {p.name}
                             {hasCampaignFor(p.id, campaigns, now) && (
-                              <div className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
-                                🔥 Đang giảm giá
+                              <div className="flex items-center gap-1 text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full font-semibold w-fit mt-1">
+                                <Flame size={9} />
+                                Đang giảm giá
                               </div>
                             )}
                           </td>
@@ -393,14 +446,14 @@ export default function AdminProducts() {
                             <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Danh mục</span>
                             {p.category?.name || '—'}
                           </td>
-                          <td className="flex items-center justify-between md:table-cell py-2 px-4 font-bold text-amber-700 md:whitespace-nowrap">
+                          <td className="flex items-center justify-between md:table-cell py-2 px-4 font-bold text-amber-700 md:whitespace-nowrap tabular-nums">
                             <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Giá bán</span>
                             <div className="text-right md:text-left">
                               {fmt(p.sale_price || p.price)}
                               {!!p.sale_price && p.sale_price !== p.price && <div className="text-[11px] text-stone-400 line-through font-normal">{fmt(p.price)}</div>}
                             </div>
                           </td>
-                          <td className="flex items-center justify-between md:table-cell py-2 px-4 md:whitespace-nowrap">
+                          <td className="flex items-center justify-between md:table-cell py-2 px-4 md:whitespace-nowrap tabular-nums">
                             <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Tồn kho</span>
                             {stockCount(p) !== undefined
                               ? <span className={`font-semibold ${status === 'out_of_stock' ? 'text-red-600' : status === 'low_stock' ? 'text-amber-600' : 'text-stone-700'}`}>{stockCount(p)}</span>
@@ -409,7 +462,7 @@ export default function AdminProducts() {
                           <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-[10px] md:px-[14px]">
                             <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
                             <div className="flex flex-col items-end md:items-start gap-1">
-                              <span className={`text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${
+                              <span className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${
                                 p.is_preorder
                                   ? 'bg-orange-50 text-orange-600'
                                   : status === 'out_of_stock'
@@ -418,22 +471,32 @@ export default function AdminProducts() {
                                       ? 'bg-amber-50 text-amber-700'
                                       : 'bg-green-50 text-green-700'
                               }`}>
-                                {p.is_preorder
-                                  ? '⏳ Đặt trước'
-                                  : status === 'out_of_stock'
-                                    ? 'Hết hàng'
-                                    : status === 'low_stock'
-                                      ? `⚠️ Sắp hết (${stockCount(p)})`
-                                      : 'Còn hàng'}
+                                {p.is_preorder ? (
+                                  <><Clock size={9} /> Đặt trước</>
+                                ) : status === 'out_of_stock' ? (
+                                  'Hết hàng'
+                                ) : status === 'low_stock' ? (
+                                  <><AlertTriangle size={9} /> Sắp hết ({stockCount(p)})</>
+                                ) : (
+                                  'Còn hàng'
+                                )}
                               </span>
-                              <button onClick={() => toggleVisible(p)} className={`text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${p.is_visible ? 'bg-blue-50 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
-                                {p.is_visible ? '👁️ Hiện' : '🚫 Ẩn'}
+                              <button onClick={() => toggleVisible(p)}
+                                className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap cursor-pointer ${p.is_visible ? 'bg-blue-50 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
+                                {p.is_visible ? <Eye size={9} /> : <EyeOff size={9} />}
+                                {p.is_visible ? 'Hiện' : 'Ẩn'}
                               </button>
                             </div>
                           </td>
                           <td className="flex items-center justify-end gap-1 md:table-cell py-2 px-4 md:text-right md:whitespace-nowrap">
-                            <button onClick={() => openEdit(p)} className="text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200">✏️ Sửa</button>
-                            <button onClick={() => handleDelete(p.id)} className="text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100">🗑️</button>
+                            <button onClick={() => openEdit(p)}
+                              className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200 cursor-pointer">
+                              <Pencil size={11} /> Sửa
+                            </button>
+                            <button onClick={() => handleDelete(p.id)}
+                              className="flex items-center text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100 cursor-pointer">
+                              <Trash2 size={12} />
+                            </button>
                           </td>
                         </tr>
                       )

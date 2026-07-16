@@ -6,6 +6,11 @@ import ImageUploader from './ImageUploader'
 import VariantsManager, { Variant } from './VariantsManager'
 import { supabase } from '@/lib/supabase'
 import { calcTaobaoCost } from '@/lib/taobaoCost'
+import {
+  Info, Images, Ruler, Rows3, Video, Tag, Search, Save, Lock, AlertTriangle,
+  Lightbulb, TrendingUp, TrendingDown, Scale, CheckCircle2, XCircle, Eye, Star,
+  Sparkles, Package, Package2, Truck, Clock, Loader2, Upload, HardDrive, Link as LinkIcon,
+} from 'lucide-react'
 
 interface Props {
   product?: Product
@@ -194,7 +199,10 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
 
       {/* ── Thông tin cơ bản ─────────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
-        <h3 className="font-bold mb-4 text-sm text-stone-700">📋 Thông tin cơ bản</h3>
+        <h3 className="flex items-center gap-2 font-bold mb-4 text-sm text-stone-700">
+          <Info size={16} className="text-stone-400" />
+          Thông tin cơ bản
+        </h3>
         <div className="grid grid-cols-2 gap-4">
 
           <div className="col-span-2">
@@ -232,7 +240,7 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
                   const kids = children(p.id)
                   return kids.length > 0 ? (
                     <optgroup key={p.id} label={p.name}>
-                      <option value={p.id}>📁 {p.name} (tất cả)</option>
+                      <option value={p.id}>{p.name} (tất cả)</option>
                       {kids.map(k => <option key={k.id} value={k.id}>└─ {k.name}</option>)}
                     </optgroup>
                   ) : (
@@ -252,8 +260,9 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
               placeholder="VD: 150000"
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" required />
             {profitPercent != null && (
-              <p className={`text-[11px] mt-1 ${profitAmount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {profitAmount >= 0 ? '📈' : '📉'} Lãi {profitAmount.toLocaleString('vi-VN')}₫ ({profitPercent.toFixed(0)}% so với giá vốn)
+              <p className={`flex items-center gap-1 text-[11px] mt-1 ${profitAmount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                {profitAmount >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                Lãi {profitAmount.toLocaleString('vi-VN')}₫ ({profitPercent.toFixed(0)}% so với giá vốn)
               </p>
             )}
           </div>
@@ -269,7 +278,10 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-stone-500 block mb-1">🔒 Giá Taobao gốc (¥) — Chỉ Admin</label>
+            <label className="flex items-center gap-1 text-xs font-semibold text-stone-500 mb-1">
+              <Lock size={10} />
+              Giá Taobao gốc (¥) — Chỉ Admin
+            </label>
             <input type="text" inputMode="decimal"
               value={form.taobao_price_cny}
               onChange={e => set('taobao_price_cny', e.target.value)}
@@ -281,7 +293,10 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-stone-500 block mb-1">🔒 Giá vốn (₫) — Chỉ Admin</label>
+            <label className="flex items-center gap-1 text-xs font-semibold text-stone-500 mb-1">
+              <Lock size={10} />
+              Giá vốn (₫) — Chỉ Admin
+            </label>
             <input type="text" inputMode="numeric" pattern="[0-9]*"
               value={form.cost_price}
               onChange={e => set('cost_price', e.target.value.replace(/\D/g, ''))}
@@ -290,16 +305,23 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
             {suggestedCost != null && (
               <p className="text-[11px] text-blue-600 mt-1 flex items-center gap-2">
-                💡 Gợi ý: {suggestedCost.toLocaleString('vi-VN')}₫
+                <Lightbulb size={11} />
+                Gợi ý: {suggestedCost.toLocaleString('vi-VN')}₫
                 <button type="button" onClick={() => set('cost_price', String(suggestedCost))}
-                  className="text-blue-600 underline hover:text-blue-800">Dùng giá này</button>
+                  className="text-blue-600 underline hover:text-blue-800 cursor-pointer">Dùng giá này</button>
               </p>
             )}
-            <p className="text-[11px] text-red-400 mt-1">⚠️ Không hiển thị ra trang khách hàng</p>
+            <p className="flex items-center gap-1 text-[11px] text-red-400 mt-1">
+              <AlertTriangle size={10} />
+              Không hiển thị ra trang khách hàng
+            </p>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-stone-500 block mb-1">⚖️ Cân nặng (kg)</label>
+            <label className="flex items-center gap-1 text-xs font-semibold text-stone-500 mb-1">
+              <Scale size={11} />
+              Cân nặng (kg)
+            </label>
             <input type="number" step="0.1" min="0" value={form.weight}
               onChange={e => set('weight', e.target.value)}
               placeholder="VD: 0.4"
@@ -308,11 +330,17 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           </div>
 
           <div className="col-span-2">
-            <label className="text-xs font-semibold text-stone-500 block mb-1">🔒 Link Taobao — Chỉ Admin</label>
+            <label className="flex items-center gap-1 text-xs font-semibold text-stone-500 mb-1">
+              <Lock size={10} />
+              Link Taobao — Chỉ Admin
+            </label>
             <input value={form.origin_url} onChange={e => set('origin_url', e.target.value)}
               placeholder="https://item.taobao.com/item.htm?id=..."
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
-            <p className="text-[11px] text-red-400 mt-1">⚠️ Không hiển thị ra trang khách hàng</p>
+            <p className="flex items-center gap-1 text-[11px] text-red-400 mt-1">
+              <AlertTriangle size={10} />
+              Không hiển thị ra trang khách hàng
+            </p>
           </div>
 
           <div className="col-span-2">
@@ -331,7 +359,10 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
 
       {/* ── Hình ảnh ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
-        <h3 className="font-bold mb-4 text-sm text-stone-700">🖼️ Hình ảnh</h3>
+        <h3 className="flex items-center gap-2 font-bold mb-4 text-sm text-stone-700">
+          <Images size={16} className="text-stone-400" />
+          Hình ảnh
+        </h3>
         <ImageUploader
           coverImage={form.cover_image}
           images={form.images}
@@ -342,7 +373,10 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
 
       {/* ── Thông số kỹ thuật ────────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
-        <h3 className="font-bold mb-1 text-sm text-stone-700">📐 Thông số kỹ thuật</h3>
+        <h3 className="flex items-center gap-2 font-bold mb-1 text-sm text-stone-700">
+          <Ruler size={16} className="text-stone-400" />
+          Thông số kỹ thuật
+        </h3>
         <p className="text-xs text-stone-400 mb-3">Hiển thị dạng bảng ở trang chi tiết sản phẩm, VD: &quot;Độ dày thảm (mm)&quot; → &quot;10-15&quot;</p>
         <div className="space-y-2">
           {form.specs.map((spec, i) => (
@@ -354,19 +388,22 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
                 placeholder="Giá trị"
                 className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
               <button type="button" onClick={() => removeSpec(i)}
-                className="text-red-400 hover:text-red-600 px-2">✕</button>
+                className="text-red-400 hover:text-red-600 px-2 cursor-pointer">✕</button>
             </div>
           ))}
         </div>
         <button type="button" onClick={addSpec}
-          className="mt-3 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition">
+          className="mt-3 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition cursor-pointer">
           + Thêm thông số
         </button>
       </div>
 
       {/* ── Nội dung mô tả (ảnh + chữ) ───────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
-        <h3 className="font-bold mb-1 text-sm text-stone-700">🖼️ Nội dung mô tả (ảnh + chữ)</h3>
+        <h3 className="flex items-center gap-2 font-bold mb-1 text-sm text-stone-700">
+          <Rows3 size={16} className="text-stone-400" />
+          Nội dung mô tả (ảnh + chữ)
+        </h3>
         <p className="text-xs text-stone-400 mb-3">
           Mỗi khối gồm 1 ảnh + 1 đoạn text tuỳ chọn, hiển thị full-width bên dưới trang chi tiết.
           Có thể để trống text nếu ảnh đã có chữ thiết kế sẵn.
@@ -377,18 +414,19 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
               <div className="relative w-24 h-24 flex-shrink-0 bg-stone-100 rounded-lg border-2 border-dashed border-stone-200 flex items-center justify-center overflow-hidden">
                 {block.image_url
                   ? <Image src={block.image_url} alt={`Khối ${i + 1}`} fill sizes="96px" className="object-cover" />
-                  : <span className="text-2xl">🖼️</span>}
+                  : <Images size={24} className="text-stone-300" />}
               </div>
               <div className="flex-1 space-y-2">
                 <input type="file" accept="image/*" className="hidden" id={`block-file-${i}`}
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadBlockImage(i, f) }} />
                 <div className="flex gap-2">
                   <label htmlFor={`block-file-${i}`}
-                    className="cursor-pointer bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-stone-200 transition">
-                    {uploadingBlock === i ? '⏳ Đang upload...' : '📁 Chọn ảnh'}
+                    className="flex items-center gap-1.5 cursor-pointer bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-stone-200 transition">
+                    {uploadingBlock === i ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                    {uploadingBlock === i ? 'Đang upload...' : 'Chọn ảnh'}
                   </label>
                   <button type="button" onClick={() => removeBlock(i)}
-                    className="text-red-400 hover:text-red-600 text-xs">Xoá khối</button>
+                    className="text-red-400 hover:text-red-600 text-xs cursor-pointer">Xoá khối</button>
                 </div>
                 <textarea value={block.text} onChange={e => updateBlock(i, { text: e.target.value })} rows={4}
                   placeholder="Đoạn mô tả đi kèm ảnh (để trống nếu ảnh đã có chữ)"
@@ -398,35 +436,40 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           ))}
         </div>
         <button type="button" onClick={addBlock}
-          className="mt-3 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition">
+          className="mt-3 bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-stone-200 transition cursor-pointer">
           + Thêm khối nội dung
         </button>
       </div>
 
       {/* ── Video ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
-        <h3 className="font-bold mb-1 text-sm text-stone-700">🎬 Video sản phẩm</h3>
+        <h3 className="flex items-center gap-2 font-bold mb-1 text-sm text-stone-700">
+          <Video size={16} className="text-stone-400" />
+          Video sản phẩm
+        </h3>
         <p className="text-xs text-stone-400 mb-3">YouTube, Shorts, Facebook, TikTok, Google Drive, .mp4/.webm</p>
         <input value={form.video_url} onChange={e => set('video_url', e.target.value)}
           placeholder="https://youtube.com/watch?v=..."
           className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
         {form.video_url?.includes('drive.google.com') && (
-          <p className="text-xs text-amber-600 mt-1.5">
-            ⚠️ Nhớ để chế độ chia sẻ file là &quot;Bất kỳ ai có đường liên kết&quot; trên Google Drive, nếu không khách sẽ không xem được video.
+          <p className="flex items-center gap-1 text-xs text-amber-600 mt-1.5">
+            <AlertTriangle size={11} />
+            Nhớ để chế độ chia sẻ file là &quot;Bất kỳ ai có đường liên kết&quot; trên Google Drive, nếu không khách sẽ không xem được video.
           </p>
         )}
         {form.video_url && (
           <div className="mt-2 p-2.5 bg-stone-50 rounded-lg flex items-center gap-2 text-xs text-stone-500">
-            <span>
-              {form.video_url.includes('youtube') ? '▶️ YouTube' :
-               form.video_url.includes('facebook') ? '📘 Facebook' :
-               form.video_url.includes('tiktok') ? '🎵 TikTok' :
-               form.video_url.includes('drive.google.com') ? '📁 Google Drive' :
-               form.video_url.match(/\.(mp4|webm)/i) ? '🎥 MP4' : '🔗 Video'}
+            <span className="flex items-center gap-1 flex-shrink-0">
+              {form.video_url.includes('drive.google.com') ? <HardDrive size={12} /> : form.video_url.match(/\.(mp4|webm)/i) || form.video_url.includes('youtube') || form.video_url.includes('facebook') || form.video_url.includes('tiktok') ? <Video size={12} /> : <LinkIcon size={12} />}
+              {form.video_url.includes('youtube') ? 'YouTube' :
+               form.video_url.includes('facebook') ? 'Facebook' :
+               form.video_url.includes('tiktok') ? 'TikTok' :
+               form.video_url.includes('drive.google.com') ? 'Google Drive' :
+               form.video_url.match(/\.(mp4|webm)/i) ? 'MP4' : 'Video'}
             </span>
             <span className="truncate text-stone-400 flex-1">{form.video_url}</span>
             <button type="button" onClick={() => set('video_url', '')}
-              className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
+              className="text-red-400 hover:text-red-600 flex-shrink-0 cursor-pointer">✕</button>
           </div>
         )}
       </div>
@@ -436,13 +479,19 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
 
       {/* ── Trạng thái & Hiển thị ────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
-        <h3 className="font-bold mb-4 text-sm text-stone-700">🏷️ Trạng thái & Hiển thị</h3>
+        <h3 className="flex items-center gap-2 font-bold mb-4 text-sm text-stone-700">
+          <Tag size={16} className="text-stone-400" />
+          Trạng thái &amp; Hiển thị
+        </h3>
 
         {/* Số lượng tồn kho — chỉ có ý nghĩa khi sản phẩm KHÔNG có biến thể
             (biến thể quản lý tồn kho riêng từng mẫu ở VariantsManager) */}
         {variants.length === 0 && (
           <div className="mb-4">
-            <label className="text-xs font-semibold text-stone-500 block mb-1">📦 Số lượng tồn kho</label>
+            <label className="flex items-center gap-1 text-xs font-semibold text-stone-500 mb-1">
+              <Package size={11} />
+              Số lượng tồn kho
+            </label>
             <input type="text" inputMode="numeric" pattern="[0-9]*"
               value={form.stock}
               onChange={e => set('stock', e.target.value.replace(/\D/g, ''))}
@@ -458,24 +507,26 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
         <div className="grid grid-cols-2 gap-3">
           {trackingStock ? (
             <div className="flex items-center gap-2 text-sm text-stone-600">
-              <span>{Number(form.stock) > 0 ? '✅' : '⛔'}</span>
+              {Number(form.stock) > 0 ? <CheckCircle2 size={15} className="text-green-600" /> : <XCircle size={15} className="text-red-500" />}
               <span>{Number(form.stock) > 0 ? `Còn hàng (tự động, còn ${form.stock})` : 'Hết hàng (tự động)'}</span>
             </div>
           ) : (
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.in_stock}
-                onChange={e => set('in_stock', e.target.checked)} className="w-4 h-4" />
-              <span className="text-sm">✅ Còn hàng</span>
+                onChange={e => set('in_stock', e.target.checked)} className="w-4 h-4 cursor-pointer" />
+              <CheckCircle2 size={14} className="text-green-600" />
+              <span className="text-sm">Còn hàng</span>
             </label>
           )}
           {([
-            ['is_visible', '👁️ Hiển thị'],
-            ['is_featured','⭐ Nổi bật'],
-            ['is_new',     '🆕 Sản phẩm mới'],
-          ] as ['is_visible' | 'is_featured' | 'is_new', string][]).map(([k, l]) => (
+            ['is_visible',  'Hiển thị',       Eye],
+            ['is_featured', 'Nổi bật',        Star],
+            ['is_new',      'Sản phẩm mới',   Sparkles],
+          ] as const).map(([k, l, Icon]) => (
             <label key={k} className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form[k]}
-                onChange={e => set(k, e.target.checked)} className="w-4 h-4" />
+                onChange={e => set(k, e.target.checked)} className="w-4 h-4 cursor-pointer" />
+              <Icon size={14} className="text-stone-400" />
               <span className="text-sm">{l}</span>
             </label>
           ))}
@@ -484,9 +535,12 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={form.is_preorder}
                 onChange={e => set('is_preorder', e.target.checked)}
-                className="w-4 h-4 accent-orange-500" />
+                className="w-4 h-4 accent-orange-500 cursor-pointer" />
               <div>
-                <div className="text-sm font-semibold text-orange-700">⏳ Hàng đặt trước (Pre-order)</div>
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-orange-700">
+                  <Clock size={13} />
+                  Hàng đặt trước (Pre-order)
+                </div>
                 <div className="text-xs text-orange-500 mt-0.5">
                   Hiển thị badge &quot;Đặt trước&quot; kèm thời gian chờ thay vì &quot;Còn hàng&quot;
                 </div>
@@ -506,9 +560,12 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           <label className="col-span-2 flex items-center gap-3 cursor-pointer bg-red-50 border border-red-100 rounded-xl px-4 py-3 hover:bg-red-100 transition">
             <input type="checkbox" checked={form.is_bulky}
               onChange={e => set('is_bulky', e.target.checked)}
-              className="w-4 h-4 accent-red-500" />
+              className="w-4 h-4 accent-red-500 cursor-pointer" />
             <div>
-              <div className="text-sm font-semibold text-red-700">📦 Hàng cồng kềnh</div>
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-red-700">
+                <Package2 size={13} />
+                Hàng cồng kềnh
+              </div>
               <div className="text-xs text-red-500 mt-0.5">
                 Khi đặt hàng, khách sẽ được yêu cầu liên hệ tư vấn thay vì tự tính phí ship
               </div>
@@ -518,9 +575,12 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
           <label className="col-span-2 flex items-center gap-3 cursor-pointer bg-green-50 border border-green-100 rounded-xl px-4 py-3 hover:bg-green-100 transition">
             <input type="checkbox" checked={form.free_shipping}
               onChange={e => set('free_shipping', e.target.checked)}
-              className="w-4 h-4 accent-green-500" />
+              className="w-4 h-4 accent-green-500 cursor-pointer" />
             <div>
-              <div className="text-sm font-semibold text-green-700">🚚 Luôn miễn phí ship</div>
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                <Truck size={13} />
+                Luôn miễn phí ship
+              </div>
               <div className="text-xs text-green-600 mt-0.5">
                 Cân nặng sản phẩm này không tính vào phí ship của đơn — cộng dồn với freeship theo tổng đơn hàng ở Cài đặt
               </div>
@@ -531,7 +591,10 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
 
       {/* ── SEO ──────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">
-        <h3 className="font-bold mb-4 text-sm text-stone-700">🔍 SEO</h3>
+        <h3 className="flex items-center gap-2 font-bold mb-4 text-sm text-stone-700">
+          <Search size={16} className="text-stone-400" />
+          SEO
+        </h3>
         <div className="space-y-3">
           <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">Meta Title</label>
@@ -549,11 +612,12 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       {/* ── Buttons ──────────────────────────────────────────────── */}
       <div className="flex gap-3 pb-10">
         <button type="submit" disabled={saving}
-          className="bg-stone-800 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-stone-700 transition disabled:opacity-50">
-          {saving ? 'Đang lưu...' : '💾 Lưu sản phẩm'}
+          className="flex items-center gap-1.5 bg-stone-800 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-stone-700 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
+          <Save size={15} />
+          {saving ? 'Đang lưu...' : 'Lưu sản phẩm'}
         </button>
         <button type="button" onClick={onCancel}
-          className="border border-stone-200 px-6 py-2.5 rounded-lg text-sm hover:bg-stone-50 transition">
+          className="border border-stone-200 px-6 py-2.5 rounded-lg text-sm hover:bg-stone-50 transition cursor-pointer">
           Huỷ
         </button>
       </div>

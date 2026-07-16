@@ -501,12 +501,13 @@ export default function AdminOrders() {
         </button>
       </div>
 
-      {/* Thẻ KPI theo trạng thái */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-5">
+      {/* Thẻ KPI theo trạng thái — dạng dòng gọn trên mobile (label + số cùng
+          hàng), chuyển sang thẻ xếp dọc như dashboard thật từ sm trở lên. */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5 mb-5">
         {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
-          <div key={k} className={`bg-white border border-stone-100 border-l-4 rounded-xl px-3.5 py-2.5 ${STATUS_BORDER[k as OrderStatus]}`}>
-            <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide truncate">{v}</div>
-            <div className="text-xl font-black text-stone-800 tabular-nums mt-0.5">
+          <div key={k} className={`flex items-center justify-between sm:block bg-white border border-stone-100 border-l-4 rounded-lg sm:rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 ${STATUS_BORDER[k as OrderStatus]}`}>
+            <div className="text-[10px] sm:text-[11px] font-semibold text-stone-400 uppercase tracking-wide truncate">{v}</div>
+            <div className="text-base sm:text-xl font-black text-stone-800 tabular-nums sm:mt-0.5">
               {orders.filter(o => o.status === k).length}
             </div>
           </div>

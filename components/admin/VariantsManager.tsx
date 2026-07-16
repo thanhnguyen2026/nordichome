@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Palette, Package, Lock, AlertTriangle } from 'lucide-react'
 
 export interface Variant {
   id?: string
@@ -97,7 +97,10 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
         className="w-full flex items-center justify-between px-5 py-4 text-left"
       >
         <div>
-          <div className="font-bold text-sm text-stone-700">🎨 Biến thể sản phẩm (Variants)</div>
+          <div className="flex items-center gap-2 font-bold text-sm text-stone-700">
+            <Palette size={16} className="text-stone-400" />
+            Biến thể sản phẩm (Variants)
+          </div>
           <div className="text-xs text-stone-400 mt-0.5">
             {variants.length === 0
               ? 'Chưa có biến thể — sản phẩm đơn lẻ'
@@ -151,7 +154,10 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
           {groups.map(group => (
             <div key={group} className="mt-5">
               <div className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2">
-                <span className="bg-stone-100 px-2 py-0.5 rounded">📦 {group}</span>
+                <span className="flex items-center gap-1.5 bg-stone-100 px-2 py-0.5 rounded w-fit">
+                  <Package size={11} />
+                  {group}
+                </span>
               </div>
 
               <div className="space-y-3">
@@ -193,7 +199,8 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
                                 />
                               ) : v.image_url && brokenImageIdx.has(idx) ? (
                                 <div className="text-center px-1">
-                                  <span className="text-[10px] text-red-400 leading-tight">⚠️ Ảnh lỗi, không tải được</span>
+                                  <AlertTriangle size={14} className="text-red-400 mx-auto mb-0.5" />
+                                  <span className="text-[10px] text-red-400 leading-tight">Ảnh lỗi, không tải được</span>
                                 </div>
                               ) : (
                                 <div className="text-center">
@@ -227,12 +234,13 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
                           {([
                             { key: 'sku',        label: 'SKU',             type: 'text',   placeholder: 'VD: LY-DONUT', isPrice: false },
                             { key: 'price',      label: 'Giá bán (₫)',     type: 'text',   placeholder: 'Trống = giá SP', isPrice: true },
-                            { key: 'cost_price', label: '🔒 Giá vốn (₫)', type: 'text',   placeholder: 'Trống = giá vốn SP', isPrice: true },
+                            { key: 'cost_price', label: 'Giá vốn (₫)',   type: 'text',   placeholder: 'Trống = giá vốn SP', isPrice: true },
                             { key: 'stock',      label: 'Tồn kho',         type: 'number', placeholder: isPreorder ? 'Chưa cần' : '0', isPrice: false },
                             { key: 'weight',     label: 'Cân nặng (kg)',   type: 'number', placeholder: '0.5', isPrice: false },
                           ] as { key: 'sku' | 'price' | 'cost_price' | 'stock' | 'weight'; label: string; type: string; placeholder: string; isPrice: boolean }[]).map(field => (
                             <div key={field.key}>
-                              <label className="text-[10px] font-semibold text-stone-400 block mb-1">
+                              <label className="flex items-center gap-1 text-[10px] font-semibold text-stone-400 mb-1">
+                                {field.key === 'cost_price' && <Lock size={9} />}
                                 {field.label}
                               </label>
                               <input
