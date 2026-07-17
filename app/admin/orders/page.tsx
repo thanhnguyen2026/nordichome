@@ -633,7 +633,10 @@ export default function AdminOrders() {
               <tbody className="block md:table-row-group">
                 {displayed.map(o => {
                   const payStatus = o.payment_status
-                  const isBankUnpaid = o.payment_method === 'bank' && payStatus !== 'paid'
+                  // Đơn đã hủy thì không còn cần nhắc khách chuyển khoản hay xác nhận đã
+                  // nhận tiền nữa — loại trừ khỏi isBankUnpaid để ẩn 2 nút đó và viền cam
+                  // "chờ CK" trên đơn đã hủy.
+                  const isBankUnpaid = o.payment_method === 'bank' && payStatus !== 'paid' && o.status !== 'cancelled'
                   const isBankPaid   = o.payment_method === 'bank' && payStatus === 'paid'
                   const isExpanded = expanded === o.id
                   // Viền trái đậm màu stone-900 (đồng bộ với màu "đang chọn" của các nút
@@ -846,13 +849,21 @@ export default function AdminOrders() {
                                     )}
                                   </div>
                                 </div>
-                                {!!o.total_weight && o.total_weight > 0 && (
-                                  <div className="flex items-center gap-1 text-xs text-stone-400 mt-1">
-                                    <Scale size={11} />
-                                    {o.total_weight}kg
-                                    {o.shipping_zone && ` · ${({ inner: 'Nội tỉnh', south: 'Nội miền Nam', inter: 'Liên miền' } as Record<string, string>)[o.shipping_zone] || ''}`}
-                                  </div>
-                                )}
+                                {!!o.total_weight && o.total_weight > 0 && (() => {
+                                  // Chỉ có 3 zone hợp lệ được đặt tên — zone khác (dữ liệu cũ/lạ)
+                                  // trước đây vẫn in dấu " · " rồi để trống, để lại dấu chấm treo
+                                  // vô nghĩa. Bỏ hẳn cụm " · " khi không tra được tên zone.
+                                  const zoneLabel = o.shipping_zone
+                                    ? ({ inner: 'Nội tỉnh', south: 'Nội miền Nam', inter: 'Liên miền' } as Record<string, string>)[o.shipping_zone]
+                                    : undefined
+                                  return (
+                                    <div className="flex items-center gap-1 text-xs text-stone-400 mt-1">
+                                      <Scale size={11} />
+                                      {o.total_weight}kg
+                                      {zoneLabel && ` · ${zoneLabel}`}
+                                    </div>
+                                  )
+                                })()}
                                 {o.customer_note && (
                                   <div className="flex items-start gap-1.5 mt-2 text-xs text-stone-500 bg-white rounded-lg p-2 border border-stone-100">
                                     <StickyNote size={12} className="mt-0.5 flex-shrink-0" />
