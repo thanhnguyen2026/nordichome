@@ -6,7 +6,7 @@ import { useCartStore, itemKey } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { calcTotalWeight } from '@/lib/shipping'
-import { Truck, AlertTriangle, Loader2, ClipboardList, User, CreditCard, Receipt, Tag, Smartphone } from 'lucide-react'
+import { Truck, AlertTriangle, Loader2, ClipboardList, User, CreditCard, Receipt, Tag, Smartphone, PartyPopper, FileCheck2, Copy } from 'lucide-react'
 import { trackPurchase, generateEventId, getCookie } from '@/lib/analytics'
 import { copyToClipboard } from '@/lib/clipboard'
 import { hasCampaignFor } from '@/lib/campaignPrice'
@@ -298,7 +298,11 @@ export default function CheckoutPage() {
 
     return (
       <main className="max-w-md mx-auto px-4 py-12 text-center">
-        <div className="text-5xl mb-3">{isBank && hasBank ? '📝' : '🎉'}</div>
+        <div className="flex justify-center mb-3">
+          {isBank && hasBank
+            ? <FileCheck2 size={44} className="text-stone-400" />
+            : <PartyPopper size={44} className="text-amber-500" />}
+        </div>
         <h1 className="text-2xl font-black mb-1">
           {isBank && hasBank ? 'Đơn hàng đã được ghi nhận' : 'Đặt hàng thành công!'}
         </h1>
@@ -312,7 +316,9 @@ export default function CheckoutPage() {
 
         {isBank && hasBank ? (
           <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 text-left">
-            <p className="text-sm font-bold text-stone-800 mb-1 text-center">💳 Quét mã QR để thanh toán</p>
+            <p className="flex items-center justify-center gap-1.5 text-sm font-bold text-stone-800 mb-1">
+              <CreditCard size={15} />Quét mã QR để thanh toán
+            </p>
             <p className="text-xs text-stone-400 mb-4 text-center">Mở app ngân hàng → Quét mã QR bên dưới</p>
             {qrUrl && (
               <div className="flex justify-center mb-5">
@@ -327,8 +333,8 @@ export default function CheckoutPage() {
               <div className="flex justify-between">
                 <span className="text-stone-500">Số tài khoản</span>
                 <button onClick={() => copyToClipboard(settings.bank_account)}
-                  className="font-mono font-bold hover:text-amber-700 transition" title="Bấm để sao chép">
-                  {settings.bank_account} 📋
+                  className="flex items-center gap-1 font-mono font-bold hover:text-amber-700 transition" title="Bấm để sao chép">
+                  {settings.bank_account} <Copy size={13} />
                 </button>
               </div>
               <div className="flex justify-between">
@@ -342,8 +348,8 @@ export default function CheckoutPage() {
               <div className="flex justify-between items-center border-t border-stone-200 pt-2.5">
                 <span className="text-stone-500">Nội dung CK</span>
                 <button onClick={() => copyToClipboard(orderCode)}
-                  className="font-mono font-bold hover:text-amber-700 transition" title="Bấm để sao chép">
-                  {orderCode} 📋
+                  className="flex items-center gap-1 font-mono font-bold hover:text-amber-700 transition" title="Bấm để sao chép">
+                  {orderCode} <Copy size={13} />
                 </button>
               </div>
             </div>

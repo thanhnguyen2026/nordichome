@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
 
 export default function ProductGallery({ images, productName }: { images: string[]; productName: string }) {
   const [active, setActive] = useState(0)
@@ -116,7 +116,7 @@ export default function ProductGallery({ images, productName }: { images: string
   if (images.length === 0) {
     return (
       <div className="bg-stone-100 rounded-2xl aspect-square flex items-center justify-center">
-        <span className="text-7xl">🛋️</span>
+        <ImageOff size={64} className="text-stone-300" />
       </div>
     )
   }

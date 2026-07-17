@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cartStore'
 import { Product, CartProduct } from '@/types'
-import { ShoppingCart, Zap, AlertCircle } from 'lucide-react'
+import { ShoppingCart, Zap, AlertCircle, Check, Clock } from 'lucide-react'
 import VariantSelector from './VariantSelector'
 import { trackAddToCart } from '@/lib/analytics'
 
@@ -139,8 +139,8 @@ export default function AddToCartSection({ product, onVariantImageChange, onVari
         </button>
         <button onClick={handleAddToCart}
           className="flex-1 flex items-center justify-center gap-2 bg-white text-stone-900 font-bold py-3.5 px-6 rounded-xl border-2 border-stone-900 hover:bg-stone-50 active:scale-95 transition-all text-sm">
-          <ShoppingCart size={16} />
-          {added ? '✓ Đã thêm!' : product.is_preorder ? '⏳ Thêm vào giỏ' : 'Thêm vào giỏ'}
+          {added ? <Check size={16} /> : product.is_preorder ? <Clock size={16} /> : <ShoppingCart size={16} />}
+          {added ? 'Đã thêm!' : 'Thêm vào giỏ'}
         </button>
       </div>
 

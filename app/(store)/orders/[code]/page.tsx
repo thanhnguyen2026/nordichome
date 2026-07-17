@@ -3,7 +3,7 @@ const supabase = supabaseAdmin
 import { headers } from 'next/headers'
 import Link from 'next/link'
 import Image from 'next/image'
-import { CheckCircle2, Circle, XCircle, Package, MapPin, Phone, CreditCard, ExternalLink } from 'lucide-react'
+import { CheckCircle2, Circle, XCircle, Package, MapPin, Phone, CreditCard, ExternalLink, SearchX, ImageOff, Clock } from 'lucide-react'
 import { getClientIp, rateLimit } from '@/lib/rateLimit'
 import type { Order } from '@/types'
 
@@ -72,7 +72,7 @@ export default async function OrderDetailPage({
     return (
       <main className="min-h-screen bg-stone-50 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <div className="text-5xl mb-4">🔍</div>
+          <SearchX size={44} className="text-stone-300 mx-auto mb-4" />
           <h1 className="text-xl font-black text-stone-900 mb-2">Không tìm thấy đơn hàng</h1>
           <p className="text-stone-400 text-sm mb-6">
             Mã đơn hoặc số điện thoại không đúng. Vui lòng kiểm tra lại.
@@ -244,7 +244,7 @@ export default async function OrderDetailPage({
                 <div className="relative w-14 h-14 bg-stone-100 rounded-xl overflow-hidden flex-shrink-0">
                   {item.product_image
                     ? <Image src={item.product_image} fill sizes="56px" className="object-cover" alt={item.product_name} />
-                    : <div className="w-full h-full flex items-center justify-center text-xl">🛋️</div>}
+                    : <div className="w-full h-full flex items-center justify-center"><ImageOff size={20} className="text-stone-300" /></div>}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-stone-800 truncate">{item.product_name}</p>
@@ -296,12 +296,12 @@ export default async function OrderDetailPage({
             <p className="text-sm text-stone-700">{paymentLabel}</p>
             <div className="mt-2">
               {paymentPaid ? (
-                <span className="text-xs bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-full font-semibold">
-                  ✓ Đã thanh toán
+                <span className="flex items-center gap-1 w-fit text-xs bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-full font-semibold">
+                  <CheckCircle2 size={11} /> Đã thanh toán
                 </span>
               ) : (
-                <span className="text-xs bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-full font-semibold">
-                  ⏳ Chờ thanh toán
+                <span className="flex items-center gap-1 w-fit text-xs bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-full font-semibold">
+                  <Clock size={11} /> Chờ thanh toán
                 </span>
               )}
             </div>
@@ -315,14 +315,20 @@ export default async function OrderDetailPage({
             <div className="flex gap-2 justify-center flex-wrap">
               {s.chat_messenger_url && (
                 <a href={s.chat_messenger_url} target="_blank" rel="noopener noreferrer"
-                  className="bg-[#006AFF] text-white text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90 transition">
-                  💬 Messenger
+                  className="flex items-center gap-1.5 bg-[#006AFF] text-white text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90 transition">
+                  <svg viewBox="0 0 32 32" className="w-3.5 h-3.5 fill-current">
+                    <path d="M16 3C8.82 3 3 8.475 3 15.167c0 3.885 1.937 7.348 4.97 9.617V29l4.54-2.492a13.87 13.87 0 0 0 3.49.442c7.18 0 13-5.475 13-12.167C29 8.475 23.18 3 16 3Zm1.32 16.62-3.39-3.62-6.63 3.62 7.29-7.74 3.47 3.62 6.55-3.62-7.29 7.74Z"/>
+                  </svg>
+                  Messenger
                 </a>
               )}
               {s.chat_zalo_url && (
                 <a href={s.chat_zalo_url} target="_blank" rel="noopener noreferrer"
-                  className="bg-[#0068FF] text-white text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90 transition">
-                  💬 Zalo
+                  className="flex items-center gap-1.5 bg-[#0068FF] text-white text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90 transition">
+                  <svg viewBox="0 0 32 32" className="w-3.5 h-3.5 fill-current">
+                    <path d="M16 2C8.268 2 2 8.268 2 16c0 2.52.7 4.88 1.918 6.89L2 30l7.274-1.892A13.93 13.93 0 0 0 16 30c7.732 0 14-6.268 14-14S23.732 2 16 2Zm-4 9h8a.75.75 0 0 1 0 1.5h-2.5v5h2.5a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1 0-1.5h2.5v-5H12A.75.75 0 0 1 12 11Z"/>
+                  </svg>
+                  Zalo
                 </a>
               )}
             </div>

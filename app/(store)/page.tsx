@@ -8,6 +8,7 @@ import RevealOnScroll from '@/components/store/RevealOnScroll'
 import type { Look } from '@/components/store/ShopTheLook'
 import type { Product, Campaign } from '@/types'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
+import { Sofa } from 'lucide-react'
 import { getCategoryTree } from '@/lib/categories'
 
 export const dynamic = 'force-dynamic'
@@ -146,7 +147,7 @@ export default async function HomePage() {
                         className="object-cover transition-transform duration-500 group-hover:scale-105" />
                     ) : (
                       <div className="w-full h-full bg-stone-100 flex items-center justify-center">
-                        <span className="text-5xl opacity-40">🛋️</span>
+                        <Sofa size={48} className="text-stone-300" />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ImageOff } from 'lucide-react'
+import { ImageOff, Truck } from 'lucide-react'
 import { Product } from '@/types'
 import { useCartStore } from '@/store/cartStore'
 
@@ -126,7 +126,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
             )}
           </div>
           {p.free_shipping && (
-            <div className="text-[11px] text-green-600 font-semibold -mt-2 mb-2">🚚 Freeship</div>
+            <div className="flex items-center gap-1 text-[11px] text-green-600 font-semibold -mt-2 mb-2"><Truck size={11} />Freeship</div>
           )}
         </div>
       </Link>

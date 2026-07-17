@@ -7,6 +7,7 @@ import AddToCartSection from './AddToCartSection'
 import ChatConsultBlock from './ChatConsultBlock'
 import { Product } from '@/types'
 import { trackViewItem } from '@/lib/analytics'
+import { Clock, Check, Star, Truck, ClipboardList } from 'lucide-react'
 
 interface Props {
   product: Product
@@ -111,12 +112,12 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         {/* Badge trạng thái */}
         <div className="flex flex-wrap items-center gap-2 mb-5">
           {product.is_preorder ? (
-            <span className="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-semibold border border-orange-100 shadow-sm">
-              ⏳ Đặt trước{product.preorder_note ? ` (${product.preorder_note})` : ''}
+            <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-semibold border border-orange-100 shadow-sm">
+              <Clock size={11} />Đặt trước{product.preorder_note ? ` (${product.preorder_note})` : ''}
             </span>
           ) : product.in_stock ? (
-            <span className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 font-semibold border border-green-100">
-              ✓ Còn hàng
+            <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 font-semibold border border-green-100">
+              <Check size={11} />Còn hàng
             </span>
           ) : (
             <span className="text-xs px-3 py-1 rounded-full bg-red-50 text-red-600 font-semibold border border-red-100">
@@ -129,13 +130,13 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
             </span>
           )}
           {product.is_featured && (
-            <span className="text-xs px-3 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold border border-amber-100">
-              ⭐ Nổi bật
+            <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold border border-amber-100">
+              <Star size={11} />Nổi bật
             </span>
           )}
           {product.free_shipping && (
-            <span className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 font-semibold border border-green-100">
-              🚚 Freeship
+            <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 font-semibold border border-green-100">
+              <Truck size={11} />Freeship
             </span>
           )}
         </div>
@@ -174,7 +175,7 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         {/* Mô tả chi tiết */}
         {product.description && (
           <div>
-            <h2 className="font-bold text-sm mb-3 text-stone-700">📋 Mô tả chi tiết</h2>
+            <h2 className="flex items-center gap-1.5 font-bold text-sm mb-3 text-stone-700"><ClipboardList size={15} />Mô tả chi tiết</h2>
             <div className="text-sm text-stone-600 leading-relaxed whitespace-pre-line">
               {product.description}
             </div>

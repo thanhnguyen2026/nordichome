@@ -1,6 +1,7 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
+import { X, ShoppingCart, ImageOff } from 'lucide-react'
 import { useCartStore, itemKey } from '@/store/cartStore'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
@@ -16,12 +17,15 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
       <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-xl flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
           <b className="text-base">Giỏ hàng ({items.reduce((s, i) => s + i.quantity, 0)})</b>
-          <button onClick={onClose} className="text-xl">✕</button>
+          <button onClick={onClose} aria-label="Đóng giỏ hàng"><X size={20} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3">
           {items.length === 0 ? (
-            <div className="text-center py-10 text-stone-500">Giỏ hàng trống 🛒</div>
+            <div className="flex flex-col items-center gap-2 py-10 text-stone-500">
+              <ShoppingCart size={28} className="text-stone-300" />
+              Giỏ hàng trống
+            </div>
           ) : (
             items.map(item => {
               const key = itemKey(item)
@@ -37,7 +41,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                     <div className="relative w-14 h-14 bg-stone-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                       {displayImage
                         ? <Image src={displayImage} alt={item.product.name} fill sizes="56px" className="object-cover" />
-                        : <span className="text-2xl">🛋️</span>}
+                        : <ImageOff size={20} className="text-stone-300" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-xs leading-tight hover:underline">{item.product.name}</div>
