@@ -646,11 +646,21 @@ export default function AdminOrders() {
                     : isBankUnpaid
                       ? 'border-l-2 border-l-amber-400'
                       : ''
+                  // border-collapse mặc định của <table> là "separate" — theo spec, border
+                  // gắn trên <tr> KHÔNG được vẽ ra ở chế độ bảng thật (chỉ <td>/<th> mới
+                  // có border thật), nên leftAccent phía trên chỉ có tác dụng ở layout thẻ
+                  // mobile (nơi <tr> render như block). Cần bản md: riêng gắn lên <td> đầu
+                  // tiên của mỗi dòng để desktop cũng thấy được viền phân biệt này.
+                  const leftAccentMd = isExpanded
+                    ? 'md:border-l-4 md:border-l-stone-900'
+                    : isBankUnpaid
+                      ? 'md:border-l-2 md:border-l-amber-400'
+                      : ''
 
                   return (
                     <Fragment key={o.id}>
                       <tr className={`block md:table-row mb-3 last:mb-0 md:mb-0 rounded-xl md:rounded-none bg-white md:bg-transparent shadow-sm md:shadow-none border md:border-0 md:border-t border-stone-200 md:border-t-stone-50 transition ${isExpanded ? 'bg-stone-50' : 'md:hover:bg-stone-50/50'} ${leftAccent}`}>
-                        <td className="flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 md:w-8">
+                        <td className={`flex items-center justify-between md:table-cell py-2.5 px-4 md:py-3 md:w-8 ${leftAccentMd}`}>
                           <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Chọn</span>
                           <input type="checkbox" checked={selectedIds.has(o.id)} onChange={() => toggleSelect(o.id)} />
                         </td>
@@ -769,7 +779,7 @@ export default function AdminOrders() {
 
                       {isExpanded && (
                         <tr className={`block md:table-row -mt-3 md:mt-0 mb-3 md:mb-0 rounded-b-xl md:rounded-none border md:border-0 md:border-t border-x border-b border-stone-200 md:border-t-stone-100 border-t-0 shadow-sm md:shadow-none ${leftAccent}`}>
-                          <td colSpan={9} className="block md:table-cell px-4 py-5 bg-stone-50 md:bg-stone-50/80 rounded-b-xl md:rounded-none">
+                          <td colSpan={9} className={`block md:table-cell px-4 py-5 bg-stone-50 md:bg-stone-50/80 rounded-b-xl md:rounded-none ${leftAccentMd}`}>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <div>
                                 <div className="flex items-center gap-2 font-semibold text-xs uppercase tracking-wide text-stone-400 mb-3">
