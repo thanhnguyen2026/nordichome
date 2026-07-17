@@ -1,10 +1,6 @@
-import { Loader2 } from 'lucide-react'
-
+// Không hiện gì ở đây nữa — TopProgressBar (vệt màu mỏng trên cùng, gắn ở
+// app/layout.tsx) đã là tín hiệu tải trang duy nhất, thay cho spinner to giữa
+// màn hình trước đây (chặn hết nội dung, tạo cảm giác "trang chết").
 export default function StoreLoading() {
-  return (
-    <main className="min-h-[70vh] flex flex-col items-center justify-center gap-3 px-4">
-      <Loader2 size={28} className="text-amber-600 animate-spin" />
-      <p className="text-sm text-stone-400">Đang tải...</p>
-    </main>
-  )
+  return null
 }

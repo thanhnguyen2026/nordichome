@@ -4,6 +4,7 @@ import "./globals.css"
 import CartHydration from "@/components/CartHydration"
 import Analytics from "@/components/analytics/Analytics"
 import FloatingSocial from "@/components/store/FloatingSocial"
+import TopProgressBar from "@/components/store/TopProgressBar"
 
 const font = Be_Vietnam_Pro({
   subsets: ["vietnamese", "latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${font.variable} ${fontSerif.variable}`}>
       <body className="font-sans antialiased bg-white text-stone-900">
+        <TopProgressBar />
         <Analytics />
         <CartHydration />
         <FloatingSocial />
