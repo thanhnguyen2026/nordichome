@@ -99,7 +99,7 @@ function TopProgressBarInner() {
   if (!visible) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[200] h-[2px] pointer-events-none" aria-hidden="true">
+    <div className="fixed top-0 left-0 right-0 z-[200] h-px pointer-events-none" aria-hidden="true">
       <div
         className="h-full bg-amber-600"
         style={{
