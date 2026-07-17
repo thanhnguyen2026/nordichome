@@ -110,9 +110,9 @@ beforeEach(() => {
 
 describe('POST /api/orders — trừ kho/coupon nguyên tử + idempotency', () => {
   it('tạo đơn thành công, trừ kho qua RPC đúng 1 lần', async () => {
-    queue('products', { data: [{ id: 'p1', is_preorder: false, cost_price: 100_000 }] })
+    queue('products', { data: [{ id: 'p1', is_preorder: false, cost_price: 100_000, price: 100_000, sale_price: null }] })
     queue('product_variants',
-      { data: [{ id: 'v1', cost_price: 100_000 }] }, // cost lookup
+      { data: [{ id: 'v1', cost_price: 100_000, price: 100_000 }] }, // cost + price lookup
       { data: [{ id: 'v1', stock: 10 }] },            // pre-check stock
     )
     queueRpc('decrement_variant_stock', { data: 8 }) // còn 8 sau khi trừ 2
@@ -160,9 +160,9 @@ describe('POST /api/orders — trừ kho/coupon nguyên tử + idempotency', () 
   })
 
   it('hết hàng ngay lúc trừ kho nguyên tử (thua race) → rollback phần đã trừ, trả lỗi 400', async () => {
-    queue('products', { data: [{ id: 'p1', is_preorder: false, cost_price: 0 }] })
+    queue('products', { data: [{ id: 'p1', is_preorder: false, cost_price: 0, price: 100_000, sale_price: null }] })
     queue('product_variants',
-      { data: [{ id: 'v1', cost_price: 0 }, { id: 'v2', cost_price: 0 }] }, // cost lookup
+      { data: [{ id: 'v1', cost_price: 0, price: 100_000 }, { id: 'v2', cost_price: 0, price: 100_000 }] }, // cost + price lookup
       { data: [{ id: 'v1', stock: 5 }, { id: 'v2', stock: 5 }] },           // pre-check: cả 2 đều còn hàng
     )
     // v1 trừ thành công, v2 thua race (WHERE stock >= qty không khớp dòng nào)
@@ -190,9 +190,9 @@ describe('POST /api/orders — trừ kho/coupon nguyên tử + idempotency', () 
   })
 
   it('coupon vừa hết lượt lúc cộng nguyên tử (thua race) → rollback tồn kho đã trừ, trả lỗi 400', async () => {
-    queue('products', { data: [{ id: 'p1', is_preorder: false, cost_price: 0 }] })
+    queue('products', { data: [{ id: 'p1', is_preorder: false, cost_price: 0, price: 100_000, sale_price: null }] })
     queue('product_variants',
-      { data: [{ id: 'v1', cost_price: 0 }] }, // cost lookup
+      { data: [{ id: 'v1', cost_price: 0, price: 100_000 }] }, // cost + price lookup
       { data: [{ id: 'v1', stock: 5 }] },      // pre-check
     )
     queueRpc('decrement_variant_stock', { data: 4 })
@@ -222,5 +222,37 @@ describe('POST /api/orders — trừ kho/coupon nguyên tử + idempotency', () 
       'increment_coupon_usage',
       'increment_variant_stock', // rollback tồn kho đã trừ
     ])
+  })
+
+  it('bỏ qua giá client gửi lên, luôn dùng giá thật tra từ DB (chặn sửa payload đặt giá 0đ/1đ)', async () => {
+    queue('products',
+      { data: [{ id: 'p1', is_preorder: false, cost_price: 50_000, price: 500_000, sale_price: null }] }, // price/cost lookup
+      { data: [{ id: 'p1', stock: null }] }, // stock check — sản phẩm không theo dõi số lượng, bỏ qua
+    )
+    queue('orders',
+      { data: { id: 'order-1', order_code: 'NH000002', customer_name: 'Nguyễn Văn A', customer_phone: '0900000000', customer_address: '123 Đường ABC', payment_method: 'cod', total: 500_000 } }, // insert
+      { data: null }, // update notified_messenger
+    )
+    queue('order_items', { data: null })
+    queue('settings', { data: [] })
+
+    const res = await POST(makeRequest({
+      ...basePayload,
+      items: [{
+        // Giả mạo giá 1đ thay vì giá thật 500.000đ — server phải bỏ qua hoàn toàn.
+        product_id: 'p1', product_name: 'Ghế sofa', product_image: '', price: 1,
+        quantity: 1, cost_price: 0, origin_url: '', variant_id: null, variant_label: null,
+        variant_image: null, variant_cost_price: null,
+      }],
+    }))
+
+    expect(res.status).toBe(200)
+
+    const orderInsert = state.insertPayloads['orders'][0] as { subtotal: number; total: number }
+    expect(orderInsert.subtotal).toBe(500_000)
+    expect(orderInsert.total).toBe(500_000)
+
+    const orderItemsInsert = state.insertPayloads['order_items'][0] as { price: number }[]
+    expect(orderItemsInsert[0].price).toBe(500_000)
   })
 })

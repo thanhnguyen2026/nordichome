@@ -4,7 +4,7 @@ import { sendMessengerNotification } from '@/lib/messenger'
 import { sendTelegramNotification, sendLowStockAlert } from '@/lib/telegram'
 import { generateOrderCode } from '@/lib/orderCode'
 import { checkCoupon, escapeLikePattern } from '@/lib/coupon'
-import { hasCampaignFor } from '@/lib/campaignPrice'
+import { hasCampaignFor, bestCampaignPrice } from '@/lib/campaignPrice'
 import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
 import { getClientIp, rateLimit } from '@/lib/rateLimit'
 import { CreateOrderPayload, Coupon, Campaign } from '@/types'
@@ -54,29 +54,59 @@ export async function POST(req: NextRequest) {
   const allProductIds = Array.from(new Set(items.map(i => i.product_id)))
   const preorderProductIds = new Set<string>()
   const productCostMap: Record<string, number> = {}
+  const productPriceMap: Record<string, { price: number; sale_price: number | null }> = {}
   if (allProductIds.length > 0) {
     const { data: productRows } = await supabaseAdmin
       .from('products')
-      .select('id, is_preorder, cost_price')
+      .select('id, is_preorder, cost_price, price, sale_price')
       .in('id', allProductIds)
     productRows?.forEach(p => {
       if (p.is_preorder) preorderProductIds.add(p.id)
       productCostMap[p.id] = p.cost_price || 0
+      productPriceMap[p.id] = { price: p.price, sale_price: p.sale_price }
     })
   }
 
   const allVariantIds = Array.from(new Set(items.map(i => i.variant_id).filter((id): id is string => !!id)))
   const variantCostMap: Record<string, number> = {}
+  const variantPriceMap: Record<string, number | null> = {}
   if (allVariantIds.length > 0) {
-    const { data: variantCostRows } = await supabaseAdmin
+    const { data: variantRows } = await supabaseAdmin
       .from('product_variants')
-      .select('id, cost_price')
+      .select('id, cost_price, price')
       .in('id', allVariantIds)
-    variantCostRows?.forEach(v => { variantCostMap[v.id] = v.cost_price || 0 })
+    variantRows?.forEach(v => {
+      variantCostMap[v.id] = v.cost_price || 0
+      variantPriceMap[v.id] = v.price
+    })
   }
 
   const realCostOf = (i: (typeof items)[number]) =>
     i.variant_id ? (variantCostMap[i.variant_id] ?? 0) : (productCostMap[i.product_id] ?? 0)
+
+  // Khuyến mãi đang chạy — cần trước cả lúc tính subtotal (không chỉ lúc có
+  // coupon_code như trước) vì giờ giá bán cũng được tra lại từ DB áp khuyến
+  // mãi, không tin số client gửi.
+  const { data: campaignsRaw } = await supabaseAdmin.from('campaigns').select('*').eq('is_active', true)
+  const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
+  const now = new Date()
+
+  // Giá bán KHÔNG được tin từ client — tra lại từ DB + áp khuyến mãi giống hệt
+  // logic hiển thị phía khách (lib/campaignPrice.ts), để không ai sửa payload
+  // đặt giá tuỳ ý mà server vẫn trừ kho/ghi đơn theo giá đó. Biến thể có giá
+  // riêng thì ưu tiên giá đó (không cộng thêm khuyến mãi lên trên); sản phẩm
+  // không biến thể hoặc biến thể không có giá riêng thì dùng sale_price thủ
+  // công nếu có, không thì áp khuyến mãi tốt nhất, cuối cùng mới về giá gốc.
+  const realPriceOf = (i: (typeof items)[number]) => {
+    const base = productPriceMap[i.product_id]
+    if (!base) return 0
+    if (i.variant_id) {
+      const variantPrice = variantPriceMap[i.variant_id]
+      if (variantPrice != null) return variantPrice
+    }
+    if (base.sale_price != null) return base.sale_price
+    return bestCampaignPrice(i.product_id, base.price, campaigns, now) ?? base.price
+  }
 
   // Kiểm tra tồn kho biến thể — chặn ở server vì VariantSelector chỉ ẩn/disable
   // mẫu hết hàng ở client, không ngăn được người cố tình gọi thẳng API. Sản
@@ -131,7 +161,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+  const subtotal = items.reduce((s, i) => s + realPriceOf(i) * i.quantity, 0)
 
   // Re-validate mã giảm giá ở server — không tin số discount client tự tính,
   // vì giỏ hàng/subtotal có thể đổi giữa lúc khách áp mã và lúc bấm đặt hàng.
@@ -140,9 +170,6 @@ export async function POST(req: NextRequest) {
   let discount_amount = 0
   let appliedCoupon: Coupon | null = null
   if (coupon_code) {
-    const { data: campaignsRaw } = await supabaseAdmin.from('campaigns').select('*').eq('is_active', true)
-    const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
-    const now = new Date()
     if (items.some(i => hasCampaignFor(i.product_id, campaigns, now))) {
       return NextResponse.json({ error: 'Sản phẩm đang được áp khuyến mãi, không dùng thêm mã giảm giá được' }, { status: 400 })
     }
@@ -269,7 +296,7 @@ export async function POST(req: NextRequest) {
       product_name:  i.product_name,
       // Ưu tiên ảnh variant, fallback về ảnh sản phẩm
       product_image: i.variant_image || i.product_image,
-      price:         i.price,
+      price:         realPriceOf(i),
       quantity:      i.quantity,
       cost_price:    realCostOf(i),
       origin_url:    i.origin_url || null,
@@ -307,7 +334,7 @@ export async function POST(req: NextRequest) {
         items: items.map(i => ({
           product_name:  i.product_name,
           quantity:      i.quantity,
-          price:         i.price,
+          price:         realPriceOf(i),
           variant_label: i.variant_label ?? null,
         })),
       })

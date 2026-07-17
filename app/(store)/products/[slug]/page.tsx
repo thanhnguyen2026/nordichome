@@ -10,6 +10,7 @@ import type { Metadata } from 'next'
 import type { Product, Campaign } from '@/types'
 import { applyCampaignsToProduct, applyCampaignsToProducts } from '@/lib/campaignPrice'
 import { getCategoryTree } from '@/lib/categories'
+import { safeJsonLd } from '@/lib/text'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -147,7 +148,7 @@ export default async function ProductDetailPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <Header settings={s} categories={categoryTree} campaigns={campaigns} />
       <main className="max-w-6xl mx-auto px-4 py-8">

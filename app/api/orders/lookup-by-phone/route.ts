@@ -5,9 +5,17 @@ import { getClientIp, rateLimit } from '@/lib/rateLimit'
 // Dành cho khách quên mã đơn hàng — tra bằng số điện thoại đã đặt. Chỉ trả về
 // thông tin tối thiểu (không có địa chỉ) vì đây là endpoint public không yêu cầu
 // mã đơn để xác thực; muốn xem chi tiết đầy đủ vẫn phải vào đúng mã đơn.
+//
+// Rủi ro còn lại (chấp nhận được ở quy mô hiện tại, cần biết): endpoint này chỉ
+// cần SĐT là lấy được mã đơn, mà mã đơn + SĐT lại là đủ để xem địa chỉ đầy đủ ở
+// /orders/[code] — nghĩa là ai biết SĐT của một người là tra ra được đơn + địa
+// chỉ của người đó, không cần xác thực gì thêm. Rate-limit chặt ở đây làm chậm
+// việc dò hàng loạt nhiều SĐT khác nhau, nhưng không loại bỏ được rủi ro với
+// MỘT SĐT cụ thể mà kẻ xấu đã biết trước. Muốn đóng hẳn lỗ hổng này cần thêm một
+// lớp xác thực thật (OTP gửi SMS/email) — nằm ngoài phạm vi một lần siết nhanh.
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req.headers)
-  if (!rateLimit(`lookup-phone:${ip}`, 10, 60_000)) {
+  if (!rateLimit(`lookup-phone:${ip}`, 5, 5 * 60_000)) {
     return NextResponse.json({ error: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút' }, { status: 429 })
   }
 
