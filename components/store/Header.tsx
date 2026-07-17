@@ -8,7 +8,7 @@ import { useCartStore } from '@/store/cartStore'
 import { supabase } from '@/lib/supabase'
 import { soonestEndingCampaign } from '@/lib/campaignPrice'
 import type { Campaign, Category } from '@/types'
-import { Menu, X, ChevronDown, ShoppingCart, Search } from 'lucide-react'
+import { Menu, X, ChevronDown, ShoppingCart, Search, Truck, Phone, PartyPopper } from 'lucide-react'
 
 // Chỉ hiện khi bấm icon giỏ hàng — tải JS khi cần thay vì cộng vào bundle
 // ban đầu của mọi trang (Header nằm ở mọi trang storefront).
@@ -32,6 +32,13 @@ interface Props {
   categories?: Category[]
   campaigns?: Campaign[]
 }
+
+// Thanh thông báo trên cùng giờ tự có icon Truck/PartyPopper riêng (JSX, không
+// phải ký tự) — nhưng topbar_text là text tự do admin gõ tay ở /admin/settings,
+// nhiều khả năng vẫn còn emoji cũ (vd "🚚 Giao hàng...") gõ từ trước khi có icon
+// này. Cắt bỏ emoji ở đầu chuỗi để không bị lặp icon, mà không đụng tới phần
+// còn lại của text admin đã viết.
+const stripLeadingEmoji = (text: string) => text.replace(/^\p{Extended_Pictographic}+\s*/u, '')
 
 export default function Header({ settings, categories: categoriesProp, campaigns: campaignsProp }: Props) {
   const pathname = usePathname()
@@ -121,11 +128,22 @@ export default function Header({ settings, categories: categoriesProp, campaigns
   return (
     <>
       {/* Top bar — ưu tiên hiện chiến dịch khuyến mãi đang chạy nếu có */}
-      <div className={`text-xs text-center py-2 px-4 tracking-wide ${activeCampaign ? 'bg-amber-500 text-stone-900 font-semibold' : 'bg-stone-800 text-amber-100'}`}>
-        {activeCampaign
-          ? <>🎉 {activeCampaign.name}{campaignDaysLeft != null && ` — còn ${campaignDaysLeft} ngày`}</>
-          : (settings.topbar_text || '🚚 Miễn phí vận chuyển HCM cho đơn trên 2.000.000₫')}
-        {settings.hotline && <> &nbsp;|&nbsp; 📞 {settings.hotline}</>}
+      <div className={`text-xs text-center py-2 px-4 tracking-wide flex items-center justify-center gap-1.5 flex-wrap ${activeCampaign ? 'bg-amber-500 text-stone-900 font-semibold' : 'bg-stone-800 text-amber-100'}`}>
+        <span className="inline-flex items-center gap-1.5">
+          {activeCampaign
+            ? <PartyPopper size={14} className="shrink-0" />
+            : <Truck size={14} className="shrink-0" />}
+          {activeCampaign
+            ? <>{stripLeadingEmoji(activeCampaign.name)}{campaignDaysLeft != null && ` — còn ${campaignDaysLeft} ngày`}</>
+            : stripLeadingEmoji(settings.topbar_text || 'Miễn phí vận chuyển HCM cho đơn trên 2.000.000₫')}
+        </span>
+        {settings.hotline && (
+          <span className="inline-flex items-center gap-1.5 opacity-90">
+            <span aria-hidden="true">|</span>
+            <Phone size={12} className="shrink-0" />
+            {settings.hotline}
+          </span>
+        )}
       </div>
 
       {/* Main header */}
