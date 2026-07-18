@@ -463,7 +463,7 @@ export default function AdminProducts() {
                           </td>
                           <td className="flex items-center justify-between md:table-cell py-2 px-4 md:py-[10px] md:px-[14px]">
                             <span className="text-[10px] uppercase text-stone-400 font-semibold md:hidden">Trạng thái</span>
-                            <div className="flex flex-col items-end md:items-start gap-1">
+                            <div className="flex flex-wrap items-center justify-end md:justify-start gap-1">
                               <span className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${
                                 p.is_preorder
                                   ? 'bg-orange-50 text-orange-600'
