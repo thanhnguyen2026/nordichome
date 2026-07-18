@@ -490,16 +490,17 @@ export default function AdminProducts() {
                               </button>
                             </div>
                           </td>
-                          <td className="flex flex-wrap items-center justify-end gap-1 md:table-cell py-2 px-4 md:text-right md:whitespace-nowrap">
-                            <button onClick={() => router.push(`/admin/orders?quickAdd=${p.id}`)}
-                              title="Thêm vào đơn thủ công"
-                              className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200 cursor-pointer">
-                              <ClipboardList size={11} /> Tạo đơn
-                            </button>
-                            {/* Bọc Sửa + Xoá trong 1 khối inline-flex để 2 nút này luôn dính
-                                nhau khi xuống dòng trên desktop (cột hẹp) -- tránh xuống 3
-                                dòng riêng lẻ (Tạo đơn / Sửa / Xoá), chỉ còn tối đa 2 dòng. */}
-                            <span className="inline-flex items-center gap-1">
+                          <td className="block md:table-cell py-2 px-4 md:text-right">
+                            {/* 3 nút phải nằm trong CHUNG 1 flex container -- mỗi <button>
+                                tự nó là display:flex (block), nên nếu để rời rạc trong 1
+                                <td> table-cell, mỗi nút bị đẩy xuống dòng riêng dù cột đủ
+                                rộng. Bọc chung 1 div flex-nowrap để cả 3 luôn nằm 1 hàng. */}
+                            <div className="flex flex-nowrap items-center justify-end gap-1">
+                              <button onClick={() => router.push(`/admin/orders?quickAdd=${p.id}`)}
+                                title="Thêm vào đơn thủ công"
+                                className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 hover:bg-stone-200 cursor-pointer">
+                                <ClipboardList size={11} /> Tạo đơn
+                              </button>
                               <button onClick={() => openEdit(p)}
                                 className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 hover:bg-stone-200 cursor-pointer">
                                 <Pencil size={11} /> Sửa
@@ -508,7 +509,7 @@ export default function AdminProducts() {
                                 className="flex items-center text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100 cursor-pointer">
                                 <Trash2 size={12} />
                               </button>
-                            </span>
+                            </div>
                           </td>
                         </tr>
                       )
