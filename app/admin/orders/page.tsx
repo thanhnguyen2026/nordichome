@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, Fragment } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Order, OrderStatus, ORDER_STATUS_LABEL, PurchaseStatus, PURCHASE_STATUS_LABEL, SALES_CHANNEL_LABEL } from '@/types'
@@ -94,6 +95,8 @@ function downloadCsv(filename: string, rows: (string | number)[][]) {
 }
 
 export default function AdminOrders() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [orders, setOrders]         = useState<Order[]>([])
   const [loading, setLoading]       = useState(true)
   const [expanded, setExpanded]     = useState<string | null>(null)
@@ -110,6 +113,7 @@ export default function AdminOrders() {
   const [settings, setSettings]     = useState<Record<string, string>>({})
   const [copiedId, setCopiedId]     = useState<string | null>(null)
   const [showManualForm, setShowManualForm] = useState(false)
+  const [quickAddProductId, setQuickAddProductId] = useState<string | undefined>(undefined)
   const [creatingGhtkId, setCreatingGhtkId] = useState<string | null>(null)
   // Đơn nào được tick "tự mang ra bưu cục" — mặc định không tick = GHTK cử người đến lấy tại kho.
   const [dropOffIds, setDropOffIds] = useState<Set<string>>(new Set())
@@ -132,6 +136,20 @@ export default function AdminOrders() {
   // Tải dữ liệu lúc mount — dự án không dùng thư viện fetch data, đây là cách chuẩn hiện tại
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
+
+  // Đến từ nút "Thêm vào đơn thủ công" ở trang sản phẩm (?quickAdd=<id>) — tự
+  // mở form đơn thủ công kèm sản phẩm đó, rồi xoá param khỏi URL ngay để F5
+  // trang không mở lại form ngoài ý muốn.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const productId = searchParams.get('quickAdd')
+    if (!productId) return
+    setQuickAddProductId(productId)
+    setShowManualForm(true)
+    router.replace('/admin/orders')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi query param đổi, không phụ thuộc router (tham chiếu ổn định của Next)
+  }, [searchParams])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleExpand = async (id: string) => {
     if (expanded === id) { setExpanded(null); return }
@@ -516,8 +534,9 @@ export default function AdminOrders() {
 
       {showManualForm && (
         <ManualOrderForm
-          onClose={() => setShowManualForm(false)}
-          onCreated={() => { setShowManualForm(false); load() }}
+          initialProductId={quickAddProductId}
+          onClose={() => { setShowManualForm(false); setQuickAddProductId(undefined) }}
+          onCreated={() => { setShowManualForm(false); setQuickAddProductId(undefined); load() }}
         />
       )}
 

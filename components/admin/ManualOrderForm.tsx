@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { Product, SalesChannel, SALES_CHANNEL_LABEL } from '@/types'
 import { calcTotalWeight } from '@/lib/shipping'
 import SearchableSelect from '@/components/store/SearchableSelect'
+import ProductSearchSelect from './ProductSearchSelect'
 import ChannelIcon from './ChannelIcon'
 
 interface AddrItem { code: number; name: string }
@@ -31,9 +32,10 @@ const emptyItem: ItemRow = { product_id: '', variant_id: '', quantity: '1', pric
 interface Props {
   onClose: () => void
   onCreated: () => void
+  initialProductId?: string
 }
 
-export default function ManualOrderForm({ onClose, onCreated }: Props) {
+export default function ManualOrderForm({ onClose, onCreated, initialProductId }: Props) {
   const [products, setProducts] = useState<Product[]>([])
   const [variants, setVariants] = useState<VariantRow[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
@@ -47,7 +49,7 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank'>('cod')
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('paid')
   const [shippingFee, setShippingFee] = useState('0')
-  const [rows, setRows] = useState<ItemRow[]>([{ ...emptyItem }])
+  const [rows, setRows] = useState<ItemRow[]>([{ ...emptyItem, product_id: initialProductId || '' }])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -68,14 +70,25 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
       supabase.from('products').select('*').eq('is_visible', true).order('name'),
       supabase.from('product_variants').select('id, product_id, group_name, option_name, price, cost_price, stock, image_url'),
     ]).then(([p, v]) => {
-      setProducts((p.data as unknown as Product[]) || [])
+      const loadedProducts = (p.data as unknown as Product[]) || []
+      setProducts(loadedProducts)
       setVariants((v.data as unknown as VariantRow[]) || [])
       setLoadingProducts(false)
+      // Đến từ nút "Thêm vào đơn thủ công" trên trang sản phẩm — điền sẵn giá
+      // mặc định cho dòng sản phẩm đó ngay khi danh sách vừa tải xong.
+      if (initialProductId) {
+        const product = loadedProducts.find(pr => pr.id === initialProductId)
+        if (product) {
+          const defaultPrice = product.sale_price ?? product.price
+          setRows([{ ...emptyItem, product_id: initialProductId, price: String(defaultPrice) }])
+        }
+      }
     })
     fetch('https://provinces.open-api.vn/api/?depth=1')
       .then(r => r.json())
       .then(setProvinces)
       .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy 1 lần lúc mount, initialProductId không đổi trong vòng đời modal
   }, [])
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -341,11 +354,11 @@ export default function ManualOrderForm({ onClose, onCreated }: Props) {
                   const rowVariants = row.product_id ? variantsOf(row.product_id) : []
                   return (
                     <div key={i} className="flex gap-2 items-start bg-stone-50 rounded-lg p-2">
-                      <select value={row.product_id} onChange={e => onSelectProduct(i, e.target.value)}
-                        className="flex-1 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400">
-                        <option value="">-- Chọn sản phẩm --</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
+                      <ProductSearchSelect
+                        value={row.product_id}
+                        onChange={id => onSelectProduct(i, id)}
+                        products={products}
+                      />
                       {rowVariants.length > 0 && (
                         <select value={row.variant_id} onChange={e => onSelectVariant(i, e.target.value)}
                           className="w-32 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400">

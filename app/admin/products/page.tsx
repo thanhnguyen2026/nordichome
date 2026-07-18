@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { stripDiacritics } from '@/lib/text'
@@ -14,7 +15,7 @@ import { usePrompt } from '@/components/admin/usePrompt'
 import { useToast } from '@/components/admin/useToast'
 import {
   Package, Plus, Pencil, Trash2, Eye, EyeOff, Flame, Clock, AlertTriangle,
-  Percent, Boxes, ImageOff, ArrowLeft,
+  Percent, Boxes, ImageOff, ArrowLeft, ClipboardList,
 } from 'lucide-react'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
@@ -23,6 +24,7 @@ type VisibilityFilter = 'all' | 'visible' | 'hidden'
 type StockFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock'
 
 export default function AdminProducts() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   // Tổng tồn kho biến thể theo product_id — null nghĩa là sản phẩm không có biến thể
@@ -489,6 +491,11 @@ export default function AdminProducts() {
                             </div>
                           </td>
                           <td className="flex items-center justify-end gap-1 md:table-cell py-2 px-4 md:text-right md:whitespace-nowrap">
+                            <button onClick={() => router.push(`/admin/orders?quickAdd=${p.id}`)}
+                              title="Thêm vào đơn thủ công"
+                              className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200 cursor-pointer">
+                              <ClipboardList size={11} /> Tạo đơn
+                            </button>
                             <button onClick={() => openEdit(p)}
                               className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200 cursor-pointer">
                               <Pencil size={11} /> Sửa
