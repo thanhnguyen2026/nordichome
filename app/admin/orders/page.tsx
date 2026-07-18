@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState, useCallback, Suspense, Fragment } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
@@ -94,9 +94,23 @@ function downloadCsv(filename: string, rows: (string | number)[][]) {
   URL.revokeObjectURL(url)
 }
 
-export default function AdminOrders() {
+// useSearchParams() bắt buộc phải nằm trong Suspense boundary khi build
+// production (Next.js "missing-suspense-with-csr-bailout") -- tách riêng
+// thành component con nhỏ thay vì gọi thẳng trong AdminOrders (component
+// lớn), tránh phải bọc Suspense cả trang.
+function QuickAddReader({ onFound }: { onFound: (productId: string) => void }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  useEffect(() => {
+    const productId = searchParams.get('quickAdd')
+    if (!productId) return
+    onFound(productId)
+    router.replace('/admin/orders')
+  }, [searchParams, onFound, router])
+  return null
+}
+
+export default function AdminOrders() {
   const [orders, setOrders]         = useState<Order[]>([])
   const [loading, setLoading]       = useState(true)
   const [expanded, setExpanded]     = useState<string | null>(null)
@@ -137,19 +151,12 @@ export default function AdminOrders() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
-  // Đến từ nút "Thêm vào đơn thủ công" ở trang sản phẩm (?quickAdd=<id>) — tự
-  // mở form đơn thủ công kèm sản phẩm đó, rồi xoá param khỏi URL ngay để F5
-  // trang không mở lại form ngoài ý muốn.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    const productId = searchParams.get('quickAdd')
-    if (!productId) return
+  // Callback ổn định cho QuickAddReader (component con đọc ?quickAdd=<id> từ
+  // trang sản phẩm) — mở form đơn thủ công kèm sản phẩm đó.
+  const handleQuickAdd = useCallback((productId: string) => {
     setQuickAddProductId(productId)
     setShowManualForm(true)
-    router.replace('/admin/orders')
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi query param đổi, không phụ thuộc router (tham chiếu ổn định của Next)
-  }, [searchParams])
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [])
 
   const toggleExpand = async (id: string) => {
     if (expanded === id) { setExpanded(null); return }
@@ -531,6 +538,10 @@ export default function AdminOrders() {
           </div>
         ))}
       </div>
+
+      <Suspense fallback={null}>
+        <QuickAddReader onFound={handleQuickAdd} />
+      </Suspense>
 
       {showManualForm && (
         <ManualOrderForm
