@@ -129,7 +129,7 @@ export default function ProductGallery({ images, productName }: { images: string
         <div
           className={`
           flex gap-2
-          flex-row overflow-x-auto overflow-y-hidden touch-pan-x
+          flex-row overflow-x-auto overflow-y-hidden touch-auto
           md:flex-col md:overflow-y-auto md:overflow-x-hidden md:touch-pan-y
           md:w-[72px] md:flex-shrink-0 md:max-h-[520px]
           order-2 md:order-1
