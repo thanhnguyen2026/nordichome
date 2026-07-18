@@ -283,7 +283,7 @@ export default function AdminProducts() {
             {([
               { label: 'Tổng',       value: products.length, border: 'border-l-stone-300' },
               { label: 'Đang hiện',  value: products.filter(p => p.is_visible).length, border: 'border-l-blue-400' },
-              { label: 'Đang ẩn',    value: products.filter(p => !p.is_visible).length, border: 'border-l-stone-400' },
+              { label: 'Đang ẩn',    value: products.filter(p => !p.is_visible).length, border: 'border-l-violet-400' },
               { label: 'Sắp hết',    value: products.filter(p => stockStatus(p) === 'low_stock').length, border: 'border-l-amber-400' },
               { label: 'Hết hàng',   value: products.filter(p => stockStatus(p) === 'out_of_stock').length, border: 'border-l-red-400' },
             ]).map(kpi => (
