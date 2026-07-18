@@ -426,8 +426,10 @@ export default function AdminProducts() {
                           </td>
                           <td className="flex items-center gap-3 md:table-cell py-2.5 px-4">
                             <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelectOne(p.id)} className="cursor-pointer md:hidden flex-shrink-0" />
-                            <div className="relative w-16 h-16 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                              {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="64px" className="object-cover" /> : <ImageOff size={22} className="text-stone-300" />}
+                            {/* To hơn trên mobile (thẻ card rộng, dư chỗ) so với bảng desktop
+                                (hàng dày đặc hơn, cột ảnh chỉ 1 trong nhiều cột). */}
+                            <div className="relative w-20 h-20 md:w-16 md:h-16 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                              {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="(min-width: 768px) 64px, 80px" className="object-cover" /> : <ImageOff size={24} className="text-stone-300" />}
                             </div>
                             <div className="min-w-0 md:hidden">
                               <div className="font-semibold truncate">{p.name}</div>
