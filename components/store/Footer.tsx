@@ -25,7 +25,14 @@ export default async function Footer({ settings }: { settings: Settings }) {
   const socialChannels = await getSocialChannels()
 
   return (
-    <footer className="bg-stone-900 text-stone-400 px-4 py-14">
+    <footer className="bg-stone-900 text-stone-400 px-4 py-14 overflow-hidden">
+      {/* Wordmark editorial khổng lồ — chỉ trang trí, ẩn khỏi screen reader
+          vì tên thương hiệu đã có sẵn trong phần Brand ngay bên dưới. */}
+      <div className="max-w-6xl mx-auto mb-8 -mt-2" aria-hidden="true">
+        <p className="font-serif italic font-black text-white/[0.06] text-[3.5rem] sm:text-[5rem] md:text-[7rem] leading-none tracking-tight whitespace-nowrap select-none">
+          {settings.site_name || 'Nordic Home'}
+        </p>
+      </div>
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
 
         {/* Brand */}

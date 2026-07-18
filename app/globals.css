@@ -28,10 +28,114 @@
 }
 .animate-sheet-up { animation: sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
 
+/* ── Grain texture (storefront only, applied via (store)/layout.tsx) ──── */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* ── Hero: Ken Burns slow zoom on banner image ─────────────────────────── */
+@keyframes ken-burns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.08); }
+}
+.animate-ken-burns { animation: ken-burns 20s ease-out forwards; }
+
+/* ── Hero: heading lines clip-reveal from below, staggered per line ───── */
+@keyframes line-reveal {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.line-reveal-mask { display: block; overflow: hidden; }
+.line-reveal-mask > span {
+  display: inline-block;
+  transform: translateY(100%);
+  animation: line-reveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Hero: subtitle/button/trust-row fade + rise in, staggered ─────────── */
+@keyframes hero-fade-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-fade-rise { opacity: 0; animation: hero-fade-rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ── Scroll-down cue on hero ────────────────────────────────────────── */
+@keyframes scroll-cue {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}
+.animate-scroll-cue { animation: scroll-cue 2s ease-in-out infinite; }
+
+/* ── Marquee ticker ─────────────────────────────────────────────────── */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee-scroll 32s linear infinite; }
+
+/* ── Buttons: fill sweep from left on hover ────────────────────────────
+   Wrap label in a child element (span/text is enough since it's the only
+   content) -- ::after paints between the button's own background and the
+   label because the label participates in normal flow above the
+   absolutely-positioned pseudo-element only when the button establishes a
+   stacking context (position: relative) and the label has no lower
+   z-index of its own; simplest safe way is giving the label position:
+   relative too via the `btn-sweep-label` helper class. */
+.btn-sweep { position: relative; overflow: hidden; isolation: isolate; }
+.btn-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--sweep-color, rgba(255, 255, 255, 0.16));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  z-index: 0;
+}
+.btn-sweep:hover::after { transform: scaleX(1); }
+.btn-sweep-label { position: relative; z-index: 1; }
+
+/* ── Links: underline slide-in on hover ─────────────────────────────── */
+.link-underline { position: relative; }
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.link-underline:hover::after { transform: scaleX(1); transform-origin: left; }
+
+/* ── Image skeleton shimmer while loading ──────────────────────────── */
+@keyframes img-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.img-shimmer {
+  background: linear-gradient(110deg, var(--tw-shimmer-base, #f0efed) 8%, var(--tw-shimmer-hi, #f8f7f5) 18%, var(--tw-shimmer-base, #f0efed) 33%);
+  background-size: 200% 100%;
+  animation: img-shimmer 1.6s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-cart-bounce, .animate-cart-pop, .animate-sheet-up {
+  .animate-cart-bounce, .animate-cart-pop, .animate-sheet-up,
+  .animate-ken-burns, .animate-scroll-cue, .animate-marquee, .img-shimmer {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
   }
+  .line-reveal-mask > span { animation: none !important; transform: none !important; }
+  .hero-fade-rise { opacity: 1 !important; animation: none !important; transform: none !important; }
 }

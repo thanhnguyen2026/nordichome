@@ -54,6 +54,22 @@ export default function Header({ settings, categories: categoriesProp, campaigns
   const [campaigns, setCampaigns] = useState<Campaign[]>(campaignsProp ?? [])
   const [nowRef] = useState(() => new Date())
 
+  // Header trong suốt đè lên hero CHỈ ở trang chủ lúc chưa cuộn — mọi trang
+  // khác (không có hero tối màu bên dưới) luôn hiện solid như trước, tránh
+  // chữ/nút trắng biến mất trên nền trắng.
+  const isHome = pathname === '/'
+  const [scrolled, setScrolled] = useState(!isHome)
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!isHome) { setScrolled(true); return }
+    const onScroll = () => setScrolled(window.scrollY > 60)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [isHome])
+  /* eslint-enable react-hooks/set-state-in-effect */
+  const transparent = isHome && !scrolled
+
   // Đóng dropdown danh mục desktop khi bấm ra ngoài — cần cho việc mở dropdown
   // bằng click (tablet không có hover thật), giữ nguyên hiệu ứng hover cho chuột.
   useEffect(() => {
@@ -146,8 +162,11 @@ export default function Header({ settings, categories: categoriesProp, campaigns
         )}
       </div>
 
-      {/* Main header */}
-      <header className="bg-white border-b border-stone-100 sticky top-0 z-50 shadow-sm">
+      {/* Main header — trong suốt đè lên hero ở trang chủ lúc chưa cuộn, chuyển
+          nền trắng mờ (backdrop-blur) khi đã cuộn hoặc ở mọi trang khác. */}
+      <header className={`sticky top-0 z-50 transition-colors duration-300 ${
+        transparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-md border-b border-stone-100 shadow-sm'
+      }`}>
         <div className="max-w-6xl mx-auto px-4 h-16 md:h-20 flex items-center">
 
           {/* Logo — về trang chủ */}
@@ -163,10 +182,10 @@ export default function Header({ settings, categories: categoriesProp, campaigns
               <Image src={settings.logo_url} alt="Logo" width={48} height={48} className="h-12 w-12 object-contain rounded-lg" />
             )}
             <div>
-              <div className="text-base md:text-lg font-black text-stone-900 tracking-wide leading-tight">
+              <div className={`text-base md:text-lg font-black tracking-wide leading-tight transition-colors duration-300 ${transparent ? 'text-white' : 'text-stone-900'}`}>
                 {settings.site_name || 'NORDIC HOME'}
               </div>
-              <div className="font-serif italic font-semibold text-[10px] text-amber-700 tracking-[2px]">
+              <div className={`font-serif italic font-semibold text-[10px] tracking-[2px] transition-colors duration-300 ${transparent ? 'text-amber-200' : 'text-amber-700'}`}>
                 Simplify & Enjoy
               </div>
             </div>
@@ -187,13 +206,15 @@ export default function Header({ settings, categories: categoriesProp, campaigns
                         setOpenDesktopId(id => id === cat.id ? null : cat.id)
                       }
                     }}
-                    className="flex items-center gap-1 px-3 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900 rounded-lg hover:bg-stone-50 transition-colors"
+                    className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                      transparent ? 'text-white/90 hover:text-white hover:bg-white/10' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+                    }`}
                   >
                     {cat.name}
                     {hasChildren && (
                       <ChevronDown
                         size={13}
-                        className={`text-stone-400 transition-transform duration-200 group-hover:rotate-180 ${isOpen ? 'rotate-180' : ''}`}
+                        className={`transition-transform duration-200 group-hover:rotate-180 ${isOpen ? 'rotate-180' : ''} ${transparent ? 'text-white/70' : 'text-stone-400'}`}
                       />
                     )}
                   </Link>
@@ -228,20 +249,22 @@ export default function Header({ settings, categories: categoriesProp, campaigns
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => setShowSearch(v => !v)}
-              className="bg-stone-100 hover:bg-stone-200 transition rounded-full w-11 h-11 flex items-center justify-center"
+              className={`transition rounded-full w-11 h-11 flex items-center justify-center ${
+                transparent ? 'bg-white/15 hover:bg-white/25 text-white' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+              }`}
               aria-label="Tìm kiếm"
             >
-              <Search size={18} className="text-stone-700" />
+              <Search size={18} />
             </button>
 
             <button
               onClick={() => setShowCart(true)}
-              className={`relative bg-stone-100 hover:bg-stone-200 transition rounded-full w-11 h-11 flex items-center justify-center ${
-                bounce ? 'animate-cart-bounce' : ''
-              }`}
+              className={`relative transition rounded-full w-11 h-11 flex items-center justify-center ${
+                transparent ? 'bg-white/15 hover:bg-white/25 text-white' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+              } ${bounce ? 'animate-cart-bounce' : ''}`}
               aria-label="Giỏ hàng"
             >
-              <ShoppingCart size={18} className="text-stone-700" />
+              <ShoppingCart size={18} />
               {cartCount > 0 && (
                 <span className={`absolute -top-1 -right-1 bg-stone-900 text-amber-100 rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center ${
                   bounce ? 'animate-cart-pop' : ''
@@ -253,7 +276,9 @@ export default function Header({ settings, categories: categoriesProp, campaigns
 
             <button
               onClick={() => { setMobileOpen(v => !v); setExpandedId(null) }}
-              className="md:hidden w-11 h-11 flex items-center justify-center rounded-full hover:bg-stone-100 transition"
+              className={`md:hidden w-11 h-11 flex items-center justify-center rounded-full transition ${
+                transparent ? 'text-white hover:bg-white/15' : 'text-stone-900 hover:bg-stone-100'
+              }`}
               aria-label="Menu"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}

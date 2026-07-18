@@ -23,6 +23,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
   const addItem = useCartStore(s => s.addItem)
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
 
   const secondImage = p.images?.[0]
 
@@ -69,6 +70,9 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
         <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden flex items-center justify-center">
           {p.cover_image ? (
             <>
+              {/* Skeleton shimmer cho đến khi ảnh chính tải xong — tránh ảnh
+                  "hiện bụp" đột ngột, đặc biệt lộ rõ trên mạng chậm. */}
+              {!imgLoaded && <div className="absolute inset-0 img-shimmer" aria-hidden="true" />}
               {/* Ảnh chính */}
               <Image
                 src={p.cover_image}
@@ -77,6 +81,7 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
                 sizes="(max-width: 768px) 50vw, 25vw"
                 priority={priority}
                 loading={priority ? 'eager' : 'lazy'}
+                onLoad={() => setImgLoaded(true)}
                 className={`object-cover transition-all duration-500 ${
                   hovered && secondImage ? 'opacity-0 scale-105' : 'opacity-100 scale-100'
                 }`}
@@ -110,6 +115,20 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
               <span className="bg-white/90 text-stone-700 text-[10px] font-bold px-2.5 py-0.5 rounded-sm tracking-wide shadow-sm">NHIỀU MẪU</span>
             </div>
           )}
+
+          {/* CTA trượt lên đè ảnh khi hover — chỉ desktop (mobile không có
+              hover thật, vẫn dùng nút cố định bên dưới ảnh như cũ). Nút nằm
+              trong <Link> nên phải preventDefault/stopPropagation để không
+              vừa thêm giỏ vừa điều hướng sang trang chi tiết cùng lúc. */}
+          <div className="hidden md:block absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
+            <button
+              disabled={isDisabled}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); handleAddToCart() }}
+              className={`w-full text-xs font-bold py-3 backdrop-blur-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
+            >
+              {btnLabel}
+            </button>
+          </div>
         </div>
 
         <div className="p-3">
@@ -131,7 +150,9 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
         </div>
       </Link>
 
-      <div className="px-3 pb-3">
+      {/* Mobile: nút cố định bên dưới ảnh (không có hover thật để dùng CTA
+          trượt lên). Desktop: ẩn nút này, dùng CTA trượt lên đè ảnh ở trên. */}
+      <div className="px-3 pb-3 md:hidden">
         <button
           disabled={isDisabled}
           onClick={handleAddToCart}

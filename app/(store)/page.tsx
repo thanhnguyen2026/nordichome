@@ -4,6 +4,10 @@ import Link from 'next/link'
 import ProductCard from '@/components/store/ProductCard'
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
+import Hero from '@/components/store/Hero'
+import SectionHeading from '@/components/store/SectionHeading'
+import Marquee from '@/components/store/Marquee'
+import ParallaxQuote from '@/components/store/ParallaxQuote'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
 import type { Look } from '@/components/store/ShopTheLook'
 import type { Product, Campaign } from '@/types'
@@ -89,53 +93,12 @@ export default async function HomePage() {
     <>
       <Header settings={s} categories={categoryTree} campaigns={campaigns} />
       <main>
-        {/* BANNER — mobile: full-screen, nội dung neo đáy · desktop: banner cố định, nội dung căn giữa */}
-        <section className="relative min-h-[100svh] md:min-h-0 md:h-[520px] flex flex-col justify-end md:justify-center md:items-center overflow-hidden bg-stone-100">
-          {s.banner_url && (
-            // Hero mobile cao hết màn hình (100svh) nhưng ảnh banner nằm ngang —
-            // object-cover phải phóng theo chiều cao nên cần yêu cầu độ phân giải
-            // lớn hơn nhiều so với chỉ tính theo chiều rộng viewport (100vw),
-            // nếu không ảnh tải về sẽ bị phóng to lại và mờ trên điện thoại.
-            <Image src={s.banner_url} alt="Banner" fill priority sizes="(max-width: 768px) 250vw, 100vw" className="object-cover" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10 md:bg-black/30 md:bg-none" />
-          <div className="relative text-left md:text-center text-white px-6 md:px-4 pb-14 md:pb-0">
-            {s.hero_label && (
-              <p className="font-serif italic text-sm tracking-[4px] uppercase mb-4 text-amber-200/90">
-                {s.hero_label}
-              </p>
-            )}
-            <h1 className="text-[2.75rem] leading-[1.05] md:text-5xl md:leading-tight font-black mb-4">
-              {s.hero_title_1 || 'Không gian sống'}<br />
-              <span className="text-amber-300">{s.hero_title_2 || 'tối giản & sang trọng'}</span>
-            </h1>
-            <p className="text-stone-200 mb-8 md:mb-7 text-base md:text-sm leading-relaxed max-w-sm md:max-w-none">
-              {s.hero_subtitle || 'Nội thất phong cách Bắc Âu — thiết kế tinh tế, chất liệu tự nhiên bền vững'}
-            </p>
-            <Link href="/products"
-              className="block md:inline-block text-center bg-stone-900 text-amber-100 px-8 py-4 md:py-3 rounded-full font-bold text-sm hover:bg-stone-800 transition border border-stone-700">
-              {s.hero_button_text || 'Khám phá ngay'} →
-            </Link>
-            {(s.hero_trust_1 || s.hero_trust_2 || s.hero_trust_3) && (
-              <div className="flex flex-wrap items-center justify-start md:justify-center gap-x-5 gap-y-1.5 mt-7 text-white/50 text-xs tracking-wide">
-                {[s.hero_trust_1, s.hero_trust_2, s.hero_trust_3].filter(Boolean).map((t, i, arr) => (
-                  <>
-                    <span key={t}>{t}</span>
-                    {i < arr.length - 1 && <span key={`sep-${i}`} className="text-white/20">·</span>}
-                  </>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+        <Hero settings={s} />
 
         {/* DANH MỤC */}
         {!!cats?.length && (
           <section className="max-w-6xl mx-auto px-4 pt-16">
-            <div className="text-center mb-10">
-              <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-700 mb-2">Danh mục</p>
-              <h2 className="font-serif text-3xl font-semibold text-stone-900">Khám phá không gian sống</h2>
-            </div>
+            <SectionHeading number="01" eyebrow="Danh mục" title="Khám phá không gian sống" align="center" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {cats.map((cat, i) => (
                 <RevealOnScroll key={cat.id} index={i}>
@@ -162,17 +125,22 @@ export default async function HomePage() {
           </section>
         )}
 
+        <div className="mt-16">
+          <Marquee items={['Chất liệu tự nhiên', 'Freeship toàn quốc', 'Bảo hành 2 năm', 'Thiết kế Bắc Âu']} />
+        </div>
+
         {/* SẢN PHẨM NỔI BẬT */}
         {!!featured?.length && (
           <section className="bg-stone-50 pt-16 pb-16">
             <div className="max-w-6xl mx-auto px-4">
-              <div className="flex justify-between items-end mb-8">
-                <div>
-                  <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-700 mb-1">Nổi bật</p>
-                  <h2 className="font-serif text-3xl font-semibold text-stone-900">Sản phẩm được yêu thích</h2>
-                </div>
-                <Link href="/products?featured=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</Link>
-              </div>
+              <SectionHeading
+                number="02"
+                eyebrow="Nổi bật"
+                title="Sản phẩm được yêu thích"
+                align="left"
+                numberSide="left"
+                action={{ href: '/products?featured=true', label: 'Xem tất cả' }}
+              />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {featured.map((p, i) => (
                   <RevealOnScroll key={p.id} index={i} blur={false}>
@@ -191,13 +159,14 @@ export default async function HomePage() {
         {!!newProds?.length && (
           <section className="pt-16">
             <div className="max-w-6xl mx-auto px-4">
-              <div className="flex justify-between items-end mb-8">
-                <div>
-                  <p className="font-serif italic font-semibold text-sm tracking-[3px] uppercase text-amber-700 mb-1">Mới nhất</p>
-                  <h2 className="font-serif text-3xl font-semibold text-stone-900">Hàng mới về</h2>
-                </div>
-                <Link href="/products?new=true" className="text-sm font-semibold hover:text-amber-700">Xem tất cả →</Link>
-              </div>
+              <SectionHeading
+                number="03"
+                eyebrow="Mới nhất"
+                title="Hàng mới về"
+                align="left"
+                numberSide="right"
+                action={{ href: '/products?new=true', label: 'Xem tất cả' }}
+              />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {newProds.map((p, i) => (
                   <RevealOnScroll key={p.id} index={i} blur={false}>
@@ -212,13 +181,12 @@ export default async function HomePage() {
           </section>
         )}
 
+        <Marquee items={['Chất liệu tự nhiên', 'Freeship toàn quốc', 'Bảo hành 2 năm', 'Thiết kế Bắc Âu']} />
+
         {/* SHOP THE LOOK */}
         {looks.length > 0 && (
           <section id="shop-the-look" className="max-w-6xl mx-auto px-4 pt-16">
-            <div className="text-center mb-10">
-              <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-amber-700 mb-2">Cảm hứng</p>
-              <h2 className="font-serif text-4xl font-normal italic text-stone-900">Shop the Look</h2>
-            </div>
+            <SectionHeading number="04" eyebrow="Cảm hứng" title="Shop the Look" align="center" italic />
             <div className={`grid gap-8 ${
               looks.length === 1 ? 'grid-cols-1 max-w-lg mx-auto'
               : looks.length === 2 ? 'grid-cols-1 md:grid-cols-2'
@@ -268,9 +236,10 @@ export default async function HomePage() {
                     )}
                     <Link
                       href={`/looks/${look.id}`}
-                      className="inline-block text-xs font-bold tracking-[2px] uppercase border border-stone-900 px-5 py-2.5 hover:bg-stone-900 hover:text-white transition-colors duration-200"
+                      className="btn-sweep group/btn inline-block text-xs font-bold tracking-[2px] uppercase border border-stone-900 px-5 py-2.5"
+                      style={{ ['--sweep-color' as string]: '#1c1917' }}
                     >
-                      Xem chi tiết
+                      <span className="btn-sweep-label transition-colors duration-300 group-hover/btn:text-white">Xem chi tiết</span>
                     </Link>
                   </RevealOnScroll>
                 )
@@ -286,7 +255,7 @@ export default async function HomePage() {
             cho chữ, không thay được khoảng trắng ở NGOÀI khối trước khi vào */}
         <section className="mt-16 bg-stone-900 text-white py-20 text-center relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden>
-            <span className="font-serif text-[18rem] text-white/[0.04] leading-none">&ldquo;</span>
+            <ParallaxQuote />
           </div>
           <div className="relative max-w-xl mx-auto px-4">
             <p className="font-serif italic font-semibold text-sm tracking-[4px] uppercase text-stone-400 mb-5">Về chúng tôi</p>
