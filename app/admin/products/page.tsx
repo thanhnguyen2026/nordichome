@@ -490,20 +490,25 @@ export default function AdminProducts() {
                               </button>
                             </div>
                           </td>
-                          <td className="flex items-center justify-end gap-1 md:table-cell py-2 px-4 md:text-right md:whitespace-nowrap">
+                          <td className="flex flex-wrap items-center justify-end gap-1 md:table-cell py-2 px-4 md:text-right md:whitespace-nowrap">
                             <button onClick={() => router.push(`/admin/orders?quickAdd=${p.id}`)}
                               title="Thêm vào đơn thủ công"
                               className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200 cursor-pointer">
                               <ClipboardList size={11} /> Tạo đơn
                             </button>
-                            <button onClick={() => openEdit(p)}
-                              className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 md:mr-1 hover:bg-stone-200 cursor-pointer">
-                              <Pencil size={11} /> Sửa
-                            </button>
-                            <button onClick={() => handleDelete(p.id)}
-                              className="flex items-center text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100 cursor-pointer">
-                              <Trash2 size={12} />
-                            </button>
+                            {/* Bọc Sửa + Xoá trong 1 khối inline-flex để 2 nút này luôn dính
+                                nhau khi xuống dòng trên desktop (cột hẹp) -- tránh xuống 3
+                                dòng riêng lẻ (Tạo đơn / Sửa / Xoá), chỉ còn tối đa 2 dòng. */}
+                            <span className="inline-flex items-center gap-1">
+                              <button onClick={() => openEdit(p)}
+                                className="flex items-center gap-1 text-xs bg-stone-100 rounded-lg px-2.5 py-1.5 hover:bg-stone-200 cursor-pointer">
+                                <Pencil size={11} /> Sửa
+                              </button>
+                              <button onClick={() => handleDelete(p.id)}
+                                className="flex items-center text-xs bg-red-50 text-red-600 rounded-lg px-2.5 py-1.5 hover:bg-red-100 cursor-pointer">
+                                <Trash2 size={12} />
+                              </button>
+                            </span>
                           </td>
                         </tr>
                       )

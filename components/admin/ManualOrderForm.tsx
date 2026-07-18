@@ -353,15 +353,20 @@ export default function ManualOrderForm({ onClose, onCreated, initialProductId }
                 {rows.map((row, i) => {
                   const rowVariants = row.product_id ? variantsOf(row.product_id) : []
                   return (
-                    <div key={i} className="flex gap-2 items-start bg-stone-50 rounded-lg p-2">
-                      <ProductSearchSelect
-                        value={row.product_id}
-                        onChange={id => onSelectProduct(i, id)}
-                        products={products}
-                      />
+                    <div key={i} className="flex flex-wrap gap-2 items-start bg-stone-50 rounded-lg p-2">
+                      {/* Ô sản phẩm chiếm trọn dòng riêng trên mobile -- nhét chung 1 hàng
+                          với mẫu/SL/giá trên màn hẹp làm nó bị bóp gần như biến mất, chỉ
+                          còn thấy mũi tên dropdown, không thấy tên sản phẩm đã chọn. */}
+                      <div className="w-full sm:w-auto sm:flex-1 sm:min-w-0">
+                        <ProductSearchSelect
+                          value={row.product_id}
+                          onChange={id => onSelectProduct(i, id)}
+                          products={products}
+                        />
+                      </div>
                       {rowVariants.length > 0 && (
                         <select value={row.variant_id} onChange={e => onSelectVariant(i, e.target.value)}
-                          className="w-32 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400">
+                          className="flex-1 min-w-0 sm:flex-none sm:w-32 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400">
                           <option value="">-- Mẫu --</option>
                           {rowVariants.map(v => (
                             <option key={v.id} value={v.id}>{v.group_name}: {v.option_name}</option>
@@ -370,10 +375,10 @@ export default function ManualOrderForm({ onClose, onCreated, initialProductId }
                       )}
                       <input type="text" inputMode="numeric" value={row.quantity}
                         onChange={e => updateRow(i, { quantity: e.target.value.replace(/\D/g, '') })}
-                        placeholder="SL" className="w-14 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400" />
+                        placeholder="SL" className="flex-1 min-w-0 sm:flex-none sm:w-14 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400" />
                       <input type="text" inputMode="numeric" value={row.price}
                         onChange={e => updateRow(i, { price: e.target.value.replace(/\D/g, '') })}
-                        placeholder="Giá" className="w-24 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400" />
+                        placeholder="Giá" className="flex-1 min-w-0 sm:flex-none sm:w-24 border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-stone-400" />
                       {rows.length > 1 && (
                         <button type="button" onClick={() => removeRow(i)} className="text-red-400 hover:text-red-600 px-1">✕</button>
                       )}
