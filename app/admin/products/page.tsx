@@ -426,8 +426,8 @@ export default function AdminProducts() {
                           </td>
                           <td className="flex items-center gap-3 md:table-cell py-2.5 px-4">
                             <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelectOne(p.id)} className="cursor-pointer md:hidden flex-shrink-0" />
-                            <div className="relative w-12 h-12 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                              {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="48px" className="object-cover" /> : <ImageOff size={18} className="text-stone-300" />}
+                            <div className="relative w-16 h-16 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                              {p.cover_image ? <Image src={p.cover_image} alt={p.name} fill sizes="64px" className="object-cover" /> : <ImageOff size={22} className="text-stone-300" />}
                             </div>
                             <div className="min-w-0 md:hidden">
                               <div className="font-semibold truncate">{p.name}</div>
