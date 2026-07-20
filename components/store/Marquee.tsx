@@ -12,8 +12,10 @@ export const MARQUEE_PRESETS = {
     text: 'text-stone-600', iconColor: 'text-amber-500', icon: '✦', swatch: '#e7e5e4',
   },
   christmas: {
-    label: 'Giáng sinh', bg: 'bg-emerald-950', border: 'border-emerald-900',
-    text: 'text-amber-100', iconColor: 'text-red-400', icon: '❄', swatch: '#022c22',
+    // iconColor trùng với text (thay vì đỏ trước đây) -- dải ruy-băng đơn sắc
+    // vàng champagne trông sang hơn là pha thêm điểm nhấn đỏ.
+    label: 'Giáng sinh', bg: 'bg-emerald-950', border: 'border-emerald-900/50',
+    text: 'text-amber-100', iconColor: 'text-amber-100', icon: '❄', swatch: '#022c22',
   },
   valentine: {
     // text đổi từ rose-100 sang amber-50: rose-100 trên nền rose-950 đủ tương
@@ -48,7 +50,13 @@ interface Props {
 // không giật lag dù đổi preset.
 export default function Marquee({ items, preset = 'default', separatorIcon }: Props) {
   const theme = MARQUEE_PRESETS[preset]
-  const icon = separatorIcon?.trim() || theme.icon
+  // U+FE0E (text presentation selector) buộc ký tự hiển thị dạng nét mảnh kế
+  // thừa màu CSS (currentColor) thay vì dạng emoji nhiều màu cố định của hệ
+  // điều hành -- vài ký tự như ❄ (U+2744) mặc định/khi dán từ bàn phím emoji
+  // dễ bị render thành emoji màu bất kể class text-* đặt gì, phá vỡ tông màu
+  // đơn sắc của dải ruy-băng. Áp dụng chung cho cả icon mặc định lẫn icon
+  // admin tự gõ -- vô hại với ký tự không có phiên bản emoji.
+  const icon = (separatorIcon?.trim() || theme.icon) + '︎'
   const content = [...items, ...items]
 
   return (
