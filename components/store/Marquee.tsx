@@ -1,19 +1,60 @@
+// Preset màu định nghĩa CỨNG trong code (không lưu class Tailwind trong DB) --
+// Tailwind biên dịch CSS bằng cách quét TĨNH mã nguồn lúc build để biết class
+// nào cần sinh ra; nó không quét dữ liệu trong database. Nếu admin gõ tay
+// "bg-emerald-950" rồi lưu vào settings và ta render className={value} trực
+// tiếp, class đó sẽ không được Tailwind sinh CSS (không lỗi, chỉ im lặng
+// không có tác dụng trên production). Lưu KEY của preset trong settings,
+// tra bảng này để lấy class thật -- Tailwind thấy các literal string dưới
+// đây ngay trong file này nên luôn build đúng.
+export const MARQUEE_PRESETS = {
+  default: {
+    label: 'Mặc định', bg: 'bg-stone-50', border: 'border-stone-200',
+    text: 'text-stone-600', iconColor: 'text-amber-500', icon: '✦', swatch: '#e7e5e4',
+  },
+  christmas: {
+    label: 'Giáng sinh', bg: 'bg-emerald-950', border: 'border-emerald-900',
+    text: 'text-amber-100', iconColor: 'text-red-400', icon: '❄', swatch: '#022c22',
+  },
+  valentine: {
+    label: 'Valentine 14/2', bg: 'bg-rose-950', border: 'border-rose-900',
+    text: 'text-rose-100', iconColor: 'text-rose-300', icon: '♡', swatch: '#4c0519',
+  },
+  womensday: {
+    label: 'Ngày 8/3', bg: 'bg-red-950', border: 'border-red-900',
+    text: 'text-pink-100', iconColor: 'text-pink-300', icon: '✿', swatch: '#450a0a',
+  },
+  blackfriday: {
+    label: 'Black Friday', bg: 'bg-black', border: 'border-stone-800',
+    text: 'text-orange-300', iconColor: 'text-orange-400', icon: '●', swatch: '#000000',
+  },
+} as const
+
+export type MarqueePresetKey = keyof typeof MARQUEE_PRESETS
+
 interface Props {
   items: string[]
+  preset?: MarqueePresetKey
+  // Icon phân cách tuỳ chỉnh (admin gõ tay) -- để trống thì dùng icon mặc định của preset.
+  separatorIcon?: string
 }
 
 // Dải chữ chạy ngang liên tục giữa các section — phá nhịp lưới đều đặn của
 // trang, đặc trưng các trang thương hiệu cao cấp. Nhân đôi danh sách để cuộn
 // liền mạch (khi nửa đầu trôi hết, nửa sau đã xếp sẵn ngay tại vị trí cũ).
-export default function Marquee({ items }: Props) {
+// Vẫn thuần CSS animation (animate-marquee, xem globals.css) -- không JS,
+// không giật lag dù đổi preset.
+export default function Marquee({ items, preset = 'default', separatorIcon }: Props) {
+  const theme = MARQUEE_PRESETS[preset]
+  const icon = separatorIcon?.trim() || theme.icon
   const content = [...items, ...items]
+
   return (
-    <div className="overflow-hidden border-y border-stone-200 bg-stone-50 py-4" aria-hidden="true">
+    <div className={`overflow-hidden border-y py-4 transition-colors duration-300 ${theme.bg} ${theme.border}`} aria-hidden="true">
       <div className="flex w-max animate-marquee">
         {content.map((item, i) => (
-          <span key={i} className="flex items-center gap-12 pr-12 font-serif italic text-sm tracking-[3px] uppercase text-stone-400 whitespace-nowrap">
+          <span key={i} className={`flex items-center gap-12 pr-12 font-serif italic text-sm uppercase tracking-widest whitespace-nowrap ${theme.text}`}>
             {item}
-            <span className="text-amber-400 not-italic">✦</span>
+            <span className={`not-italic ${theme.iconColor}`}>{icon}</span>
           </span>
         ))}
       </div>

@@ -6,7 +6,7 @@ import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import Hero from '@/components/store/Hero'
 import SectionHeading from '@/components/store/SectionHeading'
-import Marquee from '@/components/store/Marquee'
+import Marquee, { MARQUEE_PRESETS, type MarqueePresetKey } from '@/components/store/Marquee'
 import ParallaxQuote from '@/components/store/ParallaxQuote'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
 import type { Look } from '@/components/store/ShopTheLook'
@@ -80,6 +80,15 @@ export default async function HomePage() {
   const featured = featuredRawTyped ? applyCampaignsToProducts(featuredRawTyped, campaigns, now) : null
   const newProds = newProdsRawTyped ? applyCampaignsToProducts(newProdsRawTyped, campaigns, now) : null
 
+  // Dải marquee: admin cấu hình ở Cài đặt (nội dung, preset màu, icon, bật/tắt)
+  // — mặc định vẫn hiện (chưa từng cấu hình ≠ tắt), text/preset rơi về giá
+  // trị gốc nếu settings trống.
+  const marqueeActive = s.marquee_is_active !== '0'
+  const marqueeItems = String(s.marquee_text || 'Chất liệu tự nhiên;Freeship toàn quốc;Bảo hành 2 năm;Thiết kế Bắc Âu')
+    .split(';').map((t: string) => t.trim()).filter(Boolean)
+  const marqueePreset: MarqueePresetKey = s.marquee_preset && s.marquee_preset in MARQUEE_PRESETS
+    ? (s.marquee_preset as MarqueePresetKey) : 'default'
+
   const productIdsWithVariants = new Set(variantRows?.map(v => v.product_id) ?? [])
 
   const minVariantPriceMap: Record<string, number> = {}
@@ -125,9 +134,11 @@ export default async function HomePage() {
           </section>
         )}
 
-        <div className="mt-16">
-          <Marquee items={['Chất liệu tự nhiên', 'Freeship toàn quốc', 'Bảo hành 2 năm', 'Thiết kế Bắc Âu']} />
-        </div>
+        {marqueeActive && (
+          <div className="mt-16">
+            <Marquee items={marqueeItems} preset={marqueePreset} separatorIcon={s.marquee_separator_icon} />
+          </div>
+        )}
 
         {/* SẢN PHẨM NỔI BẬT */}
         {!!featured?.length && (
@@ -181,7 +192,9 @@ export default async function HomePage() {
           </section>
         )}
 
-        <Marquee items={['Chất liệu tự nhiên', 'Freeship toàn quốc', 'Bảo hành 2 năm', 'Thiết kế Bắc Âu']} />
+        {marqueeActive && (
+          <Marquee items={marqueeItems} preset={marqueePreset} separatorIcon={s.marquee_separator_icon} />
+        )}
 
         {/* SHOP THE LOOK */}
         {looks.length > 0 && (

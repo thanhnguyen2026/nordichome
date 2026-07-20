@@ -6,8 +6,9 @@ import { useRef } from 'react'
 import Image from 'next/image'
 import {
   Settings, Images, Home, Award, PanelBottom, Phone, Truck, Landmark, Bell,
-  AlertTriangle, MessageCircle, Calculator, Search, Upload, Save, CheckCircle2,
+  AlertTriangle, MessageCircle, Calculator, Search, Upload, Save, CheckCircle2, Megaphone,
 } from 'lucide-react'
+import Marquee, { MARQUEE_PRESETS, type MarqueePresetKey } from '@/components/store/Marquee'
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -149,6 +150,65 @@ export default function AdminSettings() {
                 <input value={settings.hero_trust_3 || ''} onChange={e => set('hero_trust_3', e.target.value)}
                   placeholder="🔄 Đổi trả 30 ngày"
                   className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Marquee ticker */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="flex items-center gap-2 font-bold text-sm"><Megaphone size={16} className="text-stone-400" /> Dải chữ chạy (Marquee)</h2>
+            <button
+              type="button"
+              onClick={() => set('marquee_is_active', settings.marquee_is_active === '0' ? '1' : '0')}
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
+                settings.marquee_is_active !== '0' ? 'bg-green-500' : 'bg-stone-200'
+              }`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                settings.marquee_is_active !== '0' ? 'translate-x-6' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
+          <p className="text-xs text-stone-400 mb-5">
+            Dải chữ chạy ngang giữa các section trang chủ — đổi theo chiến dịch (Giáng sinh, Valentine, 8/3, Black Friday...) chỉ cần đổi ở đây, không phải sửa code.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Nội dung (mỗi mục cách nhau bằng dấu ;)</label>
+              <input value={settings.marquee_text || ''} onChange={e => set('marquee_text', e.target.value)}
+                placeholder="Chất liệu tự nhiên;Freeship toàn quốc;Bảo hành 2 năm;Thiết kế Bắc Âu"
+                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-1">Icon phân cách (để trống dùng icon mặc định của giao diện màu)</label>
+              <input value={settings.marquee_separator_icon || ''} onChange={e => set('marquee_separator_icon', e.target.value)}
+                placeholder="✦"
+                className="w-32 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-stone-400" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-2">Giao diện màu</label>
+              <div className="flex flex-wrap gap-2">
+                {(Object.entries(MARQUEE_PRESETS) as [MarqueePresetKey, (typeof MARQUEE_PRESETS)[MarqueePresetKey]][]).map(([key, preset]) => (
+                  <button key={key} type="button" onClick={() => set('marquee_preset', key)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+                      (settings.marquee_preset || 'default') === key ? 'border-stone-900 bg-stone-50' : 'border-stone-200 hover:bg-stone-50'
+                    }`}>
+                    <span className="w-4 h-4 rounded-full border border-black/10 flex-shrink-0" style={{ background: preset.swatch }} />
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-500 block mb-2">Xem trước</label>
+              <div className="rounded-xl overflow-hidden border border-stone-200">
+                <Marquee
+                  items={(settings.marquee_text || 'Chất liệu tự nhiên;Freeship toàn quốc;Bảo hành 2 năm;Thiết kế Bắc Âu').split(';').map(t => t.trim()).filter(Boolean)}
+                  preset={(settings.marquee_preset && settings.marquee_preset in MARQUEE_PRESETS ? settings.marquee_preset : 'default') as MarqueePresetKey}
+                  separatorIcon={settings.marquee_separator_icon}
+                />
               </div>
             </div>
           </div>
