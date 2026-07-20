@@ -16,12 +16,15 @@ export const MARQUEE_PRESETS = {
     text: 'text-amber-100', iconColor: 'text-red-400', icon: '❄', swatch: '#022c22',
   },
   valentine: {
+    // text đổi từ rose-100 sang amber-50: rose-100 trên nền rose-950 đủ tương
+    // phản theo WCAG nhưng cùng tông hồng-đỏ với nền nên mắt vẫn thấy "chìm" —
+    // amber-50 khác tông hẳn (đồng thời khớp accent vàng thương hiệu) nên nổi rõ hơn.
     label: 'Valentine 14/2', bg: 'bg-rose-950', border: 'border-rose-900',
-    text: 'text-rose-100', iconColor: 'text-rose-300', icon: '♡', swatch: '#4c0519',
+    text: 'text-amber-50', iconColor: 'text-rose-300', icon: '♡', swatch: '#4c0519',
   },
   womensday: {
     label: 'Ngày 8/3', bg: 'bg-red-950', border: 'border-red-900',
-    text: 'text-pink-100', iconColor: 'text-pink-300', icon: '✿', swatch: '#450a0a',
+    text: 'text-amber-50', iconColor: 'text-pink-300', icon: '✿', swatch: '#450a0a',
   },
   blackfriday: {
     label: 'Black Friday', bg: 'bg-black', border: 'border-stone-800',
