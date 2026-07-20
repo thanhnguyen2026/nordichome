@@ -42,7 +42,13 @@ export default function Hero({ settings: s }: Props) {
   }, [])
 
   return (
-    <section className="relative min-h-[100svh] md:min-h-0 md:h-[560px] flex flex-col justify-end md:justify-center md:items-center overflow-hidden bg-stone-100">
+    // -mt-16 md:-mt-20: header dùng sticky (vẫn chiếm chỗ trong luồng bố cục
+    // bình thường, không phải overlay) nên khi header trong suốt, nó chỉ lộ
+    // nền trắng của trang phía sau chứ không phải ảnh hero -- kéo Hero lên
+    // đúng bằng chiều cao header (h-16 mobile/h-20 desktop) để phần đầu ảnh
+    // hero nằm khớp phía sau vùng header, ảnh hero mới thực sự hiện ra xuyên
+    // qua header trong suốt.
+    <section className="relative -mt-16 md:-mt-20 min-h-[100svh] md:min-h-0 md:h-[560px] flex flex-col justify-end md:justify-center md:items-center overflow-hidden bg-stone-100">
       {s.banner_url && (
         // Ảnh phóng theo chiều cao trên mobile (100svh) nên cần độ phân giải lớn
         // hơn nhiều so với chỉ tính theo chiều rộng viewport, nếu không sẽ mờ.
