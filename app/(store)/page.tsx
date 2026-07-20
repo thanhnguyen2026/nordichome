@@ -193,7 +193,9 @@ export default async function HomePage() {
         )}
 
         {marqueeActive && (
-          <Marquee items={marqueeItems} preset={marqueePreset} separatorIcon={s.marquee_separator_icon} />
+          <div className="mt-16">
+            <Marquee items={marqueeItems} preset={marqueePreset} separatorIcon={s.marquee_separator_icon} />
+          </div>
         )}
 
         {/* SHOP THE LOOK */}
