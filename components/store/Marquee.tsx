@@ -63,7 +63,7 @@ export default function Marquee({ items, preset = 'default', separatorIcon }: Pr
     <div className={`overflow-hidden border-y py-4 transition-colors duration-300 ${theme.bg} ${theme.border}`} aria-hidden="true">
       <div className="flex w-max animate-marquee">
         {content.map((item, i) => (
-          <span key={i} className={`flex items-center gap-12 pr-12 font-serif italic text-sm uppercase tracking-widest whitespace-nowrap ${theme.text}`}>
+          <span key={i} className={`flex items-center gap-12 pr-12 font-serif italic leading-none text-sm uppercase tracking-widest whitespace-nowrap ${theme.text}`}>
             {item}
             <span className={`not-italic ${theme.iconColor}`}>{icon}</span>
           </span>
