@@ -14,6 +14,7 @@ import type { Product, Campaign } from '@/types'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
 import { Sofa } from 'lucide-react'
 import { getCategoryTree } from '@/lib/categories'
+import { getRatingSummaries } from '@/lib/reviewsSummary'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -79,6 +80,13 @@ export default async function HomePage() {
   const campaigns = (campaignsRaw ?? []) as unknown as Campaign[]
   const featured = featuredRawTyped ? applyCampaignsToProducts(featuredRawTyped, campaigns, now) : null
   const newProds = newProdsRawTyped ? applyCampaignsToProducts(newProdsRawTyped, campaigns, now) : null
+
+  // Sao trên ProductCard — dark launch sau cờ riêng (khác reviews_is_active,
+  // vốn chỉ bật khối đánh giá ở trang chi tiết). Mặc định TẮT.
+  const showRatingOnCards = s.reviews_show_on_cards === '1'
+  const ratingMap = showRatingOnCards
+    ? await getRatingSummaries([...(featured ?? []), ...(newProds ?? [])].map(p => p.id))
+    : {}
 
   // Dải marquee: admin cấu hình ở Cài đặt (nội dung, preset màu, icon, bật/tắt)
   // — mặc định vẫn hiện (chưa từng cấu hình ≠ tắt), text/preset rơi về giá
@@ -158,7 +166,8 @@ export default async function HomePage() {
                     <ProductCard product={p}
                       hasVariants={productIdsWithVariants.has(p.id)}
                       minVariantPrice={minVariantPriceMap[p.id] ?? null}
-                      priority={i < 4} />
+                      priority={i < 4}
+                      rating={ratingMap[p.id]} />
                   </RevealOnScroll>
                 ))}
               </div>
@@ -184,7 +193,8 @@ export default async function HomePage() {
                     <ProductCard product={p}
                       hasVariants={productIdsWithVariants.has(p.id)}
                       minVariantPrice={minVariantPriceMap[p.id] ?? null}
-                      priority={i < 4} />
+                      priority={i < 4}
+                      rating={ratingMap[p.id]} />
                   </RevealOnScroll>
                 ))}
               </div>

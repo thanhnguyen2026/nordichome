@@ -12,6 +12,7 @@ import type { Product, Campaign } from '@/types'
 import { applyCampaignsToProduct, applyCampaignsToProducts } from '@/lib/campaignPrice'
 import { getCategoryTree } from '@/lib/categories'
 import { safeJsonLd } from '@/lib/text'
+import { getRatingSummaries } from '@/lib/reviewsSummary'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -142,6 +143,13 @@ export default async function ProductDetailPage({
 
   const productIdsWithVariants = new Set(variantRows?.map(v => v.product_id) ?? [])
 
+  // Sao trên ProductCard (khối "Sản phẩm liên quan") — dark launch sau cờ riêng
+  // (khác reviews_is_active, vốn chỉ bật khối đánh giá của CHÍNH sản phẩm này).
+  const showRatingOnCards = s.reviews_show_on_cards === '1'
+  const relatedRatingMap = showRatingOnCards && relatedIds.length
+    ? await getRatingSummaries(relatedIds)
+    : {}
+
   const minVariantPriceMap: Record<string, number> = {}
   variantRows?.forEach(v => {
     if (v.price == null) return
@@ -239,6 +247,7 @@ export default async function ProductDetailPage({
                     product={p}
                     hasVariants={productIdsWithVariants.has(p.id)}
                     minVariantPrice={minVariantPriceMap[p.id] ?? null}
+                    rating={relatedRatingMap[p.id]}
                   />
                 </RevealOnScroll>
               ))}

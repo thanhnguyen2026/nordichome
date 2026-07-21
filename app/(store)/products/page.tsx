@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { applyCampaignsToProducts } from '@/lib/campaignPrice'
 import { getCategoryTree } from '@/lib/categories'
 import { stripDiacritics } from '@/lib/text'
+import { getRatingSummaries } from '@/lib/reviewsSummary'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -94,6 +95,13 @@ export default async function ProductsPage({
   const products = searchQuery
     ? (productsWithCampaigns?.filter(p => stripDiacritics(p.name).includes(stripDiacritics(searchQuery))) ?? null)
     : productsWithCampaigns
+
+  // Sao trên ProductCard — dark launch sau cờ riêng (khác reviews_is_active,
+  // vốn chỉ bật khối đánh giá ở trang chi tiết). Mặc định TẮT.
+  const showRatingOnCards = s.reviews_show_on_cards === '1'
+  const ratingMap = showRatingOnCards && products?.length
+    ? await getRatingSummaries(products.map(p => p.id))
+    : {}
 
   // Breadcrumbs
   const parentCat = activeCategory?.parent_id
@@ -195,6 +203,7 @@ export default async function ProductsPage({
                     hasVariants={productIdsWithVariants.has(p.id)}
                     minVariantPrice={minVariantPriceMap[p.id] ?? null}
                     priority={i < 6}
+                    rating={ratingMap[p.id]}
                   />
                 </RevealOnScroll>
               ))}

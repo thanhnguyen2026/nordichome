@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ImageOff, Truck } from 'lucide-react'
+import { ImageOff, Truck, Star } from 'lucide-react'
 import { Product } from '@/types'
 import { useCartStore } from '@/store/cartStore'
 
@@ -17,9 +17,13 @@ interface Props {
   // ảnh fill + lazy-load đôi khi tải/giải mã xong nhưng không tự vẽ lại, hiện
   // mờ (frame cũ) cho tới khi người dùng cuộn để trình duyệt buộc phải repaint.
   priority?: boolean
+  // Điểm đánh giá TB + số lượng đã duyệt — optional, chỉ trang gọi truyền vào
+  // (dark launch sau cờ reviews_show_on_cards). Không có hoặc count=0 thì
+  // không hiện gì, tránh bôi "0 sao" khi catalog còn ít review.
+  rating?: { avg: number; count: number } | null
 }
 
-export default function ProductCard({ product: p, hasVariants = false, minVariantPrice, priority = false }: Props) {
+export default function ProductCard({ product: p, hasVariants = false, minVariantPrice, priority = false, rating }: Props) {
   const addItem = useCartStore(s => s.addItem)
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
@@ -134,6 +138,13 @@ export default function ProductCard({ product: p, hasVariants = false, minVarian
         <div className="p-3">
           <div className="text-[10px] text-stone-600 mb-1">{p.category?.name}</div>
           <div className="font-bold text-sm text-stone-800 leading-tight mb-2 line-clamp-2">{p.name}</div>
+          {!!rating?.count && (
+            <div className="flex items-center gap-1 text-[11px] text-stone-500 mb-2 -mt-1">
+              <Star size={11} className="text-amber-500" fill="currentColor" />
+              <span className="font-semibold text-stone-700">{rating.avg.toFixed(1)}</span>
+              <span>({rating.count})</span>
+            </div>
+          )}
           <div className="flex items-baseline gap-2 mb-3">
             <span className="font-black text-stone-900">
               {hasVariants && minVariantPrice != null

@@ -236,6 +236,24 @@ export default function AdminSettings() {
           <p className="text-[11px] text-stone-400">
             Sản phẩm chưa có đánh giá nào được duyệt chỉ hiện lời mời &quot;hãy là người đầu tiên&quot; — không phô &quot;0 sao&quot;.
           </p>
+
+          <div className="flex items-center justify-between mt-5 pt-5 border-t border-stone-100">
+            <div>
+              <span className="text-sm font-semibold text-stone-700 block">Hiện sao trên lưới sản phẩm</span>
+              <span className="text-[11px] text-stone-400">Hiện ⭐ điểm + số lượng đánh giá dưới mỗi sản phẩm ở trang chủ/danh mục. Chỉ nên bật khi đã có vài đánh giá thật.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => set('reviews_show_on_cards', settings.reviews_show_on_cards === '1' ? '0' : '1')}
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
+                settings.reviews_show_on_cards === '1' ? 'bg-green-500' : 'bg-stone-200'
+              }`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                settings.reviews_show_on_cards === '1' ? 'translate-x-6' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
         </div>
 
         {/* About / Brand section */}
