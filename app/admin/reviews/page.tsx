@@ -144,17 +144,22 @@ export default function AdminReviews() {
         Duyệt đánh giá của khách trước khi hiển thị. Bật hiển thị ở Cài đặt (reviews_is_active).
       </p>
 
-      {/* Tabs lọc trạng thái — cuộn ngang trên mobile thay vì wrap (4 tab đủ dài
-          để "Tất cả" bị đẩy xuống dòng lẻ loi nếu dùng flex-wrap). */}
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 pr-4">
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`text-sm px-4 py-2 rounded-full font-semibold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
-              tab === t.key ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-            }`}>
-            {t.label}
-          </button>
-        ))}
+      {/* Tabs lọc trạng thái — chữ/đệm thu gọn để 4 tab vừa 1 hàng trên màn hình
+          điện thoại thường (không cần cuộn); vẫn giữ overflow-x-auto + dải mờ
+          gợi ý (như category pills mobile ở products/page.tsx) làm lưới an
+          toàn cho máy hẹp hơn hoặc cỡ chữ hệ thống lớn hơn. */}
+      <div className="relative mb-5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 pr-6">
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`text-xs px-3 py-1.5 rounded-full font-semibold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                tab === t.key ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+              }`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="absolute top-0 right-0 h-full w-6 bg-gradient-to-l from-stone-50 to-transparent pointer-events-none" />
       </div>
 
       {loading ? (
