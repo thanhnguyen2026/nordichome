@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import {
   LayoutDashboard, Package, FolderTree, ClipboardList, Tag, PartyPopper,
-  Settings, Images, Megaphone, BarChart3, Menu, LogOut, Home,
+  Settings, Images, Megaphone, BarChart3, Menu, LogOut, Home, Star,
 } from 'lucide-react'
 
 const NAV = [
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/orders',     label: 'Đơn hàng',        icon: ClipboardList },
   { href: '/admin/coupons',    label: 'Mã giảm giá',     icon: Tag },
   { href: '/admin/promotions', label: 'Khuyến mãi',      icon: PartyPopper },
+  { href: '/admin/reviews',    label: 'Đánh giá',        icon: Star },
   { href: '/admin/settings',   label: 'Cài đặt',         icon: Settings },
   { href: '/admin/looks',      label: 'Shop the Look',   icon: Images },
   { href: '/admin/social',     label: 'Kênh bán hàng',   icon: Megaphone },

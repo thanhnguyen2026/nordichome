@@ -15,3 +15,9 @@ export const PUBLIC_PRODUCT_COLUMNS =
 
 export const PUBLIC_VARIANT_COLUMNS =
   'id,product_id,group_name,option_name,price,stock,sku,weight,image_url,sort_order'
+
+// Cột review an toàn để gửi ra cho khách — KHÔNG gồm author_phone/status (RLS chỉ
+// lọc theo dòng, không theo cột; select('*') sẽ đẩy SĐT người đánh giá ra trình
+// duyệt của mọi khách). Chỉ đọc dòng status='approved' theo policy reviews_public_read.
+export const PUBLIC_REVIEW_COLUMNS =
+  'id,product_id,author_name,rating,comment,images,is_verified_purchase,admin_reply,created_at'

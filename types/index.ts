@@ -155,6 +155,30 @@ export const SALES_CHANNEL_LABEL: Record<SalesChannel, string> = {
   other:    'Khác',
 }
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected'
+
+export interface Review {
+  id: string
+  product_id: string
+  author_name: string
+  // Chỉ server/admin thấy — KHÔNG nằm trong cột public gửi ra cho khách
+  // (giống cost_price/origin_url của Product).
+  author_phone?: string | null
+  rating: number
+  comment: string
+  images: string[]
+  is_verified_purchase: boolean
+  status: ReviewStatus
+  admin_reply?: string | null
+  created_at: string
+}
+
+export const REVIEW_STATUS_LABEL: Record<ReviewStatus, string> = {
+  pending:  'Chờ duyệt',
+  approved: 'Đã duyệt',
+  rejected: 'Đã từ chối',
+}
+
 export interface Coupon {
   id: string
   code: string

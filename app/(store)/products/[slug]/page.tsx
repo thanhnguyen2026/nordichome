@@ -1,9 +1,10 @@
-import { supabase, PUBLIC_PRODUCT_COLUMNS } from '@/lib/supabase'
+import { supabase, PUBLIC_PRODUCT_COLUMNS, PUBLIC_REVIEW_COLUMNS } from '@/lib/supabase'
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import { notFound } from 'next/navigation'
 import ProductCard from '@/components/store/ProductCard'
 import ProductDetailClient from '@/components/store/ProductDetailClient'
+import ProductReviews, { type PublicReview } from '@/components/store/ProductReviews'
 import RevealOnScroll from '@/components/store/RevealOnScroll'
 import Link from 'next/link'
 import type { Metadata } from 'next'
@@ -86,13 +87,35 @@ export default async function ProductDetailPage({
   // Fetch related trước, rồi fetch variant counts của related.
   // Truyền tên cột dạng biến khiến Supabase không suy luận được kiểu trả về
   // tĩnh (chỉ literal string mới suy luận được) — ép kiểu tường minh ở đây.
-  const { data: relatedRaw } = await supabase
-    .from('products')
-    .select(PUBLIC_PRODUCT_COLUMNS)
-    .eq('category_id', product.category_id)
-    .neq('id', product.id)
-    .eq('is_visible', true)
-    .limit(4)
+  // Cờ bật/tắt tính năng đánh giá (dark launch) — mặc định TẮT tới khi admin bật
+  // reviews_is_active='1' ở Cài đặt. Fetch review đã duyệt song song với sản phẩm
+  // liên quan để không thêm round-trip.
+  const reviewsEnabled = s.reviews_is_active === '1'
+  const [{ data: relatedRaw }, reviewsRes] = await Promise.all([
+    supabase
+      .from('products')
+      .select(PUBLIC_PRODUCT_COLUMNS)
+      .eq('category_id', product.category_id)
+      .neq('id', product.id)
+      .eq('is_visible', true)
+      .limit(4),
+    reviewsEnabled
+      ? supabase
+          .from('reviews')
+          .select(PUBLIC_REVIEW_COLUMNS)
+          .eq('product_id', product.id)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ])
+
+  // Bảng reviews có thể CHƯA tạo (migration chưa chạy) — coi lỗi/thiếu là rỗng để
+  // trang không vỡ; tính năng chỉ "mọc" ra khi đã chạy migration + bật cờ.
+  const approvedReviews = ((reviewsRes as { data: unknown[] | null }).data ?? []) as PublicReview[]
+  const reviewCount = approvedReviews.length
+  const reviewAvg = reviewCount ? approvedReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0
+
   let related = relatedRaw ? applyCampaignsToProducts(relatedRaw as unknown as Product[], campaigns, now) : []
 
   // Danh mục chưa đủ 4 sản phẩm khác (catalog còn mỏng) — bù thêm bằng hàng
@@ -142,6 +165,22 @@ export default async function ProductDetailPage({
         : 'https://schema.org/OutOfStock',
       url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/products/${product.slug}`,
     },
+    // Rich snippet sao vàng trên Google — CHỈ khi có đánh giá thật đã duyệt
+    // (không bịa aggregateRating khi chưa có review → đúng policy của Google).
+    ...(reviewCount > 0 ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: reviewAvg.toFixed(1),
+        reviewCount,
+      },
+      review: approvedReviews.slice(0, 5).map(r => ({
+        '@type': 'Review',
+        reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
+        author: { '@type': 'Person', name: r.author_name },
+        reviewBody: r.comment || undefined,
+        datePublished: r.created_at?.slice(0, 10),
+      })),
+    } : {}),
   }
 
   return (
@@ -174,6 +213,17 @@ export default async function ProductDetailPage({
         </div>
 
         <ProductDetailClient product={product} allImages={allImages} settings={s} />
+
+        {/* Đánh giá khách hàng — chỉ render khi bật cờ (dark launch); component tự
+            ẩn phần điểm/danh sách nếu chưa có review duyệt (Cách B). */}
+        {reviewsEnabled && (
+          <ProductReviews
+            productId={product.id}
+            reviews={approvedReviews}
+            avg={reviewAvg}
+            count={reviewCount}
+          />
+        )}
 
         {/* Sản phẩm liên quan */}
         {!!related?.length && (

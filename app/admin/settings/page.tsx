@@ -6,7 +6,7 @@ import { useRef } from 'react'
 import Image from 'next/image'
 import {
   Settings, Images, Home, Award, PanelBottom, Phone, Truck, Landmark, Bell,
-  AlertTriangle, MessageCircle, Calculator, Search, Upload, Save, CheckCircle2, Megaphone,
+  AlertTriangle, MessageCircle, Calculator, Search, Upload, Save, CheckCircle2, Megaphone, Star,
 } from 'lucide-react'
 import Marquee, { MARQUEE_PRESETS, type MarqueePresetKey } from '@/components/store/Marquee'
 
@@ -212,6 +212,30 @@ export default function AdminSettings() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Đánh giá sản phẩm */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="flex items-center gap-2 font-bold text-sm"><Star size={16} className="text-stone-400" /> Đánh giá sản phẩm</h2>
+            <button
+              type="button"
+              onClick={() => set('reviews_is_active', settings.reviews_is_active === '1' ? '0' : '1')}
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
+                settings.reviews_is_active === '1' ? 'bg-green-500' : 'bg-stone-200'
+              }`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                settings.reviews_is_active === '1' ? 'translate-x-6' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
+          <p className="text-xs text-stone-400 mb-2">
+            Bật để hiển thị khối đánh giá + form &quot;Viết đánh giá&quot; trên trang sản phẩm. Đánh giá của khách luôn cần bạn duyệt ở mục <span className="font-semibold">Đánh giá</span> trước khi hiện công khai.
+          </p>
+          <p className="text-[11px] text-stone-400">
+            Sản phẩm chưa có đánh giá nào được duyệt chỉ hiện lời mời &quot;hãy là người đầu tiên&quot; — không phô &quot;0 sao&quot;.
+          </p>
         </div>
 
         {/* About / Brand section */}
