@@ -152,8 +152,8 @@ export default function AdminReviews() {
         <div className="flex gap-1.5 overflow-x-auto pb-1 pr-6">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`text-xs px-3 py-1.5 rounded-full font-semibold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
-                tab === t.key ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+              className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                tab === t.key ? 'bg-stone-900 text-white border-transparent' : 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'
               }`}>
               {t.label}
             </button>
