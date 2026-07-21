@@ -146,7 +146,7 @@ export default function AdminReviews() {
 
       {/* Tabs lọc trạng thái — cuộn ngang trên mobile thay vì wrap (4 tab đủ dài
           để "Tất cả" bị đẩy xuống dòng lẻ loi nếu dùng flex-wrap). */}
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 pr-4">
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`text-sm px-4 py-2 rounded-full font-semibold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
