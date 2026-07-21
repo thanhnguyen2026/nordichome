@@ -4,8 +4,9 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import { useConfirm } from '@/components/admin/useConfirm'
 import { useToast } from '@/components/admin/useToast'
 import { REVIEW_STATUS_LABEL, type ReviewStatus } from '@/types'
-import { Star, CheckCircle2, EyeOff, Trash2, MessageSquareReply, ExternalLink } from 'lucide-react'
+import { Star, CheckCircle2, EyeOff, Trash2, MessageSquareReply, ExternalLink, ImagePlus, X, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface AdminReview {
   id: string
@@ -46,6 +47,8 @@ export default function AdminReviews() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({})
+  const [imgDraft, setImgDraft] = useState<Record<string, string[]>>({})
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
   const { confirm, ConfirmDialog } = useConfirm()
   const { showToast, Toast } = useToast()
 
@@ -85,6 +88,39 @@ export default function AdminReviews() {
     if (!res.ok) { showToast('Không xoá được'); return }
     showToast('Đã xoá')
     load(tab)
+  }
+
+  // Ảnh do admin đính hộ khách (khách gửi qua Zalo/Messenger) — tái dùng /api/upload
+  // đã có sẵn auth admin + nén sharp. Ảnh vẫn nằm trong review đã kiểm duyệt nên
+  // không mở thêm bề mặt tấn công công khai.
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    const data = await res.json().catch(() => ({}))
+    return data.url || null
+  }
+
+  const imagesOf = (r: AdminReview): string[] => imgDraft[r.id] ?? r.images ?? []
+
+  const addImages = async (r: AdminReview, files: FileList) => {
+    setUploadingId(r.id)
+    const urls: string[] = []
+    for (const f of Array.from(files)) {
+      const url = await uploadImage(f)
+      if (url) urls.push(url)
+    }
+    setUploadingId(null)
+    if (!urls.length) { showToast('Tải ảnh thất bại'); return }
+    const next = [...imagesOf(r), ...urls].slice(0, 8)
+    setImgDraft(d => ({ ...d, [r.id]: next }))
+    patch(r.id, { images: next }, `Đã thêm ${urls.length} ảnh`)
+  }
+
+  const removeImage = (r: AdminReview, idx: number) => {
+    const next = imagesOf(r).filter((_, i) => i !== idx)
+    setImgDraft(d => ({ ...d, [r.id]: next }))
+    patch(r.id, { images: next }, 'Đã xoá ảnh')
   }
 
   const statusChip = (s: ReviewStatus) => {
@@ -162,6 +198,30 @@ export default function AdminReviews() {
 
               <Stars value={r.rating} />
               {r.comment && <p className="text-sm text-stone-600 leading-relaxed mt-2 whitespace-pre-line">{r.comment}</p>}
+
+              {/* Ảnh đính kèm — admin thêm hộ khách (khách gửi qua chat). Hiển thị công khai cùng review sau khi duyệt. */}
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {imagesOf(r).map((src, i) => (
+                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-stone-100">
+                    <Image src={src} alt={`Ảnh ${i + 1}`} fill sizes="64px" className="object-cover" />
+                    <button
+                      onClick={() => removeImage(r, i)}
+                      aria-label="Xoá ảnh"
+                      className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-black/80 cursor-pointer"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                ))}
+                <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 border border-dashed border-stone-300 rounded-lg px-3 h-16 cursor-pointer hover:bg-stone-50 transition ${uploadingId === r.id ? 'opacity-60 pointer-events-none' : ''}`}>
+                  {uploadingId === r.id ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                  {uploadingId === r.id ? 'Đang tải…' : 'Thêm ảnh'}
+                  <input
+                    type="file" accept="image/*" multiple className="hidden"
+                    onChange={e => { if (e.target.files?.length) addImages(r, e.target.files); e.target.value = '' }}
+                  />
+                </label>
+              </div>
 
               {/* Phản hồi của shop */}
               <div className="mt-3 flex gap-2 items-start">

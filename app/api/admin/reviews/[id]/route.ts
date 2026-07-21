@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Dữ liệu không hợp lệ' }, { status: 400 })
 
-  const patch: { status?: string; admin_reply?: string | null } = {}
+  const patch: { status?: string; admin_reply?: string | null; images?: string[] } = {}
 
   if (body.status !== undefined) {
     if (!['pending', 'approved', 'rejected'].includes(body.status)) {
@@ -22,6 +22,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.admin_reply !== undefined) {
     patch.admin_reply = String(body.admin_reply || '').trim() || null
+  }
+  if (body.images !== undefined) {
+    // Ảnh do admin đính vào review (khách gửi qua chat) — chỉ chấp nhận mảng URL
+    // (do /api/upload trả về), giới hạn số lượng cho gọn.
+    if (!Array.isArray(body.images) || body.images.some((u: unknown) => typeof u !== 'string')) {
+      return NextResponse.json({ error: 'Danh sách ảnh không hợp lệ' }, { status: 400 })
+    }
+    patch.images = body.images.slice(0, 8) as string[]
   }
 
   if (Object.keys(patch).length === 0) {
