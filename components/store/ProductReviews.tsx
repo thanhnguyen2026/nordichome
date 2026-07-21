@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { Star, CheckCircle2, PencilLine, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -67,6 +68,15 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [lightbox])
+
+  // Khoá cuộn nền khi lightbox mở — tránh vừa xem ảnh vừa vô tình cuộn/chạm
+  // trúng nội dung trang phía sau trên mobile.
+  useEffect(() => {
+    if (!lightbox) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
   }, [lightbox])
 
   const submit = async (e: React.FormEvent) => {
@@ -237,10 +247,16 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
           </div>
         </>
       )}
-      {/* Lightbox — bấm ảnh review để xem to; đóng bằng nền/×/Esc, chuyển bằng ←/→ */}
-      {lightbox && (
+      {/* Lightbox — bấm ảnh review để xem to; đóng bằng nền/×/Esc, chuyển bằng ←/→.
+          Render qua Portal thẳng vào <body>: nếu để lồng trong cây trang, một số
+          trình duyệt (đặc biệt Safari iOS với Header dùng backdrop-blur) có bug
+          khiến phần tử fixed/z-index cao vẫn bị phần tử "sticky + backdrop-filter"
+          phía trên nuốt mất sự kiện chạm dù nằm dưới về mặt DOM — thoát hẳn ra
+          ngoài mọi ancestor là cách khắc phục chắc chắn, không phụ thuộc trình
+          duyệt/thiết bị cụ thể. */}
+      {lightbox && createPortal(
         <div
-          className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[300] bg-black/85 flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
           role="dialog"
           aria-modal="true"
@@ -248,7 +264,7 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
           <button
             onClick={() => setLightbox(null)}
             aria-label="Đóng"
-            className="absolute top-4 right-4 text-white/80 hover:text-white cursor-pointer"
+            className="absolute top-4 right-4 text-white/80 hover:text-white cursor-pointer p-2"
           >
             <X size={28} />
           </button>
@@ -282,7 +298,8 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
               </div>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   )
