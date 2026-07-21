@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
@@ -99,10 +99,10 @@ export default function Hero({ settings: s }: Props) {
             style={{ animationDelay: '0.8s' }}
           >
             {[s.hero_trust_1, s.hero_trust_2, s.hero_trust_3].filter(Boolean).map((t, i, arr) => (
-              <>
-                <span key={t}>{t}</span>
-                {i < arr.length - 1 && <span key={`sep-${i}`} className="text-white/20">·</span>}
-              </>
+              <Fragment key={`trust-${i}`}>
+                <span>{t}</span>
+                {i < arr.length - 1 && <span className="text-white/20">·</span>}
+              </Fragment>
             ))}
           </div>
         )}
