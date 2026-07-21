@@ -198,28 +198,38 @@ export default function Header({ settings, categories: categoriesProp, campaigns
               const isOpen = openDesktopId === cat.id
               return (
                 <div key={cat.id} className="relative group">
-                  <Link
-                    href={`/products?category=${cat.slug}`}
-                    onClick={e => {
-                      if (hasChildren) {
-                        e.preventDefault()
-                        setOpenDesktopId(id => id === cat.id ? null : cat.id)
-                      }
-                    }}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
-                      transparent ? 'text-white/90 hover:text-white hover:bg-white/10' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
-                    }`}
-                  >
-                    {cat.name}
+                  {/* Tên danh mục LUÔN điều hướng thẳng (mouse lẫn tap) — nút mở
+                      danh mục con tách riêng ra mũi tên bên cạnh, không còn phải
+                      hy sinh việc bấm-để-đi-tới-trang-cha để đổi lấy dropdown mở
+                      được trên tablet (không có hover thật). */}
+                  <div className={`flex items-center rounded-lg transition-colors ${
+                    transparent ? 'hover:bg-white/10' : 'hover:bg-stone-50'
+                  }`}>
+                    <Link
+                      href={`/products?category=${cat.slug}`}
+                      className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                        transparent ? 'text-white/90 hover:text-white' : 'text-stone-600 hover:text-stone-900'
+                      } ${hasChildren ? 'pr-1' : ''}`}
+                    >
+                      {cat.name}
+                    </Link>
                     {hasChildren && (
-                      <ChevronDown
-                        size={13}
-                        className={`transition-transform duration-200 group-hover:rotate-180 ${isOpen ? 'rotate-180' : ''} ${transparent ? 'text-white/70' : 'text-stone-400'}`}
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setOpenDesktopId(id => id === cat.id ? null : cat.id)}
+                        aria-label={`Xem danh mục con của ${cat.name}`}
+                        aria-expanded={isOpen}
+                        className="pl-0.5 pr-2.5 py-2 cursor-pointer"
+                      >
+                        <ChevronDown
+                          size={13}
+                          className={`transition-transform duration-200 group-hover:rotate-180 ${isOpen ? 'rotate-180' : ''} ${transparent ? 'text-white/70' : 'text-stone-400'}`}
+                        />
+                      </button>
                     )}
-                  </Link>
+                  </div>
 
-                  {/* Dropdown — mở bằng hover (chuột) HOẶC click/tap (touch, không có hover thật) */}
+                  {/* Dropdown — mở bằng hover (chuột) HOẶC click/tap vào mũi tên (touch, không có hover thật) */}
                   {hasChildren && (
                     <div className={`absolute top-full left-0 pt-2 transition-all duration-200 ease-out ${
                       isOpen
@@ -227,17 +237,6 @@ export default function Header({ settings, categories: categoriesProp, campaigns
                         : 'opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0'
                     }`}>
                       <div className="bg-white rounded-xl shadow-lg border border-stone-100 py-2 min-w-[168px]">
-                        {/* Bấm tên danh mục cha chỉ mở/đóng dropdown (cần cho tablet
-                            không có hover thật) nên KHÔNG bao giờ điều hướng — thêm
-                            link riêng này để vẫn có đường vào trang danh mục cha,
-                            khớp pattern "Tất cả {cat.name}" đã dùng ở mobile accordion. */}
-                        <Link
-                          href={`/products?category=${cat.slug}`}
-                          onClick={() => setOpenDesktopId(null)}
-                          className="flex items-center px-4 py-2.5 text-sm font-semibold text-stone-800 hover:bg-stone-50 transition-colors border-b border-stone-100 mb-1"
-                        >
-                          Tất cả {cat.name}
-                        </Link>
                         {cat.children?.map(child => (
                           <Link
                             key={child.id}
