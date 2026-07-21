@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Star, CheckCircle2, PencilLine, X } from 'lucide-react'
+import { Star, CheckCircle2, PencilLine, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // Cột review an toàn phía khách (khớp PUBLIC_REVIEW_COLUMNS trong lib/supabase.ts)
 // — KHÔNG có author_phone/status.
@@ -55,6 +55,19 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  // Ảnh đang xem phóng to (lightbox) — theo từng review, có prev/next trong cùng review.
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null)
+
+  useEffect(() => {
+    if (!lightbox) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightbox(null)
+      else if (e.key === 'ArrowRight') setLightbox(l => l ? { ...l, index: (l.index + 1) % l.images.length } : l)
+      else if (e.key === 'ArrowLeft') setLightbox(l => l ? { ...l, index: (l.index - 1 + l.images.length) % l.images.length } : l)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightbox])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,9 +130,15 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
               {r.images?.length > 0 && (
                 <div className="flex gap-2 mt-3 flex-wrap">
                   {r.images.map((src, i) => (
-                    <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden bg-stone-100">
-                      <Image src={src} alt={`Ảnh đánh giá ${i + 1}`} fill sizes="80px" className="object-cover" />
-                    </div>
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setLightbox({ images: r.images, index: i })}
+                      aria-label={`Xem to ảnh đánh giá ${i + 1}`}
+                      className="relative w-20 h-20 rounded-lg overflow-hidden bg-stone-100 cursor-zoom-in group/img"
+                    >
+                      <Image src={src} alt={`Ảnh đánh giá ${i + 1}`} fill sizes="80px" className="object-cover transition-transform duration-300 group-hover/img:scale-105" />
+                    </button>
                   ))}
                 </div>
               )}
@@ -217,6 +236,53 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
             </form>
           </div>
         </>
+      )}
+      {/* Lightbox — bấm ảnh review để xem to; đóng bằng nền/×/Esc, chuyển bằng ←/→ */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            onClick={() => setLightbox(null)}
+            aria-label="Đóng"
+            className="absolute top-4 right-4 text-white/80 hover:text-white cursor-pointer"
+          >
+            <X size={28} />
+          </button>
+          <div className="relative w-[92vw] h-[85vh]" onClick={e => e.stopPropagation()}>
+            <Image
+              src={lightbox.images[lightbox.index]}
+              alt="Ảnh đánh giá phóng to"
+              fill
+              sizes="92vw"
+              className="object-contain"
+            />
+          </div>
+          {lightbox.images.length > 1 && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); setLightbox(l => l ? { ...l, index: (l.index - 1 + l.images.length) % l.images.length } : l) }}
+                aria-label="Ảnh trước"
+                className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 cursor-pointer"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setLightbox(l => l ? { ...l, index: (l.index + 1) % l.images.length } : l) }}
+                aria-label="Ảnh sau"
+                className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 cursor-pointer"
+              >
+                <ChevronRight size={24} />
+              </button>
+              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/80 text-sm tabular-nums">
+                {lightbox.index + 1} / {lightbox.images.length}
+              </div>
+            </>
+          )}
+        </div>
       )}
     </section>
   )
