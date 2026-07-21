@@ -227,6 +227,17 @@ export default function Header({ settings, categories: categoriesProp, campaigns
                         : 'opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0'
                     }`}>
                       <div className="bg-white rounded-xl shadow-lg border border-stone-100 py-2 min-w-[168px]">
+                        {/* Bấm tên danh mục cha chỉ mở/đóng dropdown (cần cho tablet
+                            không có hover thật) nên KHÔNG bao giờ điều hướng — thêm
+                            link riêng này để vẫn có đường vào trang danh mục cha,
+                            khớp pattern "Tất cả {cat.name}" đã dùng ở mobile accordion. */}
+                        <Link
+                          href={`/products?category=${cat.slug}`}
+                          onClick={() => setOpenDesktopId(null)}
+                          className="flex items-center px-4 py-2.5 text-sm font-semibold text-stone-800 hover:bg-stone-50 transition-colors border-b border-stone-100 mb-1"
+                        >
+                          Tất cả {cat.name}
+                        </Link>
                         {cat.children?.map(child => (
                           <Link
                             key={child.id}
