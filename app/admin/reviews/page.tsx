@@ -144,15 +144,15 @@ export default function AdminReviews() {
         Duyệt đánh giá của khách trước khi hiển thị. Bật hiển thị ở Cài đặt (reviews_is_active).
       </p>
 
-      {/* Tabs lọc trạng thái — lưới 4 cột ĐỀU NHAU trên mobile: mỗi tab rộng
-          bằng nhau tuyệt đối, căn giữa, trải hết bề ngang khớp đúng lề trang
-          (thay cho hàng pill cuộn ngang trước đây hay bị lệch cỡ/lệch lề). Đúng
-          4 trạng thái cố định nên grid cố định là hợp lý, không cần cuộn. Trên
-          desktop trả về hàng pill inline (md:flex) cho gọn. */}
-      <div className="grid grid-cols-4 gap-2 mb-5 md:flex">
+      {/* Tabs lọc trạng thái — lưới 4 cột ĐỀU NHAU trên cả mobile lẫn desktop:
+          mỗi tab rộng bằng nhau tuyệt đối (CSS đảm bảo, không co theo độ dài
+          chữ như pill cũ hay gây lệch cỡ). Giới hạn max-w-md để trên desktop
+          không bị kéo giãn hết chiều rộng trang — trông như segmented control
+          gọn gàng. Đúng 4 trạng thái cố định nên grid là hợp lý nhất. */}
+      <div className="grid grid-cols-4 gap-2 mb-5 max-w-md">
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`text-xs px-1 md:px-4 py-2 md:py-1.5 rounded-full font-semibold border transition cursor-pointer text-center whitespace-nowrap ${
+            className={`text-xs px-1 py-2 rounded-full font-semibold border transition cursor-pointer text-center whitespace-nowrap ${
               tab === t.key ? 'bg-stone-900 text-white border-transparent' : 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'
             }`}>
             {t.label}
