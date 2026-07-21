@@ -9,18 +9,22 @@ import {
   Settings, Images, Megaphone, BarChart3, Menu, LogOut, Home, Star,
 } from 'lucide-react'
 
+// Thứ tự gom theo nhóm công việc: Tổng quan → Vận hành hằng ngày (đơn hàng,
+// kênh bán) → Catalog & nội dung (sản phẩm, danh mục, shop the look) →
+// Marketing (mã giảm giá, khuyến mãi, đánh giá) → Insight (thống kê) → Cấu
+// hình (cài đặt, luôn để cuối). Chỉ là thứ tự hiển thị, không đụng route/logic.
 const NAV = [
   { href: '/admin',            label: 'Tổng quan',       icon: LayoutDashboard },
+  { href: '/admin/orders',     label: 'Đơn hàng',        icon: ClipboardList },
+  { href: '/admin/social',     label: 'Kênh bán hàng',   icon: Megaphone },
   { href: '/admin/products',   label: 'Sản phẩm',        icon: Package },
   { href: '/admin/categories', label: 'Danh mục',        icon: FolderTree },
-  { href: '/admin/orders',     label: 'Đơn hàng',        icon: ClipboardList },
+  { href: '/admin/looks',      label: 'Shop the Look',   icon: Images },
   { href: '/admin/coupons',    label: 'Mã giảm giá',     icon: Tag },
   { href: '/admin/promotions', label: 'Khuyến mãi',      icon: PartyPopper },
   { href: '/admin/reviews',    label: 'Đánh giá',        icon: Star },
-  { href: '/admin/settings',   label: 'Cài đặt',         icon: Settings },
-  { href: '/admin/looks',      label: 'Shop the Look',   icon: Images },
-  { href: '/admin/social',     label: 'Kênh bán hàng',   icon: Megaphone },
   { href: '/admin/analytics',  label: 'Thống kê',        icon: BarChart3 },
+  { href: '/admin/settings',   label: 'Cài đặt',         icon: Settings },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
