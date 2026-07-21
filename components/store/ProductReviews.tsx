@@ -70,13 +70,31 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
     return () => window.removeEventListener('keydown', onKey)
   }, [lightbox])
 
-  // Khoá cuộn nền khi lightbox mở — tránh vừa xem ảnh vừa vô tình cuộn/chạm
-  // trúng nội dung trang phía sau trên mobile.
+  // Khoá cuộn nền khi lightbox mở. KHÔNG dùng overflow:hidden vì iOS Safari bỏ
+  // qua nó (nền vẫn cuộn được, và khi nền cuộn thì phần tử fixed trên iOS bị
+  // lệch vùng chạm → nút đóng mất tác dụng). Cách chắc ăn: ghim body bằng
+  // position:fixed và bù lại đúng vị trí cuộn, khôi phục khi đóng.
   useEffect(() => {
     if (!lightbox) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    const scrollY = window.scrollY
+    const body = document.body
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    }
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+    return () => {
+      body.style.position = prev.position
+      body.style.top = prev.top
+      body.style.width = prev.width
+      body.style.overflow = prev.overflow
+      window.scrollTo(0, scrollY)
+    }
   }, [lightbox])
 
   const submit = async (e: React.FormEvent) => {
@@ -268,7 +286,11 @@ export default function ProductReviews({ productId, reviews, avg, count }: Props
           >
             <X size={28} />
           </button>
-          <div className="relative w-[92vw] h-[85vh]" onClick={e => e.stopPropagation()}>
+          {/* Không chặn propagation ở khung ảnh: bấm BẤT KỲ đâu (kể cả trên ảnh
+              hay vùng letterbox tối quanh ảnh) đều đóng lightbox — chỉ 2 mũi tên
+              prev/next bên dưới mới chặn để không đóng khi chuyển ảnh. pointer-events-none
+              để cú chạm xuyên thẳng xuống overlay xử lý đóng. */}
+          <div className="relative w-[92vw] h-[85vh] pointer-events-none">
             <Image
               src={lightbox.images[lightbox.index]}
               alt="Ảnh đánh giá phóng to"
