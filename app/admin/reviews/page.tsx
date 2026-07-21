@@ -144,11 +144,12 @@ export default function AdminReviews() {
         Duyệt đánh giá của khách trước khi hiển thị. Bật hiển thị ở Cài đặt (reviews_is_active).
       </p>
 
-      {/* Tabs lọc trạng thái */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      {/* Tabs lọc trạng thái — cuộn ngang trên mobile thay vì wrap (4 tab đủ dài
+          để "Tất cả" bị đẩy xuống dòng lẻ loi nếu dùng flex-wrap). */}
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`text-sm px-4 py-2 rounded-full font-semibold transition cursor-pointer ${
+            className={`text-sm px-4 py-2 rounded-full font-semibold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
               tab === t.key ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}>
             {t.label}
