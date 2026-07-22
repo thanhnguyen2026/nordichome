@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { stripDiacritics } from '@/lib/text'
 import AdminLayout from '@/components/admin/AdminLayout'
 import ProductForm from '@/components/admin/ProductForm'
+import BulkTaobaoCostUpdate from '@/components/admin/BulkTaobaoCostUpdate'
 import { Product, Category, Campaign } from '@/types'
 import { hasCampaignFor } from '@/lib/campaignPrice'
 import type { Variant } from '@/components/admin/VariantsManager'
@@ -15,7 +16,7 @@ import { usePrompt } from '@/components/admin/usePrompt'
 import { useToast } from '@/components/admin/useToast'
 import {
   Package, Plus, Pencil, Trash2, Eye, EyeOff, Flame, Clock, AlertTriangle,
-  Percent, Boxes, ImageOff, ArrowLeft, ClipboardList,
+  Percent, Boxes, ImageOff, ArrowLeft, ClipboardList, Calculator,
 } from 'lucide-react'
 
 const fmt = (n: number) => Number(n).toLocaleString('vi-VN') + '₫'
@@ -33,6 +34,10 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
+  const [showBulkCost, setShowBulkCost] = useState(false)
+  // Công thức tính giá vốn Taobao (Cài đặt) — dùng cho bảng cập nhật hàng loạt
+  // khi tỷ giá/phí/ship thay đổi, xem components/admin/BulkTaobaoCostUpdate.tsx
+  const [costSettings, setCostSettings] = useState<{ rate: number; fee: number; shipPerKg: number } | null>(null)
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -49,11 +54,13 @@ export default function AdminProducts() {
   const { showToast, Toast } = useToast()
 
   const load = async () => {
-    const [{ data: prods }, { data: cats }, { data: variants }, { data: camps }] = await Promise.all([
+    const [{ data: prods }, { data: cats }, { data: variants }, { data: camps }, { data: settingsRows }] = await Promise.all([
       supabase.from('products').select('*,category:categories(name)').order('created_at', { ascending: false }),
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('product_variants').select('product_id, stock'),
       supabase.from('campaigns').select('*').eq('is_active', true),
+      supabase.from('settings').select('key,value')
+        .in('key', ['taobao_exchange_rate', 'taobao_fee_percent', 'taobao_shipping_per_kg']),
     ])
     setProducts((prods as unknown as Product[]) || [])
     setCategories(cats || [])
@@ -63,6 +70,14 @@ export default function AdminProducts() {
     })
     setVariantStockMap(stockMap)
     setCampaigns((camps as unknown as Campaign[]) || [])
+    if (settingsRows?.length) {
+      const s = Object.fromEntries(settingsRows.map(r => [r.key, r.value]))
+      setCostSettings({
+        rate:      Number(s.taobao_exchange_rate) || 0,
+        fee:       Number(s.taobao_fee_percent) || 0,
+        shipPerKg: Number(s.taobao_shipping_per_kg) || 0,
+      })
+    }
     setLoading(false)
   }
 
@@ -245,6 +260,16 @@ export default function AdminProducts() {
       {ConfirmDialog}
       {PromptDialog}
       {Toast}
+      {showBulkCost && (
+        <BulkTaobaoCostUpdate
+          products={products}
+          costSettings={costSettings}
+          onClose={() => setShowBulkCost(false)}
+          onApplied={() => { setShowBulkCost(false); load() }}
+          confirm={confirm}
+          showToast={showToast}
+        />
+      )}
       {showForm ? (
         <div>
           <button onClick={() => setShowForm(false)}
@@ -270,11 +295,18 @@ export default function AdminProducts() {
                 <p className="text-stone-400 text-sm">{filtered.length}/{products.length} sản phẩm</p>
               </div>
             </div>
-            <button onClick={openAdd}
-              className="flex items-center gap-1.5 bg-stone-900 text-amber-100 rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-stone-800 transition cursor-pointer">
-              <Plus size={15} />
-              Thêm sản phẩm
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowBulkCost(true)}
+                className="flex items-center gap-1.5 bg-stone-100 text-stone-700 rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-stone-200 transition cursor-pointer">
+                <Calculator size={15} />
+                Cập nhật giá Taobao
+              </button>
+              <button onClick={openAdd}
+                className="flex items-center gap-1.5 bg-stone-900 text-amber-100 rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-stone-800 transition cursor-pointer">
+                <Plus size={15} />
+                Thêm sản phẩm
+              </button>
+            </div>
           </div>
 
           {/* Thẻ KPI tồn kho/hiển thị — dạng dòng gọn trên mobile (label + số
