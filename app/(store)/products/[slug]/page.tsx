@@ -80,6 +80,13 @@ export default async function ProductDetailPage({
   // Khuyến mãi đang chạy — trừ sản phẩm đã tự set giá khuyến mãi riêng.
   const product = applyCampaignsToProduct(productRaw as unknown as Product, campaigns, now)
 
+  // Danh mục cha (nếu category hiện tại là con của 1 danh mục khác) — để
+  // breadcrumb hiện đủ 2 cấp giống trang danh sách sản phẩm, thay vì nhảy
+  // thẳng từ "Sản phẩm" vào danh mục con, bỏ sót cấp cha (VD: Decor).
+  const parentCategory = categoryTree.find(root =>
+    root.children?.some(c => c.id === product.category_id)
+  )
+
   const allImages: string[] = [
     product.cover_image,
     ...(product.images || []),
@@ -205,6 +212,17 @@ export default async function ProductDetailPage({
           <Link href="/" className="hover:text-stone-600 transition">Trang chủ</Link>
           <span>/</span>
           <Link href="/products" className="hover:text-stone-600 transition">Sản phẩm</Link>
+          {parentCategory && (
+            <>
+              <span>/</span>
+              <Link
+                href={`/products?category=${parentCategory.slug}`}
+                className="hover:text-stone-600 transition"
+              >
+                {parentCategory.name}
+              </Link>
+            </>
+          )}
           {product.category && (
             <>
               <span>/</span>
