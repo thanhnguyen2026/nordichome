@@ -76,23 +76,29 @@ export default function BulkTaobaoCostUpdate({ products, costSettings, onClose, 
 
   const included = rows.filter(r => r.include)
 
-  const apply = async (mode: 'cost' | 'price' | 'both') => {
+  // Luôn cập nhật CẢ giá vốn lẫn giá bán CÙNG LÚC trong 1 lần bấm — cố tình
+  // không cho tách "chỉ giá vốn" / "chỉ giá bán" thành 2 hành động riêng: nếu
+  // đổi giá vốn trước rồi quay lại đổi giá bán sau (nhất là ở lần mở bảng
+  // khác), % lãi gốc để tính gợi ý giá bán đã bị ghi đè mất, không còn cách
+  // nào suy đúng lại — xem lịch sử trao đổi. Áp dụng cùng lúc trong 1 lần mở
+  // bảng thì oldCost/oldPrice vẫn luôn đúng, không có rủi ro này.
+  const apply = async () => {
     if (included.length === 0) { showToast('Chưa chọn sản phẩm nào'); return }
-    const label = mode === 'cost' ? 'giá vốn' : mode === 'price' ? 'giá bán' : 'giá vốn + giá bán'
-    if (!(await confirm(`Áp dụng ${label} mới cho ${included.length} sản phẩm đã chọn?`))) return
+    if (!(await confirm(`Áp dụng giá vốn + giá bán mới cho ${included.length} sản phẩm đã chọn?`))) return
 
     setApplying(true)
     const results = await Promise.all(included.map(r => {
-      const patch: Partial<Product> = {}
-      if (mode === 'cost' || mode === 'both') patch.cost_price = Math.round(Number(r.costInput) || 0)
-      if (mode === 'price' || mode === 'both') patch.price = Math.round(Number(r.priceInput) || 0)
+      const patch: Partial<Product> = {
+        cost_price: Math.round(Number(r.costInput) || 0),
+        price:      Math.round(Number(r.priceInput) || 0),
+      }
       return supabase.from('products').update(patch).eq('id', r.id)
     }))
     setApplying(false)
 
     const failed = results.filter(r => r.error).length
     if (failed > 0) showToast(`${failed}/${included.length} sản phẩm cập nhật lỗi`)
-    else showToast(`Đã cập nhật ${label} cho ${included.length} sản phẩm`)
+    else showToast(`Đã cập nhật giá vốn + giá bán cho ${included.length} sản phẩm`)
     onApplied()
   }
 
@@ -190,19 +196,11 @@ export default function BulkTaobaoCostUpdate({ products, costSettings, onClose, 
           )}
         </div>
 
-        {/* Footer — 3 hành động tách riêng, không có gì tự áp dụng ngoài ý admin */}
+        {/* Footer — 1 hành động duy nhất, không có gì tự áp dụng ngoài ý admin */}
         {eligible.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-t border-stone-100 flex-shrink-0">
-            <button onClick={() => apply('cost')} disabled={applying}
-              className="text-xs font-bold bg-stone-100 text-stone-700 rounded-lg px-4 py-2.5 hover:bg-stone-200 transition disabled:opacity-40 cursor-pointer">
-              Chỉ cập nhật giá vốn
-            </button>
-            <button onClick={() => apply('price')} disabled={applying}
-              className="text-xs font-bold bg-stone-100 text-stone-700 rounded-lg px-4 py-2.5 hover:bg-stone-200 transition disabled:opacity-40 cursor-pointer">
-              Chỉ cập nhật giá bán
-            </button>
-            <button onClick={() => apply('both')} disabled={applying}
-              className="text-xs font-bold bg-stone-900 text-amber-100 rounded-lg px-4 py-2.5 hover:bg-stone-800 transition disabled:opacity-40 cursor-pointer ml-auto">
+          <div className="flex items-center justify-end px-6 py-4 border-t border-stone-100 flex-shrink-0">
+            <button onClick={apply} disabled={applying}
+              className="text-xs font-bold bg-stone-900 text-amber-100 rounded-lg px-4 py-2.5 hover:bg-stone-800 transition disabled:opacity-40 cursor-pointer">
               {applying ? 'Đang áp dụng...' : `Cập nhật toàn bộ (${included.length})`}
             </button>
           </div>
