@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -131,10 +131,18 @@ function MutedAutoplayVideo({ src }: { src: string }) {
  */
 function TikTokEmbed({ videoId, url }: { videoId: string; url: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  // embed.js dựng iframe thật bằng cách tự gọi API oEmbed của TikTok qua
+  // mạng (không phải chỉ đọc DOM tĩnh) — bước này có thể chậm hoặc thất bại
+  // tuỳ mạng/tải của TikTok, khiến video "lúc chạy lúc đơ" mà không có tín
+  // hiệu lỗi nào để người dùng biết. Theo dõi bằng MutationObserver xem
+  // iframe thật đã xuất hiện chưa, kèm timeout để không treo mãi + nút thử lại.
+  const [failed, setFailed] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+    setFailed(false)
 
     container.innerHTML = `
       <blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width:100%;min-width:100%;">
@@ -142,21 +150,74 @@ function TikTokEmbed({ videoId, url }: { videoId: string; url: string }) {
       </blockquote>
     `
 
-    // embed.js chỉ quét DOM 1 lần lúc script chạy xong — thêm script mới mỗi
-    // lần mount để nó quét lại blockquote vừa chèn (dựng iframe thật bên trong)
+    // Dọn script embed.js cũ còn sót (phòng lần mount trước bị gỡ không kịp,
+    // VD chuyển trang quá nhanh) trước khi thêm bản mới — tránh nhiều script
+    // cùng tồn tại chồng chéo.
+    document.querySelectorAll('script[src="https://www.tiktok.com/embed.js"]').forEach(s => s.remove())
+
     const script = document.createElement('script')
     script.src = 'https://www.tiktok.com/embed.js'
     script.async = true
     document.body.appendChild(script)
 
+    const observer = new MutationObserver(() => {
+      if (container.querySelector('iframe')) {
+        clearTimeout(timeoutId)
+        observer.disconnect()
+      }
+    })
+    observer.observe(container, { childList: true, subtree: true })
+
+    const timeoutId = setTimeout(() => {
+      if (!container.querySelector('iframe')) setFailed(true)
+      observer.disconnect()
+    }, 8000)
+
     return () => {
+      clearTimeout(timeoutId)
+      observer.disconnect()
       script.remove()
     }
-  }, [videoId, url])
+  }, [videoId, url, retryKey])
+
+  if (failed) {
+    return (
+      <div className="w-full aspect-[9/16] max-w-[340px] mx-auto rounded-2xl overflow-hidden shadow-md bg-stone-100 flex items-center justify-center">
+        <div className="text-center text-stone-400 px-6">
+          <div className="text-4xl mb-3">🎬</div>
+          <p className="text-sm font-medium text-stone-500 mb-3">Video TikTok tải hơi lâu</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRetryKey(k => k + 1)}
+              className="text-xs text-amber-600 hover:text-amber-700 hover:underline transition cursor-pointer"
+            >
+              Thử lại
+            </button>
+            <span className="text-stone-300">·</span>
+            <a href={url} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-amber-600 hover:text-amber-700 hover:underline transition">
+              Xem trên TikTok →
+            </a>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex justify-center w-full">
+    <div className="flex flex-col items-center gap-2 w-full">
       <div ref={containerRef} className="w-full max-w-[340px] [&_iframe]:rounded-2xl [&_iframe]:shadow-lg" />
+      {/* TikTok dựng SẴN khung iframe gần như ngay lập tức kể cả khi video
+          không hợp lệ/không tải được — MutationObserver phía trên chỉ phát
+          hiện được lúc SCRIPT không chạy (mạng chặn hẳn), không phát hiện
+          được lúc iframe đã tạo nhưng nội dung bên trong lỗi (cross-origin,
+          không soi vào được). Luôn để sẵn link thoát này để khách không bị
+          kẹt nếu chẳng may rơi vào trường hợp đó. */}
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="text-xs text-stone-400 hover:text-amber-600 hover:underline transition">
+        Xem trên TikTok →
+      </a>
     </div>
   )
 }
