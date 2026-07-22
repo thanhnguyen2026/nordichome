@@ -62,6 +62,13 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
     onChange(variants.filter((_, i) => i !== idx))
   }
 
+  // Đổi tên NHÓM — áp dụng cho MỌI biến thể đang cùng nhóm đó cùng lúc (không
+  // phải 1 dòng riêng lẻ như option_name), vì group_name là giá trị dùng
+  // chung để gom nhóm hiển thị.
+  const renameGroup = (oldName: string, newName: string) => {
+    onChange(variants.map(v => v.group_name === oldName ? { ...v, group_name: newName } : v))
+  }
+
   const handleImageUpload = async (idx: number, file: File) => {
     setUploading(idx)
     try {
@@ -150,14 +157,20 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
             </div>
           </div>
 
-          {/* Danh sách biến thể theo nhóm */}
-          {groups.map(group => (
-            <div key={group} className="mt-5">
-              <div className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2">
-                <span className="flex items-center gap-1.5 bg-stone-100 px-2 py-0.5 rounded w-fit">
-                  <Package size={11} />
-                  {group}
-                </span>
+          {/* Danh sách biến thể theo nhóm — key dùng CHỈ SỐ (không phải tên
+              nhóm) vì tên nhóm giờ sửa được: nếu key là chuỗi tên nhóm, mỗi
+              phím gõ sẽ đổi key → React coi là phần tử MỚI → unmount/remount
+              cả khối → ô nhập mất focus giữa chừng khi đang gõ. */}
+          {groups.map((group, gIdx) => (
+            <div key={gIdx} className="mt-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Package size={11} className="text-stone-400 flex-shrink-0" />
+                <input
+                  value={group}
+                  onChange={e => renameGroup(group, e.target.value)}
+                  placeholder="Tên nhóm"
+                  className="text-xs font-bold text-stone-500 uppercase tracking-wide bg-stone-100 px-2 py-0.5 rounded outline-none border border-transparent hover:border-stone-300 focus:border-stone-400 focus:bg-white transition-colors w-fit min-w-[100px]"
+                />
               </div>
 
               <div className="space-y-3">
