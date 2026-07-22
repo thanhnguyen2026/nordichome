@@ -166,11 +166,17 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
                   const v = normalize(raw) // ← đảm bảo không có undefined
                   return (
                     <div key={idx} className="border border-stone-100 rounded-xl p-4 bg-stone-50">
-                      {/* Tên + nút xoá */}
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-semibold text-stone-700">✦ {v.option_name}</span>
+                      {/* Tên (chỉnh sửa trực tiếp) + nút xoá */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-stone-400 flex-shrink-0" aria-hidden="true">✦</span>
+                        <input
+                          value={v.option_name}
+                          onChange={e => updateVariant(idx, 'option_name', e.target.value)}
+                          placeholder="Tên tuỳ chọn"
+                          className="flex-1 min-w-0 text-sm font-semibold text-stone-700 bg-transparent border-b border-dashed border-stone-300 hover:border-stone-400 focus:border-stone-600 outline-none py-0.5 transition-colors"
+                        />
                         <button type="button" onClick={() => removeVariant(idx)}
-                          className="text-red-400 hover:text-red-600 transition">
+                          className="text-red-400 hover:text-red-600 transition flex-shrink-0">
                           <Trash2 size={14} />
                         </button>
                       </div>
