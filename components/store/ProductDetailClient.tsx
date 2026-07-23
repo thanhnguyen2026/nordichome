@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import ProductGallery from './ProductGallery'
@@ -184,16 +184,28 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
       </div>
     </div>
 
-    {/* Thông số kỹ thuật — full-width, dạng bảng */}
+    {/* Thông số kỹ thuật — full-width, dạng bảng.
+        Trước đây dùng flex justify-between + khung ép cứng 320px trên mobile:
+        nhãn ngắn ("Chất liệu") bị ngắt dòng xấu do không đủ chỗ, còn giá trị
+        dài lại canh phải nên xuống dòng lởm chởm (mép trái so le). Đổi sang
+        CSS Grid DÙNG CHUNG 1 khung cho cả danh sách (không phải mỗi dòng 1
+        flex riêng) để 2 cột luôn thẳng hàng nhau xuyên suốt; cột nhãn
+        auto-size + whitespace-nowrap (không ngắt dòng), cột giá trị còn lại
+        (1fr) canh trái nên xuống dòng tự nhiên, dễ đọc hơn hẳn so với canh
+        phải khi giá trị dài. */}
     {product.specs?.length > 0 && (
       <div className="mb-16 max-w-3xl mx-auto">
         <h2 className="font-serif text-2xl font-semibold text-center mb-6">Thông số sản phẩm</h2>
-        <div className="max-w-[320px] sm:max-w-md mx-auto border-t border-stone-200 divide-y divide-stone-100">
+        <div className="max-w-xl mx-auto border-t border-stone-200 grid grid-cols-[auto_1fr] gap-x-6 sm:gap-x-10">
           {product.specs.map((spec, i) => (
-            <div key={i} className="flex justify-between py-4 text-sm">
-              <span className="font-medium text-stone-700">{spec.label}</span>
-              <span className="font-medium text-stone-700">{spec.value}</span>
-            </div>
+            <Fragment key={i}>
+              <span className="py-4 border-b border-stone-100 font-medium text-stone-500 text-sm whitespace-nowrap">
+                {spec.label}
+              </span>
+              <span className="py-4 border-b border-stone-100 font-medium text-stone-700 text-sm">
+                {spec.value}
+              </span>
+            </Fragment>
           ))}
         </div>
       </div>
