@@ -7,7 +7,7 @@ import { stripDiacritics } from '@/lib/text'
 import AdminLayout from '@/components/admin/AdminLayout'
 import ProductForm from '@/components/admin/ProductForm'
 import BulkTaobaoCostUpdate from '@/components/admin/BulkTaobaoCostUpdate'
-import { Product, Category, Campaign } from '@/types'
+import { Product, Category, Campaign, ProductVariant } from '@/types'
 import { hasCampaignFor } from '@/lib/campaignPrice'
 import type { Variant } from '@/components/admin/VariantsManager'
 import { LOW_STOCK_THRESHOLD } from '@/lib/stock'
@@ -31,6 +31,9 @@ export default function AdminProducts() {
   // Tổng tồn kho biến thể theo product_id — null nghĩa là sản phẩm không có biến thể
   // (dùng cờ in_stock thay vì số lượng)
   const [variantStockMap, setVariantStockMap] = useState<Record<string, number>>({})
+  // Đủ cột (không chỉ product_id/stock) — dùng cho bảng cập nhật giá Taobao
+  // hàng loạt (cần cost_price/price/taobao_price_cny/weight từng biến thể).
+  const [allVariants, setAllVariants] = useState<ProductVariant[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -57,7 +60,7 @@ export default function AdminProducts() {
     const [{ data: prods }, { data: cats }, { data: variants }, { data: camps }, { data: settingsRows }] = await Promise.all([
       supabase.from('products').select('*,category:categories(name)').order('created_at', { ascending: false }),
       supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('product_variants').select('product_id, stock'),
+      supabase.from('product_variants').select('id, product_id, group_name, option_name, sku, price, cost_price, taobao_price_cny, stock, weight, image_url, sort_order'),
       supabase.from('campaigns').select('*').eq('is_active', true),
       supabase.from('settings').select('key,value')
         .in('key', ['taobao_exchange_rate', 'taobao_fee_percent', 'taobao_shipping_per_kg']),
@@ -69,6 +72,7 @@ export default function AdminProducts() {
       stockMap[v.product_id] = (stockMap[v.product_id] ?? 0) + (v.stock ?? 0)
     })
     setVariantStockMap(stockMap)
+    setAllVariants((variants as unknown as ProductVariant[]) || [])
     setCampaigns((camps as unknown as Campaign[]) || [])
     if (settingsRows?.length) {
       const s = Object.fromEntries(settingsRows.map(r => [r.key, r.value]))
@@ -117,6 +121,7 @@ export default function AdminProducts() {
             // Để trống giá vốn biến thể → kế thừa giá vốn chung của sản phẩm,
             // tránh bị mặc định về 0 làm sai lệch tính lợi nhuận.
             cost_price:  v.cost_price ? Math.round(Number(v.cost_price)) : Math.round(Number(data.cost_price) || 0),
+            taobao_price_cny: v.taobao_price_cny !== '' && v.taobao_price_cny != null ? Number(v.taobao_price_cny) : null,
             stock:       Number(v.stock) || 0,
             weight:      Number(v.weight) || 0.5,
             image_url:   v.image_url || null,   // ← FIX: thêm dòng này
@@ -263,6 +268,7 @@ export default function AdminProducts() {
       {showBulkCost && (
         <BulkTaobaoCostUpdate
           products={products}
+          variants={allVariants}
           costSettings={costSettings}
           onClose={() => setShowBulkCost(false)}
           onApplied={() => { setShowBulkCost(false); load() }}

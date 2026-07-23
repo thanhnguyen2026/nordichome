@@ -2,13 +2,16 @@
 import { useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { calcTaobaoCost } from '@/lib/taobaoCost'
-import { Product } from '@/types'
+import { Product, ProductVariant } from '@/types'
 import { X, Calculator, TrendingUp, TrendingDown } from 'lucide-react'
 
 interface CostSettings { rate: number; fee: number; shipPerKg: number }
 
 interface Props {
   products: Product[]
+  // Đủ cột (cost_price/price/taobao_price_cny/weight) — dùng để tính lại giá
+  // vốn/giá bán cho TỪNG BIẾN THỂ có giá gốc Taobao riêng, không chỉ cấp SP.
+  variants: ProductVariant[]
   costSettings: CostSettings | null
   onClose: () => void
   onApplied: () => void
@@ -17,6 +20,9 @@ interface Props {
 }
 
 interface Row {
+  // Phân biệt để biết ghi vào bảng nào lúc áp dụng — 'products' hay
+  // 'product_variants' — id vẫn là khoá chính của đúng bảng đó.
+  kind: 'product' | 'variant'
   id: string
   name: string
   oldCost: number
@@ -31,38 +37,70 @@ interface Row {
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN') + '₫'
 
 // Gợi ý giá bán mới = giá vốn mới × (1 + % lãi CŨ) — giữ nguyên tỷ lệ lợi
-// nhuận admin đã đặt trước đó, không phải một con số tuỳ tiện. Sản phẩm chưa
-// có giá vốn cũ (mới thêm, cost=0) thì không có % lãi để giữ — mặc định gợi ý
-// giá bán = đúng giá vốn mới (0% lãi), admin tự sửa tay theo ý muốn.
+// nhuận admin đã đặt trước đó, không phải một con số tuỳ tiện. Chưa có giá
+// vốn cũ (mới thêm, cost=0) thì không có % lãi để giữ — mặc định gợi ý giá
+// bán = đúng giá vốn mới (0% lãi), admin tự sửa tay theo ý muốn.
 function suggestPrice(newCost: number, oldCost: number, oldPrice: number): number {
   if (oldCost <= 0) return newCost
   const markupPct = (oldPrice - oldCost) / oldCost
   return Math.round((newCost * (1 + markupPct)) / 1000) * 1000
 }
 
-export default function BulkTaobaoCostUpdate({ products, costSettings, onClose, onApplied, confirm, showToast }: Props) {
-  const eligible = useMemo(
-    () => products.filter(p => p.taobao_price_cny != null && p.taobao_price_cny > 0),
-    [products]
-  )
+export default function BulkTaobaoCostUpdate({ products, variants, costSettings, onClose, onApplied, confirm, showToast }: Props) {
+  const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products])
 
-  const [rows, setRows] = useState<Row[]>(() => eligible.map(p => {
+  const eligible = useMemo(() => {
+    const productRows = products
+      .filter(p => p.taobao_price_cny != null && p.taobao_price_cny > 0)
+      .map(p => ({
+        kind: 'product' as const,
+        id: p.id,
+        name: p.name,
+        priceCny: p.taobao_price_cny!,
+        weight: p.weight || 0,
+        oldCost: p.cost_price || 0,
+        oldPrice: p.price || 0,
+      }))
+
+    // Biến thể tự có giá gốc Taobao riêng — giá bán biến thể để trống (null)
+    // nghĩa là kế thừa giá sản phẩm (xem placeholder "Trống = giá SP" ở
+    // VariantsManager), nên fallback về giá sản phẩm cha khi tính % lãi cũ.
+    const variantRows = variants
+      .filter(v => v.taobao_price_cny != null && v.taobao_price_cny > 0)
+      .map(v => {
+        const parent = productById.get(v.product_id)
+        return {
+          kind: 'variant' as const,
+          id: v.id,
+          name: `${parent?.name ?? 'Sản phẩm đã xoá'} — ${v.option_name}`,
+          priceCny: v.taobao_price_cny!,
+          weight: v.weight || 0,
+          oldCost: v.cost_price || 0,
+          oldPrice: v.price ?? (parent?.price ?? 0),
+        }
+      })
+
+    return [...productRows, ...variantRows]
+  }, [products, variants, productById])
+
+  const [rows, setRows] = useState<Row[]>(() => eligible.map(e => {
     const newCost = costSettings
       ? calcTaobaoCost({
-          priceCny:      p.taobao_price_cny!,
-          weightKg:      p.weight || 0,
+          priceCny:      e.priceCny,
+          weightKg:      e.weight,
           exchangeRate:  costSettings.rate,
           feePercent:    costSettings.fee,
           shippingPerKg: costSettings.shipPerKg,
         })
-      : p.cost_price || 0
+      : e.oldCost
     return {
-      id:         p.id,
-      name:       p.name,
-      oldCost:    p.cost_price || 0,
-      oldPrice:   p.price || 0,
+      kind:       e.kind,
+      id:         e.id,
+      name:       e.name,
+      oldCost:    e.oldCost,
+      oldPrice:   e.oldPrice,
       costInput:  String(newCost),
-      priceInput: String(suggestPrice(newCost, p.cost_price || 0, p.price || 0)),
+      priceInput: String(suggestPrice(newCost, e.oldCost, e.oldPrice)),
       include:    true,
     }
   }))
@@ -83,22 +121,23 @@ export default function BulkTaobaoCostUpdate({ products, costSettings, onClose, 
   // nào suy đúng lại — xem lịch sử trao đổi. Áp dụng cùng lúc trong 1 lần mở
   // bảng thì oldCost/oldPrice vẫn luôn đúng, không có rủi ro này.
   const apply = async () => {
-    if (included.length === 0) { showToast('Chưa chọn sản phẩm nào'); return }
-    if (!(await confirm(`Áp dụng giá vốn + giá bán mới cho ${included.length} sản phẩm đã chọn?`))) return
+    if (included.length === 0) { showToast('Chưa chọn dòng nào'); return }
+    if (!(await confirm(`Áp dụng giá vốn + giá bán mới cho ${included.length} dòng đã chọn?`))) return
 
     setApplying(true)
     const results = await Promise.all(included.map(r => {
-      const patch: Partial<Product> = {
+      const patch = {
         cost_price: Math.round(Number(r.costInput) || 0),
         price:      Math.round(Number(r.priceInput) || 0),
       }
-      return supabase.from('products').update(patch).eq('id', r.id)
+      const table = r.kind === 'product' ? 'products' : 'product_variants'
+      return supabase.from(table).update(patch).eq('id', r.id)
     }))
     setApplying(false)
 
     const failed = results.filter(r => r.error).length
-    if (failed > 0) showToast(`${failed}/${included.length} sản phẩm cập nhật lỗi`)
-    else showToast(`Đã cập nhật giá vốn + giá bán cho ${included.length} sản phẩm`)
+    if (failed > 0) showToast(`${failed}/${included.length} dòng cập nhật lỗi`)
+    else showToast(`Đã cập nhật giá vốn + giá bán cho ${included.length} dòng`)
     onApplied()
   }
 
@@ -116,7 +155,7 @@ export default function BulkTaobaoCostUpdate({ products, costSettings, onClose, 
               <h2 className="font-bold text-sm">Cập nhật giá vốn / giá bán theo tỷ giá Taobao</h2>
               <p className="text-xs text-stone-400 mt-0.5">
                 {costSettings
-                  ? `Tỷ giá hiện tại: 1¥ = ${costSettings.rate.toLocaleString('vi-VN')}đ · Phí ${costSettings.fee}% · Ship ${costSettings.shipPerKg.toLocaleString('vi-VN')}đ/kg`
+                  ? `Tỷ giá hiện tại: 1¥ = ${costSettings.rate.toLocaleString('vi-VN')}đ · Phí ${costSettings.fee}% · Ship ${costSettings.shipPerKg.toLocaleString('vi-VN')}đ/kg — bao gồm cả sản phẩm và biến thể có giá gốc Taobao`
                   : 'Chưa cấu hình công thức Taobao ở Cài đặt'}
               </p>
             </div>
@@ -130,7 +169,7 @@ export default function BulkTaobaoCostUpdate({ products, costSettings, onClose, 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {eligible.length === 0 ? (
             <p className="text-sm text-stone-400 text-center py-8">
-              Không có sản phẩm nào đã nhập Giá Taobao gốc (¥) để tính lại.
+              Không có sản phẩm hoặc biến thể nào đã nhập Giá Taobao gốc (¥) để tính lại.
             </p>
           ) : (
             <>
@@ -155,7 +194,12 @@ export default function BulkTaobaoCostUpdate({ products, costSettings, onClose, 
                         <input type="checkbox" checked={r.include} onChange={e => setRow(r.id, { include: e.target.checked })}
                           className="mt-1.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-stone-700 truncate mb-2">{r.name}</p>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <p className="text-sm font-semibold text-stone-700 truncate">{r.name}</p>
+                            {r.kind === 'variant' && (
+                              <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded flex-shrink-0">biến thể</span>
+                            )}
+                          </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             <div>
                               <label className="text-[10px] font-semibold text-stone-400 uppercase block mb-1">

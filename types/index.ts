@@ -83,6 +83,9 @@ export interface ProductVariant {
   option_name: string
   price: number | null
   cost_price?: number
+  // Giá gốc Taobao (¥) riêng cho biến thể này — dùng để tự tính gợi ý giá vốn,
+  // xem lib/taobaoCost.ts. Chỉ admin dùng, không nằm trong PUBLIC_VARIANT_COLUMNS.
+  taobao_price_cny?: number | null
   stock: number
   weight: number
   sku: string | null

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Palette, Package, Lock, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Palette, Package, Lock, AlertTriangle, Lightbulb } from 'lucide-react'
+import { calcTaobaoCost } from '@/lib/taobaoCost'
 
 export interface Variant {
   id?: string
@@ -9,6 +10,9 @@ export interface Variant {
   sku: string
   price: string
   cost_price: string
+  // Giá gốc Taobao (¥) riêng cho biến thể này — để trống nếu không tự tính
+  // gợi ý giá vốn (nhập tay giá vốn như trước giờ vẫn được).
+  taobao_price_cny: string
   stock: string
   weight: string
   image_url: string
@@ -19,9 +23,13 @@ interface Props {
   variants: Variant[]
   onChange: (variants: Variant[]) => void
   isPreorder?: boolean
+  // Công thức tính giá vốn Taobao (Cài đặt) — truyền từ ProductForm xuống để
+  // gợi ý giá vốn theo giá gốc (¥) từng biến thể, giống hệt cách sản phẩm
+  // không biến thể đang làm.
+  costSettings?: { rate: number; fee: number; shipPerKg: number } | null
 }
 
-export default function VariantsManager({ variants, onChange, isPreorder }: Props) {
+export default function VariantsManager({ variants, onChange, isPreorder, costSettings }: Props) {
   const [open, setOpen] = useState(true)
   const [newGroup, setNewGroup] = useState('')
   const [newOption, setNewOption] = useState('')
@@ -42,6 +50,7 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
         sku:         '',
         price:       '',
         cost_price:  '',
+        taobao_price_cny: '',
         stock:       '0',
         weight:      '0.5',
         image_url:   '',
@@ -88,6 +97,7 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
     sku:         v.sku         ?? '',
     price:       v.price       ?? '',
     cost_price:  v.cost_price  ?? '',
+    taobao_price_cny: v.taobao_price_cny ?? '',
     stock:       v.stock       ?? '0',
     weight:      v.weight      ?? '0.5',
     image_url:   v.image_url   ?? '',
@@ -177,6 +187,15 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
                 {variants.map((raw, idx) => {
                   if (raw.group_name !== group) return null
                   const v = normalize(raw) // ← đảm bảo không có undefined
+                  const suggestedCost = costSettings && v.taobao_price_cny
+                    ? calcTaobaoCost({
+                        priceCny:      Number(v.taobao_price_cny) || 0,
+                        weightKg:      Number(v.weight) || 0,
+                        exchangeRate:  costSettings.rate,
+                        feePercent:    costSettings.fee,
+                        shippingPerKg: costSettings.shipPerKg,
+                      })
+                    : null
                   return (
                     <div key={idx} className="border border-stone-100 rounded-xl p-4 bg-stone-50">
                       {/* Tên (chỉnh sửa trực tiếp) + nút xoá */}
@@ -277,6 +296,32 @@ export default function VariantsManager({ variants, onChange, isPreorder }: Prop
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      {/* Giá Taobao gốc (¥) riêng cho biến thể — tự tính gợi ý
+                          giá vốn giống hệt sản phẩm không biến thể (ProductForm) */}
+                      <div className="mt-2">
+                        <label className="flex items-center gap-1 text-[10px] font-semibold text-stone-400 uppercase mb-1">
+                          <Lightbulb size={9} />
+                          Giá Taobao gốc (¥)
+                        </label>
+                        <input
+                          type="text" inputMode="decimal"
+                          value={v.taobao_price_cny}
+                          onChange={e => updateVariant(idx, 'taobao_price_cny', e.target.value)}
+                          placeholder="VD: 38 — để trống nếu tự nhập giá vốn thẳng"
+                          className="w-full border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-stone-400 bg-white"
+                        />
+                        {suggestedCost != null && (
+                          <p className="text-[11px] text-blue-600 mt-1">
+                            Gợi ý: {suggestedCost.toLocaleString('vi-VN')}đ{' '}
+                            <button type="button"
+                              onClick={() => updateVariant(idx, 'cost_price', String(suggestedCost))}
+                              className="underline hover:text-blue-800 cursor-pointer">
+                              Dùng giá này
+                            </button>
+                          </p>
+                        )}
                       </div>
 
                       {/* Hoặc dán link ảnh thủ công */}
