@@ -476,7 +476,17 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
       </div>
 
       {/* ── Biến thể ─────────────────────────────────────────────── */}
-      <VariantsManager variants={variants} onChange={setVariants} isPreorder={form.is_preorder} costSettings={costSettings} />
+      <VariantsManager
+        variants={variants}
+        onChange={setVariants}
+        isPreorder={form.is_preorder}
+        costSettings={costSettings}
+        // Giá bán/giá vốn CHUNG của sản phẩm — dùng làm giá trị kế thừa khi
+        // biến thể để trống ô Giá bán/Giá vốn ("Trống = giá SP"), để tính
+        // đúng % lãi hiển thị thay vì coi như giá vốn/giá bán = 0.
+        productPrice={Number(form.price) || 0}
+        productCostPrice={Number(form.cost_price) || 0}
+      />
 
       {/* ── Trạng thái & Hiển thị ────────────────────────────────── */}
       <div className="bg-white rounded-xl p-6 border border-stone-100">

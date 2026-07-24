@@ -192,11 +192,18 @@ export default function ProductDetailClient({ product, allImages, settings }: Pr
         flex riêng) để 2 cột luôn thẳng hàng nhau xuyên suốt; cột nhãn
         auto-size + whitespace-nowrap (không ngắt dòng), cột giá trị còn lại
         (1fr) canh trái nên xuống dòng tự nhiên, dễ đọc hơn hẳn so với canh
-        phải khi giá trị dài. */}
+        phải khi giá trị dài.
+        w-fit + max-w-md: nếu để khung rộng cố định (VD max-w-xl), cột 1fr
+        LUÔN giãn hết bề ngang đó dù giá trị ngắn ("750W"), khiến chữ dồn hẳn
+        về bên trái trong khi cả khung lại mx-auto canh giữa trang — nhìn lệch
+        hẳn so với tiêu đề "Thông số sản phẩm" phía trên. w-fit cho khung tự
+        co khít theo đúng nội dung rộng nhất (số liệu ngắn → khung hẹp, cân
+        giữa gọn gàng), max-w-md vẫn chặn khung phình quá rộng khi có giá trị
+        dài — buộc nó xuống dòng thay vì kéo giãn vô hạn. */}
     {product.specs?.length > 0 && (
       <div className="mb-16 max-w-3xl mx-auto">
         <h2 className="font-serif text-2xl font-semibold text-center mb-6">Thông số sản phẩm</h2>
-        <div className="max-w-xl mx-auto border-t border-stone-200 grid grid-cols-[auto_1fr] gap-x-6 sm:gap-x-10">
+        <div className="w-fit max-w-md mx-auto border-t border-stone-200 grid grid-cols-[auto_1fr] gap-x-6 sm:gap-x-10">
           {product.specs.map((spec, i) => (
             <Fragment key={i}>
               <span className="py-4 border-b border-stone-100 font-medium text-stone-500 text-sm whitespace-nowrap">

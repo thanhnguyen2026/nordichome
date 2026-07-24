@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Palette, Package, Lock, AlertTriangle, Lightbulb } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Palette, Package, Lock, AlertTriangle, Lightbulb, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcTaobaoCost } from '@/lib/taobaoCost'
 
 export interface Variant {
@@ -27,9 +27,14 @@ interface Props {
   // gợi ý giá vốn theo giá gốc (¥) từng biến thể, giống hệt cách sản phẩm
   // không biến thể đang làm.
   costSettings?: { rate: number; fee: number; shipPerKg: number } | null
+  // Giá bán/giá vốn CHUNG của sản phẩm — biến thể để trống 2 ô này nghĩa là
+  // "kế thừa giá sản phẩm" (xem placeholder "Trống = giá SP"), nên khi tính
+  // % lãi hiển thị cần fallback về giá trị này thay vì coi như bằng 0.
+  productPrice?: number
+  productCostPrice?: number
 }
 
-export default function VariantsManager({ variants, onChange, isPreorder, costSettings }: Props) {
+export default function VariantsManager({ variants, onChange, isPreorder, costSettings, productPrice = 0, productCostPrice = 0 }: Props) {
   const [open, setOpen] = useState(true)
   const [newGroup, setNewGroup] = useState('')
   const [newOption, setNewOption] = useState('')
@@ -196,6 +201,15 @@ export default function VariantsManager({ variants, onChange, isPreorder, costSe
                         shippingPerKg: costSettings.shipPerKg,
                       })
                     : null
+                  // % lãi — để trống Giá bán/Giá vốn nghĩa là kế thừa giá sản
+                  // phẩm ("Trống = giá SP/giá vốn SP"), nên fallback về
+                  // productPrice/productCostPrice thay vì coi như 0. Tính
+                  // theo markup (lãi/giá vốn) giống hệt ô sản phẩm không biến
+                  // thể ở ProductForm, không phải margin (lãi/giá bán).
+                  const effectivePrice = v.price !== '' ? Number(v.price) : productPrice
+                  const effectiveCost = v.cost_price !== '' ? Number(v.cost_price) : productCostPrice
+                  const variantProfitAmount = effectivePrice - effectiveCost
+                  const variantProfitPercent = effectiveCost > 0 ? (variantProfitAmount / effectiveCost) * 100 : null
                   return (
                     <div key={idx} className="border border-stone-100 rounded-xl p-4 bg-stone-50">
                       {/* Tên (chỉnh sửa trực tiếp) + nút xoá */}
@@ -293,6 +307,12 @@ export default function VariantsManager({ variants, onChange, isPreorder, costSe
                                 placeholder={field.placeholder}
                                 className="w-full border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-stone-400 bg-white"
                               />
+                              {field.key === 'price' && variantProfitPercent != null && (
+                                <p className={`flex items-center gap-1 text-[10px] mt-1 ${variantProfitAmount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                  {variantProfitAmount >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                                  Lãi {variantProfitAmount.toLocaleString('vi-VN')}₫ ({variantProfitPercent.toFixed(0)}%)
+                                </p>
+                              )}
                             </div>
                           ))}
                         </div>
