@@ -123,7 +123,9 @@ export default function AdminProducts() {
             cost_price:  v.cost_price ? Math.round(Number(v.cost_price)) : Math.round(Number(data.cost_price) || 0),
             taobao_price_cny: v.taobao_price_cny !== '' && v.taobao_price_cny != null ? Number(v.taobao_price_cny) : null,
             stock:       Number(v.stock) || 0,
-            weight:      Number(v.weight) || 0.5,
+            // Để trống cân nặng biến thể → kế thừa cân nặng chung của sản
+            // phẩm (giống giá vốn ở trên), không còn mặc định cứng 0.5kg.
+            weight:      v.weight ? Number(v.weight) : (Number(data.weight) || 0.5),
             image_url:   v.image_url || null,   // ← FIX: thêm dòng này
             sort_order:  i,
           }))

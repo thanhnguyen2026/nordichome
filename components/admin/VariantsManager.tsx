@@ -27,14 +27,16 @@ interface Props {
   // gợi ý giá vốn theo giá gốc (¥) từng biến thể, giống hệt cách sản phẩm
   // không biến thể đang làm.
   costSettings?: { rate: number; fee: number; shipPerKg: number } | null
-  // Giá bán/giá vốn CHUNG của sản phẩm — biến thể để trống 2 ô này nghĩa là
-  // "kế thừa giá sản phẩm" (xem placeholder "Trống = giá SP"), nên khi tính
-  // % lãi hiển thị cần fallback về giá trị này thay vì coi như bằng 0.
+  // Giá bán/giá vốn/cân nặng CHUNG của sản phẩm — biến thể để trống các ô
+  // này nghĩa là "kế thừa giá trị sản phẩm" (xem placeholder "Trống = ... SP"),
+  // nên khi tính % lãi hiển thị hoặc gợi ý giá vốn theo cân nặng cần fallback
+  // về giá trị này thay vì coi như bằng 0.
   productPrice?: number
   productCostPrice?: number
+  productWeight?: number
 }
 
-export default function VariantsManager({ variants, onChange, isPreorder, costSettings, productPrice = 0, productCostPrice = 0 }: Props) {
+export default function VariantsManager({ variants, onChange, isPreorder, costSettings, productPrice = 0, productCostPrice = 0, productWeight = 0 }: Props) {
   const [open, setOpen] = useState(true)
   const [newGroup, setNewGroup] = useState('')
   const [newOption, setNewOption] = useState('')
@@ -57,7 +59,7 @@ export default function VariantsManager({ variants, onChange, isPreorder, costSe
         cost_price:  '',
         taobao_price_cny: '',
         stock:       '0',
-        weight:      '0.5',
+        weight:      '',
         image_url:   '',
         sort_order:  variants.length,
       },
@@ -104,7 +106,7 @@ export default function VariantsManager({ variants, onChange, isPreorder, costSe
     cost_price:  v.cost_price  ?? '',
     taobao_price_cny: v.taobao_price_cny ?? '',
     stock:       v.stock       ?? '0',
-    weight:      v.weight      ?? '0.5',
+    weight:      v.weight      ?? '',
     image_url:   v.image_url   ?? '',
   })
 
@@ -192,10 +194,14 @@ export default function VariantsManager({ variants, onChange, isPreorder, costSe
                 {variants.map((raw, idx) => {
                   if (raw.group_name !== group) return null
                   const v = normalize(raw) // ← đảm bảo không có undefined
+                  // Trống Cân nặng = kế thừa cân nặng sản phẩm (giống Giá bán/
+                  // Giá vốn) — dùng đúng số này để tính phí ship trong công
+                  // thức, tránh gợi ý giá vốn bị thiếu hụt do ngầm coi 0kg.
+                  const effectiveWeight = v.weight !== '' ? Number(v.weight) || 0 : productWeight
                   const suggestedCost = costSettings && v.taobao_price_cny
                     ? calcTaobaoCost({
                         priceCny:      Number(v.taobao_price_cny) || 0,
-                        weightKg:      Number(v.weight) || 0,
+                        weightKg:      effectiveWeight,
                         exchangeRate:  costSettings.rate,
                         feePercent:    costSettings.fee,
                         shippingPerKg: costSettings.shipPerKg,
@@ -288,7 +294,7 @@ export default function VariantsManager({ variants, onChange, isPreorder, costSe
                             { key: 'price',      label: 'Giá bán (₫)',     type: 'text',   placeholder: 'Trống = giá SP', isPrice: true },
                             { key: 'cost_price', label: 'Giá vốn (₫)',   type: 'text',   placeholder: 'Trống = giá vốn SP', isPrice: true },
                             { key: 'stock',      label: 'Tồn kho',         type: 'number', placeholder: isPreorder ? 'Chưa cần' : '0', isPrice: false },
-                            { key: 'weight',     label: 'Cân nặng (kg)',   type: 'number', placeholder: '0.5', isPrice: false },
+                            { key: 'weight',     label: 'Cân nặng (kg)',   type: 'number', placeholder: 'Trống = cân nặng SP', isPrice: false },
                           ] as { key: 'sku' | 'price' | 'cost_price' | 'stock' | 'weight'; label: string; type: string; placeholder: string; isPrice: boolean }[]).map(field => (
                             <div key={field.key}>
                               <label className="flex items-center gap-1 text-[10px] font-semibold text-stone-400 mb-1">

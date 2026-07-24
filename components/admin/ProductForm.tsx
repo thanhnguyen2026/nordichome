@@ -481,11 +481,12 @@ export default function ProductForm({ product, categories, onSave, onCancel }: P
         onChange={setVariants}
         isPreorder={form.is_preorder}
         costSettings={costSettings}
-        // Giá bán/giá vốn CHUNG của sản phẩm — dùng làm giá trị kế thừa khi
-        // biến thể để trống ô Giá bán/Giá vốn ("Trống = giá SP"), để tính
-        // đúng % lãi hiển thị thay vì coi như giá vốn/giá bán = 0.
+        // Giá bán/giá vốn/cân nặng CHUNG của sản phẩm — dùng làm giá trị kế
+        // thừa khi biến thể để trống các ô tương ứng ("Trống = ... SP"), để
+        // tính đúng % lãi hiển thị / gợi ý giá vốn thay vì coi như bằng 0.
         productPrice={Number(form.price) || 0}
         productCostPrice={Number(form.cost_price) || 0}
+        productWeight={Number(form.weight) || 0}
       />
 
       {/* ── Trạng thái & Hiển thị ────────────────────────────────── */}
