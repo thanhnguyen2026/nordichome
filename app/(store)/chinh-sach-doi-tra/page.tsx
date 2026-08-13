@@ -4,7 +4,7 @@ export const metadata = { title: 'Chính sách đổi trả' }
 
 export default function ReturnPolicyPage() {
   return (
-    <PolicyPage title="Chính sách đổi trả">
+    <PolicyPage title="Chính sách đổi trả" htmlKey="policy_return_html">
       <p>
         Nordic Home mong muốn mỗi sản phẩm đến tay bạn đều nguyên vẹn và đúng như
         mô tả. Nếu có sự cố, chúng tôi hỗ trợ đổi/trả theo các điều kiện sau.

@@ -4,7 +4,7 @@ export const metadata = { title: 'Chính sách bảo mật' }
 
 export default function PrivacyPolicyPage() {
   return (
-    <PolicyPage title="Chính sách bảo mật">
+    <PolicyPage title="Chính sách bảo mật" htmlKey="policy_privacy_html">
       <p>
         Nordic Home tôn trọng và cam kết bảo vệ thông tin cá nhân của khách hàng.
         Chính sách này giải thích chúng tôi thu thập, sử dụng và bảo vệ thông tin

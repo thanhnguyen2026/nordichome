@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import {
   LayoutDashboard, Package, FolderTree, ClipboardList, Tag, PartyPopper,
-  Settings, Images, Megaphone, BarChart3, Menu, LogOut, Home, Star,
+  Settings, Images, Megaphone, BarChart3, Menu, LogOut, Home, Star, FileText,
 } from 'lucide-react'
 
 // Thứ tự gom theo nhóm công việc: Tổng quan → Vận hành hằng ngày (đơn hàng,
@@ -24,6 +24,7 @@ const NAV = [
   { href: '/admin/promotions', label: 'Khuyến mãi',      icon: PartyPopper },
   { href: '/admin/reviews',    label: 'Đánh giá',        icon: Star },
   { href: '/admin/analytics',  label: 'Thống kê',        icon: BarChart3 },
+  { href: '/admin/policies',   label: 'Trang chính sách', icon: FileText },
   { href: '/admin/settings',   label: 'Cài đặt',         icon: Settings },
 ]
 

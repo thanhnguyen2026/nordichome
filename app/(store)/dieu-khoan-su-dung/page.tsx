@@ -4,7 +4,7 @@ export const metadata = { title: 'Điều khoản sử dụng' }
 
 export default function TermsPage() {
   return (
-    <PolicyPage title="Điều khoản sử dụng">
+    <PolicyPage title="Điều khoản sử dụng" htmlKey="policy_terms_html">
       <p>
         Khi truy cập và sử dụng website Nordic Home, bạn đồng ý với các điều
         khoản dưới đây.
