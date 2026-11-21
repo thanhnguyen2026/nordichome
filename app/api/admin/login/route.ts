@@ -30,7 +30,20 @@ export async function POST(req: NextRequest) {
     }
   )
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  let error
+  try {
+    ;({ error } = await supabase.auth.signInWithPassword({ email, password }))
+  } catch (e) {
+    // Không kết nối được Supabase (vd. dự án bị pause) — đừng báo "sai mật khẩu".
+    console.error('[admin/login] Supabase unreachable:', e)
+    return NextResponse.json({ error: 'Không kết nối được máy chủ dữ liệu, vui lòng thử lại sau' }, { status: 503 })
+  }
+  // supabase-js trả lỗi mạng dưới dạng error (status 0 / AuthRetryableFetchError)
+  // thay vì throw — cũng không phải sai mật khẩu, không tính là lần thử sai.
+  if (error && (error.name === 'AuthRetryableFetchError' || !error.status)) {
+    console.error('[admin/login] Supabase unreachable:', error)
+    return NextResponse.json({ error: 'Không kết nối được máy chủ dữ liệu, vui lòng thử lại sau' }, { status: 503 })
+  }
 
   if (!error) {
     resetLoginAttempts(ip)
