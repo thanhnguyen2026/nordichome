@@ -161,7 +161,17 @@ async function publishWebsite() {
       .map(l => l.replace(/^\s*[-•]\s*/, '').trim())
       .filter(l => l.includes(':') && !l.includes('[Cần bổ sung]'))
       .map(l => { const i = l.indexOf(':'); return { label: l.slice(0, i).trim(), value: l.slice(i + 1).trim() } }),
-    content_blocks: [],
+    // "## Content Blocks" dạng "- 02: Chú thích" (số = thứ tự ảnh) → khối ảnh
+    // lớn kèm chú thích trên trang sản phẩm. Không có mục này → mọi ảnh trừ
+    // ảnh bìa, không chú thích.
+    content_blocks: (() => {
+      const lines = section('WEBSITE', 'Content Blocks').split('\n')
+        .map(l => l.match(/^\s*[-•]\s*(\d+)\s*:?\s*(.*)$/)).filter(Boolean)
+      const pick = lines.length
+        ? lines.map(m => ({ i: Number(m[1]) - 1, text: m[2].trim() }))
+        : urls.slice(1).map((_, k) => ({ i: k + 1, text: '' }))
+      return pick.filter(b => urls[b.i]).map(b => ({ text: b.text, image_url: urls[b.i] }))
+    })(),
     cover_image: urls[0], images: urls,
     weight: 0.5, in_stock: true, is_preorder: false,
     is_visible: Boolean(flag('visible') && price > 0),
