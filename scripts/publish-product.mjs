@@ -156,7 +156,12 @@ async function publishWebsite() {
     price, sale_price: null,
     short_desc: stripTodo(section('WEBSITE', 'Short Description')),
     description: stripTodo(section('WEBSITE', 'Long Description')),
-    specs: [], content_blocks: [],
+    // "## Specs" dạng "- Nhãn: Giá trị" → bảng thông số; bỏ dòng còn [Cần bổ sung]
+    specs: section('WEBSITE', 'Specs').split('\n')
+      .map(l => l.replace(/^\s*[-•]\s*/, '').trim())
+      .filter(l => l.includes(':') && !l.includes('[Cần bổ sung]'))
+      .map(l => { const i = l.indexOf(':'); return { label: l.slice(0, i).trim(), value: l.slice(i + 1).trim() } }),
+    content_blocks: [],
     cover_image: urls[0], images: urls,
     weight: 0.5, in_stock: true, is_preorder: false,
     is_visible: Boolean(flag('visible') && price > 0),
@@ -183,7 +188,7 @@ const fbHeaders = { Authorization: `Bearer ${FB_TOKEN}` }
 async function publishFacebook() {
   if (status.facebook && !FORCE) { console.log('Facebook: đã đăng trước đó, bỏ qua.'); return }
   // Sản phẩm còn ẩn trên web → link sẽ 404, dùng CTA mặc định (trang chủ).
-  const cta = status.website_url && status.website_visible ? `Khám phá thêm tại:\n${status.website_url}` : section('FACEBOOK', 'CTA')
+  const cta = status.website_url && status.website_visible ? `👉 Xem thêm: ${status.website_url}` : section('FACEBOOK', 'CTA')
   const message = [section('FACEBOOK', 'Title'), section('FACEBOOK', 'Content'), cta, section('FACEBOOK', 'Hashtags')]
     .filter(Boolean).join('\n\n')
   if (message.includes('[Cần bổ sung]')) throw Object.assign(new Error('nội dung Facebook còn [Cần bổ sung]'), { fatal: true })
